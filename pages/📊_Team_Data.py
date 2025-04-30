@@ -77,12 +77,14 @@ st.dataframe(pos_counts)
 st.markdown("---")
 
 # -------------------------------
-# Average Height by Position
+# Average Height by Position and Year (Grouped Bar Chart)
 # -------------------------------
 
-st.subheader("📏 Average Height by Position")
+import plotly.express as px
 
-# Helper: convert height strings like "6'1" to inches
+st.subheader("📏 Average Height by Position and Year")
+
+# Convert height "6'1" to inches
 def convert_height_to_inches(ht):
     try:
         parts = ht.strip().replace('"', '').split("'")
@@ -94,25 +96,36 @@ def convert_height_to_inches(ht):
 
 df["height_in"] = df["height"].apply(convert_height_to_inches)
 
-# Group and calculate average
-avg_height = (
-    df.dropna(subset=["height_in"])
-    .groupby("position")["height_in"]
+# Compute grouped average height
+avg_height_by_pos_year = (
+    df.dropna(subset=["height_in", "position", "year"])
+    .groupby(["position", "year"])["height_in"]
     .mean()
-    .round(1)
-    .sort_values(ascending=False)
+    .reset_index()
 )
 
-st.bar_chart(avg_height)
+# Plotly grouped bar chart
+fig = px.bar(
+    avg_height_by_pos_year,
+    x="position",
+    y="height_in",
+    color="year",
+    barmode="group",
+    text=avg_height_by_pos_year["height_in"].round(1),
+    title="Average Player Height by Position and Year",
+)
 
-# Optional: readable format
-st.markdown("#### Height Averages (in feet/inches)")
-for position, height_in in avg_height.items():
-    feet = int(height_in) // 12
-    inches = int(round(height_in) % 12)
-    st.markdown(f"**{position}**: {feet}'{inches}\" ({height_in} in)")
+fig.update_traces(textposition="outside")
+fig.update_layout(
+    xaxis_title="Position",
+    yaxis_title="Avg Height (inches)",
+    height=500,
+    plot_bgcolor="#fafafa",
+    paper_bgcolor="#fafafa",
+)
 
-st.markdown("---")
+st.plotly_chart(fig, use_container_width=True)
+
 
 # -------------------------------
 # Footer
