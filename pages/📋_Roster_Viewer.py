@@ -99,33 +99,37 @@ if name_search:
 st.subheader("📄 Filtered Roster Data")
 st.dataframe(filtered_df.reset_index(drop=True))
 
-# 🖼️ Player Headshots Display
-st.markdown("### 🖼️ Player Headshots")
-for _, row in filtered_df.iterrows():
-    season_dir = os.path.join(ROSTER_BASE_DIR, row["season"])
-    
-    # Build expected image name like "1 - John Smith.jpg"
-    jersey = str(row["#"]).strip()
-    name = str(row["name"]).strip()
-    expected_filename = f"{jersey} - {name}.jpg"
-    
-    # Search case-insensitively
-    matched_image = None
-    for f in os.listdir(season_dir):
-        if f.lower() == expected_filename.lower():
-            matched_image = os.path.join(season_dir, f)
-            break
+# 🖼️ Grouped Headshots by Player Across Seasons
+st.markdown("### 🖼️ Player Headshots by Season")
 
-    if matched_image and os.path.exists(matched_image):
-        col1, col2 = st.columns([1, 4])
-        img = Image.open(matched_image)
-        col1.image(img, width=120)
-        col2.markdown(f"**{name}** — #{jersey}")
-        col2.markdown(f"- **Season:** {row['season']}")
-        col2.markdown(f"- **Position:** {row['position']}")
-        col2.markdown(f"- **Height:** {row['height']}")
-        col2.markdown(f"- **Year:** {row['year']}")
-        col2.markdown(f"- **Hometown:** {row['hometown']}")
-        st.markdown("---")
-    else:
-        st.warning(f"No headshot found for {name} in {row['season']}")
+# Group by player name
+grouped = filtered_df.groupby("name")
+
+for name, group in grouped:
+    st.markdown(f"## {name}")
+    cols = st.columns(min(len(group), 5))  # Up to 5 per row
+
+    for idx, (_, row) in enumerate(group.sort_values("season")):
+        season_dir = os.path.join(ROSTER_BASE_DIR, row["season"])
+        jersey = str(row["#"]).strip()
+        expected_filename = f"{jersey} - {name}.jpg"
+
+        # Try to find matching image
+        matched_image = None
+        for f in os.listdir(season_dir):
+            if f.lower() == expected_filename.lower():
+                matched_image = os.path.join(season_dir, f)
+                break
+
+        with cols[idx]:
+            if matched_image and os.path.exists(matched_image):
+                img = Image.open(matched_image)
+                st.image(img, width=150, caption=row["season"])
+            else:
+                st.warning("No image")
+                st.caption(row["season"])
+
+            st.markdown(f"**#{jersey}**")
+            st.markdown(f"{row['position']}, {row['height']}")
+            st.markdown(f"Year: {row['year']}")
+            st.markdown(f"{row['hometown']}")
