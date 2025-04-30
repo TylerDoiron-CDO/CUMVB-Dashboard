@@ -109,30 +109,32 @@ avg_height = (
     .reset_index()
 )
 
-# Create horizontal grouped bar chart
+# Plotly horizontal grouped bar chart
 fig = px.bar(
     avg_height,
     y="position",
     x="height_in",
     color="year",
-    barmode="group",
-    orientation="h",  # <-- key change for horizontal
+    orientation="h",  # Horizontal bars
     text=avg_height["height_in"].round(1),
     labels={
         "position": "Position",
-        "height_in": "Avg Height (in)",
-        "year": "Year of Eligibility"
+        "height_in": "Average Height (inches)",
+        "year": "Year"
     },
-    title="Average Height by Position, Grouped by Year",
+    title="Average Player Height by Position and Year"
 )
 
-fig.update_traces(textposition="auto")
+fig.update_traces(textposition="outside")
+
+# 🔥 This is what makes them appear side-by-side (NOT stacked)
 fig.update_layout(
+    barmode="group",
+    height=500,
     xaxis_title="Average Height (inches)",
     yaxis_title="Position",
-    height=500,
     plot_bgcolor="#fafafa",
-    paper_bgcolor="#fafafa"
+    paper_bgcolor="#fafafa",
 )
 
 st.plotly_chart(fig, use_container_width=True)
