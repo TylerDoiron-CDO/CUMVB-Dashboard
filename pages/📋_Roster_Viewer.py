@@ -6,6 +6,10 @@ from PIL import Image, ImageOps
 ROSTER_BASE_DIR = "rosters"
 CSV_FILENAME = "team_info.csv"
 
+# -------------------------------
+# Filtered Data Table
+# -------------------------------
+
 st.title("📋 Historical Roster Viewer")
 
 @st.cache_data
@@ -99,6 +103,12 @@ if name_search:
 st.subheader("📄 Filtered Roster Data")
 st.dataframe(filtered_df.reset_index(drop=True))
 
+st.markdown("---")
+
+# -------------------------------
+# Player Headshots
+# -------------------------------
+
 # 🖼️ Grouped Headshots by Player Across Seasons
 st.markdown("### 🖼️ Player Headshots by Season")
 
@@ -143,3 +153,11 @@ for name, group in grouped:
             st.markdown(f"{row['position']}, {row['height']}")
             st.markdown(f"Year: {row['year']}")
             st.markdown(f"{row['hometown']}")
+
+st.markdown("---")
+
+# -------------------------------
+# Footer
+# -------------------------------
+
+st.caption("Advanced analytics powered by by Astute Innovations & Streamlit • Crandall Chargers Men's Volleyball © 2025")
