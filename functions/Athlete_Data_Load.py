@@ -65,20 +65,20 @@ def process_athlete_data_file(file_path, file_name):
     other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
     return df[metadata + other_cols + ["source_file"]]
 
-def load_preprocessed_athlete_data():
-    if os.path.exists(CACHE_FILE):
+def load_preprocessed_athlete_data(force_rebuild=False):
+    if os.path.exists(CACHE_FILE) and not force_rebuild:
         return pd.read_parquet(CACHE_FILE)
 
     all_dfs = []
 
-    # Process Athlete Data files
+    # Load Athlete Data
     for file in os.listdir(ATHLETE_DATA_DIR):
         if file.endswith(".csv"):
             df = process_athlete_data_file(os.path.join(ATHLETE_DATA_DIR, file), file)
             if df is not None:
                 all_dfs.append(df)
 
-    # Process Historical Data
+    # Load Historical Data
     if os.path.exists(HISTORICAL_DATA_FILE):
         try:
             df = pd.read_csv(HISTORICAL_DATA_FILE)
