@@ -120,12 +120,14 @@ for name, group in grouped:
     for idx, (_, row) in enumerate(group.iterrows()):
         season_dir = os.path.join(ROSTER_BASE_DIR, row["season"])
         jersey = str(row["#"]).strip()
-        expected_filename = f"{jersey} - {name}.jpg"
+        name_clean = str(row["name"]).strip()
+        expected_filename = f"{jersey} - {name_clean}".lower()
 
-        # Find image
+        # Try to find matching .jpg or .jpeg file
         matched_image = None
         for f in os.listdir(season_dir):
-            if f.lower() == expected_filename.lower():
+            fname, ext = os.path.splitext(f.lower())
+            if fname.strip() == expected_filename and ext in [".jpg", ".jpeg"]:
                 matched_image = os.path.join(season_dir, f)
                 break
 
