@@ -160,7 +160,7 @@ else:
             if os.path.exists(CACHE_FILE):
                 os.remove(CACHE_FILE)
                 st.warning("⚠️ Cache has been cleared. The app will now reload and rebuild from source files.")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.info("ℹ️ No cache file found to reset.")
         st.caption("⚠️ Only use if data has changed or is outdated.")
