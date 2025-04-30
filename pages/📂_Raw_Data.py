@@ -78,18 +78,20 @@ def process_athlete_data_file(file_path, file_name):
     team = team_match.group(1).strip() if team_match else "Unknown"
 
     # Add metadata
-    df["Season"] = season
-    df["Date"] = date_str
-    df["Home"] = home_team
-    df["Away"] = away_team
-    df["TEAM"] = team
+    df.insert(0, "Season", season)
+    df.insert(1, "Date", date_str)
+    df.insert(2, "Home", home_team)
+    df.insert(3, "Away", away_team)
+    df.insert(4, "TEAM", team)
     df["source_file"] = file_name
 
-    # Reorder columns and drop unwanted '0' columns
-    cols = df.columns.tolist()
+    # Drop columns starting with '0'
+    df = df[[col for col in df.columns if not str(col).startswith("0")]]
+
+    # Reorder to place metadata first, source_file last
     metadata = ["Season", "Date", "Home", "Away", "TEAM"]
-    non_metadata = [c for c in cols if c not in metadata and c != "source_file" and not c.startswith("0")]
-    df = df[metadata + non_metadata + ["source_file"]]
+    other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
+    df = df[metadata + other_cols + ["source_file"]]
 
     return df
 
