@@ -87,6 +87,18 @@ def load_preprocessed_athlete_data():
 
     if all_dfs:
         combined = pd.concat(all_dfs, ignore_index=True)
+
+        # 🔐 Clean for parquet writing
+        combined.columns = [str(col) for col in combined.columns]
+        for col in combined.columns:
+            if isinstance(combined[col].iloc[0], list) or isinstance(combined[col].iloc[0], dict):
+                combined[col] = combined[col].astype(str)
+            else:
+                try:
+                    pd.Series(combined[col])  # safe check
+                except:
+                    combined[col] = combined[col].astype(str)
+
         combined.to_parquet(CACHE_FILE, index=False)
         return combined
     else:
