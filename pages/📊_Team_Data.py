@@ -84,9 +84,9 @@ st.markdown("---")
 
 import plotly.graph_objects as go
 
-st.subheader("📏 Average Height by Position (Grouped by Year)")
+st.subheader("📏 Average Height by Position (Grouped by Season)")
 
-# Convert height string to inches
+# Convert height to inches
 def convert_height_to_inches(ht):
     try:
         parts = ht.strip().replace('"', '').split("'")
@@ -98,41 +98,40 @@ def convert_height_to_inches(ht):
 
 df["height_in"] = df["height"].apply(convert_height_to_inches)
 
-# Drop incomplete rows
-valid_df = df.dropna(subset=["height_in", "position", "year"])
+# Drop missing data
+valid_df = df.dropna(subset=["height_in", "position", "season"])
 
-# Group: average height by position and year
+# Group by season + position
 avg_height = (
     valid_df
-    .groupby(["year", "position"])["height_in"]
+    .groupby(["season", "position"])["height_in"]
     .mean()
     .reset_index()
     .sort_values("position")
 )
 
-# Get all unique positions and years
+# Unique axes values
 positions = sorted(avg_height["position"].unique())
-years = sorted(avg_height["year"].unique())
+seasons = sorted(avg_height["season"].unique())
 
-# Create one trace per year (actual year label, not "Year X")
+# One trace per season
 traces = []
-for year in years:
-    year_data = avg_height[avg_height["year"] == year]
-    heights = [year_data[year_data["position"] == pos]["height_in"].values[0] if pos in year_data["position"].values else None for pos in positions]
-    
+for season in seasons:
+    season_data = avg_height[avg_height["season"] == season]
+    heights = [season_data[season_data["position"] == pos]["height_in"].values[0] if pos in season_data["position"].values else None for pos in positions]
+
     traces.append(go.Bar(
-        name=str(year),  # <- use actual year
+        name=season,
         y=positions,
         x=heights,
         orientation='h'
     ))
 
-
-# Build figure
+# Plotly figure
 fig = go.Figure(data=traces)
 fig.update_layout(
     barmode='group',
-    title="Average Height by Position (Grouped by Year)",
+    title="Average Player Height by Position (Grouped by Season)",
     xaxis_title="Average Height (inches)",
     yaxis_title="Position",
     height=500,
