@@ -103,20 +103,29 @@ st.dataframe(filtered_df.reset_index(drop=True))
 st.markdown("### 🖼️ Player Headshots")
 for _, row in filtered_df.iterrows():
     season_dir = os.path.join(ROSTER_BASE_DIR, row["season"])
-    image_files = [
-        f for f in os.listdir(season_dir)
-        if f.lower().endswith(".jpg") and row["name"].lower() in f.lower()
-    ]
+    
+    # Build expected image name like "1 - John Smith.jpg"
+    jersey = str(row["#"]).strip()
+    name = str(row["name"]).strip()
+    expected_filename = f"{jersey} - {name}.jpg"
+    
+    # Search case-insensitively
+    matched_image = None
+    for f in os.listdir(season_dir):
+        if f.lower() == expected_filename.lower():
+            matched_image = os.path.join(season_dir, f)
+            break
 
-    if image_files:
+    if matched_image and os.path.exists(matched_image):
         col1, col2 = st.columns([1, 4])
-        img_path = os.path.join(season_dir, image_files[0])
-        img = Image.open(img_path)
+        img = Image.open(matched_image)
         col1.image(img, width=120)
-        col2.markdown(f"**{row['name']}** — #{row['#']}")
+        col2.markdown(f"**{name}** — #{jersey}")
         col2.markdown(f"- **Season:** {row['season']}")
         col2.markdown(f"- **Position:** {row['position']}")
         col2.markdown(f"- **Height:** {row['height']}")
         col2.markdown(f"- **Year:** {row['year']}")
         col2.markdown(f"- **Hometown:** {row['hometown']}")
         st.markdown("---")
+    else:
+        st.warning(f"No headshot found for {name} in {row['season']}")
