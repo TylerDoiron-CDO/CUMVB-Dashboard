@@ -12,22 +12,39 @@ st.title("📋 Historical Roster Viewer")
 @st.cache_data
 def load_all_rosters():
     all_data = []
+    errors = []
     
     for season_folder in os.listdir(ROSTER_BASE_DIR):
         season_path = os.path.join(ROSTER_BASE_DIR, season_folder)
         csv_path = os.path.join(season_path, CSV_FILENAME)
-        
-        if not os.path.isdir(season_path) or not os.path.exists(csv_path):
+
+        if not os.path.isdir(season_path):
             continue
-        
+
+        if not os.path.exists(csv_path):
+            errors.append(f"Missing file: {csv_path}")
+            continue
+
         try:
             df = pd.read_csv(csv_path, encoding="utf-8")
         except UnicodeDecodeError:
-            df = pd.read_csv(csv_path, encoding="ISO-8859-1")
-        
+            try:
+                df = pd.read_csv(csv_path, encoding="ISO-8859-1")
+            except Exception as e:
+                errors.append(f"{csv_path} could not be read: {e}")
+                continue
+
         df["season"] = season_folder
         all_data.append(df)
-    
+
+    if not all_data:
+        st.error("❌ No valid roster CSVs were found.")
+        if errors:
+            st.error("Errors encountered:")
+            for err in errors:
+                st.text(err)
+        raise ValueError("No roster data to load.")
+
     return pd.concat(all_data, ignore_index=True)
 
 df = load_all_rosters()
