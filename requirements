@@ -1,4 +1,4 @@
 streamlit
 pandas
 Pillow
-plotly
+plotly>=5.0
