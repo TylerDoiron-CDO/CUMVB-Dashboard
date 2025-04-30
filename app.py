@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from pathlib import Path
 
 st.set_page_config(page_title="🏐 Volleyball Team Analytics", layout="wide")
@@ -13,9 +14,16 @@ Use the sidebar to:
 - Track fitness progress and more
 """)
 
-# Optionally preview roster
+# Load preview of the roster
 csv_path = Path("roster 24-25/team info.csv")
+
+@st.cache_data
+def load_roster(path):
+    return pd.read_csv(path)
+
 if csv_path.exists():
     st.subheader("📋 Team Preview")
-    df = st.cache_data(pd.read_csv)(csv_path)
+    df = load_roster(csv_path)
     st.dataframe(df)
+else:
+    st.warning("Roster CSV not found at: roster 24-25/team info.csv")
