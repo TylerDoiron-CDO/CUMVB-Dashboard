@@ -85,7 +85,7 @@ def process_athlete_data_file(file_path, file_name):
     df["TEAM"] = team
     df["source_file"] = file_name
 
-    # Reorder columns
+    # Reorder columns and drop unwanted '0' columns
     cols = df.columns.tolist()
     metadata = ["Season", "Date", "Home", "Away", "TEAM"]
     non_metadata = [c for c in cols if c not in metadata and c != "source_file" and not c.startswith("0")]
