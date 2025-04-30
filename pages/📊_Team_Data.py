@@ -55,15 +55,46 @@ def load_all_rosters():
 df = load_all_rosters()
 
 # -------------------------------
-# Quick Summary Stats
+# Roster Composition Overview
 # -------------------------------
 
 st.subheader("📈 Roster Composition Overview")
 
+# Helper to convert height to inches
+def convert_height_to_inches(ht):
+    try:
+        parts = ht.strip().replace('"', '').split("'")
+        feet = int(parts[0])
+        inches = int(parts[1]) if len(parts) > 1 else 0
+        return feet * 12 + inches
+    except:
+        return None
+
+# Ensure height_in exists
+if "height_in" not in df.columns:
+    df["height_in"] = df["height"].apply(convert_height_to_inches)
+
+# Calculate stats
+avg_height_in = df["height_in"].dropna().mean()
+avg_feet = int(avg_height_in) // 12
+avg_inches = int(round(avg_height_in % 12))
+
+total_players = len(df)
+unique_seasons = df["season"].nunique()
+unique_hometowns = df["hometown"].nunique()
+unique_positions = df["position"].nunique()
+avg_players_per_season = round(total_players / unique_seasons, 1) if unique_seasons else 0
+
+# Display metrics
 col1, col2, col3 = st.columns(3)
-col1.metric("Total Players", len(df))
-col2.metric("Seasons Tracked", df["season"].nunique())
-col3.metric("Unique Hometowns", df["hometown"].nunique())
+col1.metric("Total Players", total_players)
+col2.metric("Seasons Tracked", unique_seasons)
+col3.metric("Unique Hometowns", unique_hometowns)
+
+col4, col5, col6 = st.columns(3)
+col4.metric("Avg Height", f"{avg_feet}'{avg_inches}\" ({round(avg_height_in, 1)} in)")
+col5.metric("Avg Players / Season", avg_players_per_season)
+col6.metric("Positions Used", unique_positions)
 
 st.markdown("---")
 
