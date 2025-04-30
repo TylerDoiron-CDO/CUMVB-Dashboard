@@ -90,31 +90,31 @@ def load_preprocessed_athlete_data():
 
     combined = pd.concat(all_dfs, ignore_index=True)
 
-    # 🔐 Clean all column names
+    # 🔐 Clean column names
     combined.columns = [str(col) for col in combined.columns]
 
-    # 🔐 Clean each column
+    # 🔐 Ensure all columns are Arrow-compatible
+    safe_df = pd.DataFrame()
     for col in combined.columns:
         try:
-            # Try convert to numeric if it makes sense
-            combined[col] = pd.to_numeric(combined[col], errors='ignore')
-        except:
-            pass
+            # Attempt numeric conversion
+            col_data = pd.to_numeric(combined[col], errors="ignore")
+        except Exception:
+            col_data = combined[col].astype(str)
 
-        # If still object type, convert to string to avoid Arrow issues
-        if combined[col].dtype == 'object':
-            try:
-                combined[col] = combined[col].astype(str)
-            except:
-                combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
+        # Ensure all values are string or numeric
+        if col_data.dtype == "object":
+            col_data = col_data.astype(str)
 
-    # ✅ Save to Parquet safely
+        safe_df[col] = col_data
+
     try:
-        combined.to_parquet(CACHE_FILE, index=False)
+        safe_df.to_parquet(CACHE_FILE, index=False)
     except Exception as e:
-        st.warning(f"Failed to save cache: {e}")
+        st.warning(f"❌ Failed to write cache file: {e}")
 
-    return combined
+    return safe_df
+
 
 # -------------------------------
 # Main Display Logic
