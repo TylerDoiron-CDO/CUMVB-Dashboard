@@ -82,9 +82,11 @@ st.markdown("---")
 # Average Height by Position and Year (Grouped Bar Chart)
 # -------------------------------
 
-st.subheader("📏 Average Height Over Time by Position")
+import plotly.express as px
 
-# Convert height string to inches
+st.subheader("📏 Average Height by Position and Year")
+
+# Convert height "6'1" to inches
 def convert_height_to_inches(ht):
     try:
         parts = ht.strip().replace('"', '').split("'")
@@ -96,48 +98,43 @@ def convert_height_to_inches(ht):
 
 df["height_in"] = df["height"].apply(convert_height_to_inches)
 
-# Drop missing height/year/position
-valid_df = df.dropna(subset=["height_in", "year", "position"])
+# Drop missing values
+valid_df = df.dropna(subset=["height_in", "position", "year"])
 
-# Grouped data by position/year
-avg_height_by_pos_year = (
+# Group average height by position and year
+avg_height = (
     valid_df
     .groupby(["position", "year"])["height_in"]
     .mean()
     .reset_index()
 )
 
-# Get all positions
-positions = avg_height_by_pos_year["position"].unique()
+# Create grouped bar chart
+fig = px.bar(
+    avg_height,
+    x="position",
+    y="height_in",
+    color="year",
+    barmode="group",
+    text=avg_height["height_in"].round(1),
+    labels={
+        "position": "Position",
+        "height_in": "Avg Height (in)",
+        "year": "Year of Eligibility"
+    },
+    title="Average Height by Position Across Years",
+)
 
-# Render one chart per position
-for pos in sorted(positions):
-    pos_data = avg_height_by_pos_year[avg_height_by_pos_year["position"] == pos]
-    pos_data = pos_data.sort_values("year")
+fig.update_traces(textposition="outside")
+fig.update_layout(
+    height=500,
+    xaxis_title="Position",
+    yaxis_title="Average Height (inches)",
+    plot_bgcolor="#fafafa",
+    paper_bgcolor="#fafafa"
+)
 
-    st.markdown(f"#### 📊 {pos} - Average Height by Year")
-
-    fig = px.bar(
-        pos_data,
-        x="year",
-        y="height_in",
-        text=pos_data["height_in"].round(1),
-        labels={"height_in": "Avg Height (inches)", "year": "Year"},
-        title=f"Average Height for {pos}s",
-    )
-
-    fig.update_traces(textposition="outside")
-    fig.update_layout(
-        yaxis_title="Height (inches)",
-        xaxis_title="Year",
-        showlegend=False,
-        height=400,
-        plot_bgcolor="#fafafa",
-        paper_bgcolor="#fafafa",
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown("---")
+st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------
 # Footer
