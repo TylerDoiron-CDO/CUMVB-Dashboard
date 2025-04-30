@@ -172,6 +172,13 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+
+st.markdown("---")
+
+# -------------------------------
+# Average Height by Average Height by Position (Grouped by Year)
+# -------------------------------
+
 st.subheader("📏 Average Height by Eligibility Year")
 
 # Make sure height is in inches
@@ -198,12 +205,6 @@ avg_height_by_year = (
     .sort_values("year")
 )
 
-st.markdown("---")
-
-# -------------------------------
-# Average Height by Average Height by Position (Grouped by Year)
-# -------------------------------
-import plotly.express as px
 fig = px.bar(
     avg_height_by_year,
     x="year",
