@@ -110,7 +110,7 @@ st.dataframe(pos_counts)
 st.markdown("---")
 
 # -------------------------------
-# Average Height by Position and Year (Grouped Bar Chart)
+# Average Height by Average Height by Position (Grouped by Season)
 # -------------------------------
 
 import plotly.graph_objects as go
@@ -171,6 +171,64 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+st.subheader("📏 Average Height by Eligibility Year")
+
+# Make sure height is in inches
+if "height_in" not in df.columns:
+    def convert_height_to_inches(ht):
+        try:
+            parts = ht.strip().replace('"', '').split("'")
+            feet = int(parts[0])
+            inches = int(parts[1]) if len(parts) > 1 else 0
+            return feet * 12 + inches
+        except:
+            return None
+    df["height_in"] = df["height"].apply(convert_height_to_inches)
+
+# Drop missing data
+valid_df = df.dropna(subset=["height_in", "year"])
+
+# Group and calculate average height by year
+avg_height_by_year = (
+    valid_df
+    .groupby("year")["height_in"]
+    .mean()
+    .reset_index()
+    .sort_values("year")
+)
+
+st.markdown("---")
+
+# -------------------------------
+# Average Height by Average Height by Position (Grouped by Year)
+# -------------------------------
+import plotly.express as px
+fig = px.bar(
+    avg_height_by_year,
+    x="year",
+    y="height_in",
+    text=avg_height_by_year["height_in"].round(1),
+    labels={"height_in": "Avg Height (in)", "year": "Eligibility Year"},
+    title="Average Height by Year of Eligibility"
+)
+fig.update_traces(textposition="outside")
+fig.update_layout(
+    yaxis_title="Average Height (inches)",
+    xaxis_title="Year",
+    height=450,
+    plot_bgcolor="#fafafa",
+    paper_bgcolor="#fafafa"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# Optional: display readable format
+st.markdown("#### Height Averages by Year (ft/in)")
+for _, row in avg_height_by_year.iterrows():
+    inches = int(round(row["height_in"] % 12))
+    feet = int(row["height_in"]) // 12
+    st.markdown(f"**Year {int(row['year'])}**: {feet}'{inches}\" ({round(row['height_in'], 1)} in)")
 
 # -------------------------------
 # Footer
