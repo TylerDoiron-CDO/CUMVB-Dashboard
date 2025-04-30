@@ -154,10 +154,9 @@ for name, group in grouped:
             st.markdown(f"Year: {row['year']}")
             st.markdown(f"{row['hometown']}")
 
-st.markdown("---")
-
 # -------------------------------
 # Footer
 # -------------------------------
-
-st.caption("Advanced analytics powered by by Astute Innovations & Streamlit • Crandall Chargers Men's Volleyball © 2025")
+st.markdown("---")
+st.caption("Developed by Astute Innovations - Advanced analytics powered by Streamlit • Crandall Chargers Volleyball © 2025")
+st.markdown("---")
