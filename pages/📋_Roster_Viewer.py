@@ -102,19 +102,27 @@ st.dataframe(filtered_df.reset_index(drop=True))
 # 🖼️ Grouped Headshots by Player Across Seasons
 st.markdown("### 🖼️ Player Headshots by Season")
 
+# Make sure season column is always string (for sorting)
+df["season"] = df["season"].astype(str)
+filtered_df["season"] = filtered_df["season"].astype(str)
+
 # Group by player name
 grouped = filtered_df.groupby("name")
 
 for name, group in grouped:
     st.markdown(f"## {name}")
-    cols = st.columns(min(len(group), 5))  # Up to 5 per row
+    group = group.dropna(subset=["season"])  # Ensure we don’t try to sort NaNs
 
-    for idx, (_, row) in enumerate(group.sort_values("season")):
+    # Sort by season and cap at 5 columns
+    group = group.sort_values("season").head(5)
+    cols = st.columns(len(group))
+
+    for idx, (_, row) in enumerate(group.iterrows()):
         season_dir = os.path.join(ROSTER_BASE_DIR, row["season"])
         jersey = str(row["#"]).strip()
         expected_filename = f"{jersey} - {name}.jpg"
 
-        # Try to find matching image
+        # Find image
         matched_image = None
         for f in os.listdir(season_dir):
             if f.lower() == expected_filename.lower():
