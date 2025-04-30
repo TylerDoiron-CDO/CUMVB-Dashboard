@@ -77,6 +77,44 @@ st.dataframe(pos_counts)
 st.markdown("---")
 
 # -------------------------------
+# Average Height by Position
+# -------------------------------
+
+st.subheader("📏 Average Height by Position")
+
+# Helper: convert height strings like "6'1" to inches
+def convert_height_to_inches(ht):
+    try:
+        parts = ht.strip().replace('"', '').split("'")
+        feet = int(parts[0])
+        inches = int(parts[1]) if len(parts) > 1 else 0
+        return feet * 12 + inches
+    except:
+        return None
+
+df["height_in"] = df["height"].apply(convert_height_to_inches)
+
+# Group and calculate average
+avg_height = (
+    df.dropna(subset=["height_in"])
+    .groupby("position")["height_in"]
+    .mean()
+    .round(1)
+    .sort_values(ascending=False)
+)
+
+st.bar_chart(avg_height)
+
+# Optional: readable format
+st.markdown("#### Height Averages (in feet/inches)")
+for position, height_in in avg_height.items():
+    feet = int(height_in) // 12
+    inches = int(round(height_in) % 12)
+    st.markdown(f"**{position}**: {feet}'{inches}\" ({height_in} in)")
+
+st.markdown("---")
+
+# -------------------------------
 # Footer
 # -------------------------------
 
