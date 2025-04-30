@@ -75,16 +75,24 @@ def process_athlete_data_file(file_path, file_name):
 
 def process_athlete_data_file(file_path, file_name):
     try:
-        # Read raw CSV and skip the first row
+        # Read file and skip first row
         df_raw = pd.read_csv(file_path, header=None, skiprows=1)
 
-        # Use row 0 as column headers, and deduplicate them
+        # Manually deduplicate column names
         raw_cols = list(df_raw.iloc[0])
-        deduped_cols = pd.io.parsers.ParserBase({'names': raw_cols})._maybe_dedup_names(raw_cols)
-        df_raw.columns = deduped_cols
+        seen = {}
+        deduped_cols = []
+        for col in raw_cols:
+            if col not in seen:
+                seen[col] = 0
+                deduped_cols.append(col)
+            else:
+                seen[col] += 1
+                deduped_cols.append(f"{col}.{seen[col]}")
 
-        # Drop header row
+        df_raw.columns = deduped_cols
         df = df_raw.drop(index=0).reset_index(drop=True)
+
     except Exception as e:
         st.warning(f"⚠️ Failed to read file {file_name}: {e}")
         return None
