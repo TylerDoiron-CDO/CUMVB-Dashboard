@@ -73,47 +73,49 @@ def process_athlete_data_file(file_path, file_name):
 
     return df
 
-def load_preprocessed_athlete_data():
-    if os.path.exists(CACHE_FILE):
-        return pd.read_parquet(CACHE_FILE)
-
-    all_dfs = []
-    for file in os.listdir(ATHLETE_DATA_DIR):
-        if file.endswith(".csv"):
-            file_path = os.path.join(ATHLETE_DATA_DIR, file)
-            df = process_athlete_data_file(file_path, file)
-            if df is not None:
-                all_dfs.append(df)
-
-    if not all_dfs:
-        return pd.DataFrame()
-
-    combined = pd.concat(all_dfs, ignore_index=True)
-
-    # Ensure column names are strings
-    combined.columns = [str(col) for col in combined.columns]
-
-    # Coerce all columns to Arrow-safe types (str, int, float, bool)
-    for col in combined.columns:
-        try:
-            # Try numeric first
-            combined[col] = pd.to_numeric(combined[col], errors="ignore")
-        except Exception:
-            pass  # fallback to string below if needed
-
-        if not pd.api.types.is_numeric_dtype(combined[col]) and not pd.api.types.is_bool_dtype(combined[col]):
-            try:
-                combined[col] = combined[col].astype(str)
-            except Exception:
-                combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
-
-    # ✅ Write to parquet
+def process_athlete_data_file(file_path, file_name):
     try:
-        combined.to_parquet(CACHE_FILE, index=False)
-    except Exception as e:
-        st.warning(f"❌ Failed to write cache: {e}")
+        # Read raw CSV and skip the first row
+        df_raw = pd.read_csv(file_path, header=None, skiprows=1)
 
-    return combined
+        # Use row 0 as column headers, and deduplicate them
+        raw_cols = list(df_raw.iloc[0])
+        deduped_cols = pd.io.parsers.ParserBase({'names': raw_cols})._maybe_dedup_names(raw_cols)
+        df_raw.columns = deduped_cols
+
+        # Drop header row
+        df = df_raw.drop(index=0).reset_index(drop=True)
+    except Exception as e:
+        st.warning(f"⚠️ Failed to read file {file_name}: {e}")
+        return None
+
+    # Extract metadata from file name
+    date_match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", file_name)
+    date_str = date_match.group(1) if date_match else "Unknown"
+    season = infer_season_from_date(date_str)
+
+    home_team = away_team = "Unknown"
+    if "@" in file_name:
+        parts = file_name.split("@")
+        away_team = parts[0].strip()
+        home_team = parts[1].split("—")[0].strip()
+    elif "vs." in file_name:
+        parts = file_name.split("vs.")
+        home_team = parts[0].strip()
+        away_team = parts[1].split("—")[0].strip()
+
+    team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
+    team = team_match.group(1).strip() if team_match else "Unknown"
+
+    # Add metadata columns
+    df["Season"] = season
+    df["Date"] = date_str
+    df["Home"] = home_team
+    df["Away"] = away_team
+    df["TEAM"] = team
+    df["source_file"] = file_name
+
+    return df
 
 # -------------------------------
 # Main Display Logic
