@@ -114,18 +114,19 @@ avg_height = (
 positions = sorted(avg_height["position"].unique())
 years = sorted(avg_height["year"].unique())
 
-# Create one trace per year
+# Create one trace per year (actual year label, not "Year X")
 traces = []
 for year in years:
     year_data = avg_height[avg_height["year"] == year]
     heights = [year_data[year_data["position"] == pos]["height_in"].values[0] if pos in year_data["position"].values else None for pos in positions]
     
     traces.append(go.Bar(
-        name=f"Year {year}",
+        name=str(year),  # <- use actual year
         y=positions,
         x=heights,
         orientation='h'
     ))
+
 
 # Build figure
 fig = go.Figure(data=traces)
