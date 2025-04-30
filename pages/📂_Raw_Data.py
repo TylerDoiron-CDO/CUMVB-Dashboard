@@ -85,24 +85,36 @@ def load_preprocessed_athlete_data():
             if df is not None:
                 all_dfs.append(df)
 
-    if all_dfs:
-        combined = pd.concat(all_dfs, ignore_index=True)
-
-        # 🔐 Clean for parquet writing
-        combined.columns = [str(col) for col in combined.columns]
-        for col in combined.columns:
-            if isinstance(combined[col].iloc[0], list) or isinstance(combined[col].iloc[0], dict):
-                combined[col] = combined[col].astype(str)
-            else:
-                try:
-                    pd.Series(combined[col])  # safe check
-                except:
-                    combined[col] = combined[col].astype(str)
-
-        combined.to_parquet(CACHE_FILE, index=False)
-        return combined
-    else:
+    if not all_dfs:
         return pd.DataFrame()
+
+    combined = pd.concat(all_dfs, ignore_index=True)
+
+    # 🔐 Clean all column names
+    combined.columns = [str(col) for col in combined.columns]
+
+    # 🔐 Clean each column
+    for col in combined.columns:
+        try:
+            # Try convert to numeric if it makes sense
+            combined[col] = pd.to_numeric(combined[col], errors='ignore')
+        except:
+            pass
+
+        # If still object type, convert to string to avoid Arrow issues
+        if combined[col].dtype == 'object':
+            try:
+                combined[col] = combined[col].astype(str)
+            except:
+                combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
+
+    # ✅ Save to Parquet safely
+    try:
+        combined.to_parquet(CACHE_FILE, index=False)
+    except Exception as e:
+        st.warning(f"Failed to save cache: {e}")
+
+    return combined
 
 # -------------------------------
 # Main Display Logic
