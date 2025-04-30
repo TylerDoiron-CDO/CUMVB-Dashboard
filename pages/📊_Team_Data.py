@@ -105,13 +105,12 @@ avg_height_by_pos_year = (
     .reset_index()
 )
 
-# Plotly grouped bar chart
 fig = px.bar(
     avg_height_by_pos_year,
     x="position",
     y="height_in",
     color="year",
-    barmode="group",
+    barmode="group",  # key setting
     text=avg_height_by_pos_year["height_in"].round(1),
     title="Average Player Height by Position and Year",
 )
@@ -124,8 +123,8 @@ fig.update_layout(
     plot_bgcolor="#fafafa",
     paper_bgcolor="#fafafa",
 )
-
 st.plotly_chart(fig, use_container_width=True)
+
 
 
 # -------------------------------
