@@ -82,11 +82,11 @@ st.markdown("---")
 # Average Height by Position and Year (Grouped Bar Chart)
 # -------------------------------
 
-import plotly.express as px
+import plotly.graph_objects as go
 
 st.subheader("📏 Average Height by Position (Grouped by Year)")
 
-# Convert height to inches
+# Convert height string to inches
 def convert_height_to_inches(ht):
     try:
         parts = ht.strip().replace('"', '').split("'")
@@ -98,43 +98,45 @@ def convert_height_to_inches(ht):
 
 df["height_in"] = df["height"].apply(convert_height_to_inches)
 
-# Drop missing values
+# Drop incomplete rows
 valid_df = df.dropna(subset=["height_in", "position", "year"])
 
-# Group average height by position and year
+# Group: average height by position and year
 avg_height = (
     valid_df
-    .groupby(["position", "year"])["height_in"]
+    .groupby(["year", "position"])["height_in"]
     .mean()
     .reset_index()
+    .sort_values("position")
 )
 
-# Plotly horizontal grouped bar chart
-fig = px.bar(
-    avg_height,
-    y="position",
-    x="height_in",
-    color="year",
-    orientation="h",  # Horizontal bars
-    text=avg_height["height_in"].round(1),
-    labels={
-        "position": "Position",
-        "height_in": "Average Height (inches)",
-        "year": "Year"
-    },
-    title="Average Player Height by Position and Year"
-)
+# Get all unique positions and years
+positions = sorted(avg_height["position"].unique())
+years = sorted(avg_height["year"].unique())
 
-fig.update_traces(textposition="outside")
+# Create one trace per year
+traces = []
+for year in years:
+    year_data = avg_height[avg_height["year"] == year]
+    heights = [year_data[year_data["position"] == pos]["height_in"].values[0] if pos in year_data["position"].values else None for pos in positions]
+    
+    traces.append(go.Bar(
+        name=f"Year {year}",
+        y=positions,
+        x=heights,
+        orientation='h'
+    ))
 
-# 🔥 This is what makes them appear side-by-side (NOT stacked)
+# Build figure
+fig = go.Figure(data=traces)
 fig.update_layout(
-    barmode="group",
-    height=500,
+    barmode='group',
+    title="Average Height by Position (Grouped by Year)",
     xaxis_title="Average Height (inches)",
     yaxis_title="Position",
+    height=500,
     plot_bgcolor="#fafafa",
-    paper_bgcolor="#fafafa",
+    paper_bgcolor="#fafafa"
 )
 
 st.plotly_chart(fig, use_container_width=True)
