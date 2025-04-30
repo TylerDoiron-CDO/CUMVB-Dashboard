@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+from PIL import Image
 
 # -------------------------------
 # Page Setup
@@ -58,7 +59,6 @@ df = load_all_rosters()
 st.subheader("📈 Roster Composition Overview")
 
 col1, col2, col3 = st.columns(3)
-
 col1.metric("Total Players", len(df))
 col2.metric("Seasons Tracked", df["season"].nunique())
 col3.metric("Unique Hometowns", df["hometown"].nunique())
@@ -66,7 +66,7 @@ col3.metric("Unique Hometowns", df["hometown"].nunique())
 st.markdown("---")
 
 # -------------------------------
-# Position Breakdown
+# Position Breakdown by Season
 # -------------------------------
 
 st.subheader("📌 Position Distribution by Season")
@@ -74,21 +74,10 @@ st.subheader("📌 Position Distribution by Season")
 pos_counts = df.groupby(["season", "position"]).size().unstack(fill_value=0)
 st.dataframe(pos_counts)
 
-# -------------------------------
-# Height Analysis
-# -------------------------------
-
-st.subheader("📏 Average Height by Position")
-height_df = df.copy()
-height_df["height_in"] = height_df["height"].str.extract(r"(\d+)'(\d+)", expand=True)
-height_df["height_in"] = height_df["height_in"].astype(float) * 12 + height_df[1].astype(float)
-avg_height = height_df.groupby("position")["height_in"].mean().round(1)
-
-st.bar_chart(avg_height)
+st.markdown("---")
 
 # -------------------------------
 # Footer
 # -------------------------------
 
-st.markdown("---")
-st.caption("Data compiled from historical team rosters • Crand
+st.caption("Advanced analytics powered by Streamlit • Crandall Chargers Volleyball © 2025")
