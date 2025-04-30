@@ -201,5 +201,9 @@ else:
                 st.info("ℹ️ No cache file found to reset.")
         st.caption("⚠️ Only use if data has changed or is outdated.")
 
+# -------------------------------
+# Footer
+# -------------------------------
 st.markdown("---")
-st.caption("Raw athlete performance data from Balltime files • Crandall Chargers Volleyball © 2025")
+st.caption("Developed by Astute Innovations - Advanced analytics powered by Streamlit • Crandall Chargers Volleyball © 2025")
+st.markdown("---")
