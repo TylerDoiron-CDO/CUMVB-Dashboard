@@ -84,9 +84,9 @@ st.markdown("---")
 
 import plotly.express as px
 
-st.subheader("📏 Average Height by Position and Year")
+st.subheader("📏 Average Height by Position (Grouped by Year)")
 
-# Convert height "6'1" to inches
+# Convert height to inches
 def convert_height_to_inches(ht):
     try:
         parts = ht.strip().replace('"', '').split("'")
@@ -109,27 +109,28 @@ avg_height = (
     .reset_index()
 )
 
-# Create grouped bar chart
+# Create horizontal grouped bar chart
 fig = px.bar(
     avg_height,
-    x="position",
-    y="height_in",
+    y="position",
+    x="height_in",
     color="year",
     barmode="group",
+    orientation="h",  # <-- key change for horizontal
     text=avg_height["height_in"].round(1),
     labels={
         "position": "Position",
         "height_in": "Avg Height (in)",
         "year": "Year of Eligibility"
     },
-    title="Average Height by Position Across Years",
+    title="Average Height by Position, Grouped by Year",
 )
 
-fig.update_traces(textposition="outside")
+fig.update_traces(textposition="auto")
 fig.update_layout(
+    xaxis_title="Average Height (inches)",
+    yaxis_title="Position",
     height=500,
-    xaxis_title="Position",
-    yaxis_title="Average Height (inches)",
     plot_bgcolor="#fafafa",
     paper_bgcolor="#fafafa"
 )
