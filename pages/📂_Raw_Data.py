@@ -180,6 +180,10 @@ if athlete_df.empty:
     st.warning("⚠️ No athlete data found or processed.")
 else:
     st.success(f"✅ Loaded {athlete_df.shape[0]} records from {ATHLETE_DATA_DIR}")
+    latest_date = pd.to_datetime(athlete_df['Date'], errors='coerce').dropna().max()
+    if pd.notnull(latest_date):
+        st.markdown(f"**🗓️ Data current as of:** {latest_date.date()}")
+
     st.subheader("📋 Processed Athlete Data Table")
     st.dataframe(athlete_df)
 
@@ -200,6 +204,9 @@ else:
             else:
                 st.info("ℹ️ No cache file found to reset.")
         st.caption("⚠️ Only use if data has changed or is outdated.")
+
+st.markdown("---")
+st.caption("Raw athlete performance data from Balltime files • Crandall Chargers Volleyball © 2025")
 
 # -------------------------------
 # Footer
