@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROSTER_BASE_DIR = "rosters"
 CSV_FILENAME = "team_info.csv"
@@ -102,7 +102,7 @@ st.dataframe(filtered_df.reset_index(drop=True))
 # 🖼️ Grouped Headshots by Player Across Seasons
 st.markdown("### 🖼️ Player Headshots by Season")
 
-# Make sure season column is always string (for sorting)
+# Ensure season is a string for sorting
 df["season"] = df["season"].astype(str)
 filtered_df["season"] = filtered_df["season"].astype(str)
 
@@ -111,9 +111,7 @@ grouped = filtered_df.groupby("name")
 
 for name, group in grouped:
     st.markdown(f"## {name}")
-    group = group.dropna(subset=["season"])  # Ensure we don’t try to sort NaNs
-
-    # Sort by season and cap at 5 columns
+    group = group.dropna(subset=["season"])
     group = group.sort_values("season").head(5)
     cols = st.columns(len(group))
 
@@ -123,7 +121,7 @@ for name, group in grouped:
         name_clean = str(row["name"]).strip()
         expected_filename = f"{jersey} - {name_clean}".lower()
 
-        # Try to find matching .jpg or .jpeg file
+        # Match case-insensitive .jpg or .jpeg
         matched_image = None
         for f in os.listdir(season_dir):
             fname, ext = os.path.splitext(f.lower())
@@ -134,7 +132,9 @@ for name, group in grouped:
         with cols[idx]:
             if matched_image and os.path.exists(matched_image):
                 img = Image.open(matched_image)
-                st.image(img, width=150, caption=row["season"])
+                # Resize and crop to 150x200
+                img = ImageOps.fit(img, (150, 200), method=Image.Resampling.LANCZOS)
+                st.image(img, caption=row["season"])
             else:
                 st.warning("No image")
                 st.caption(row["season"])
