@@ -19,7 +19,11 @@ csv_path = Path("roster 24-25/team info.csv")
 
 @st.cache_data
 def load_roster(path):
-    return pd.read_csv(path)
+    # Try UTF-8 first, fallback to ISO-8859-1 if needed
+    try:
+        return pd.read_csv(path, encoding='utf-8')
+    except UnicodeDecodeError:
+        return pd.read_csv(path, encoding='ISO-8859-1')
 
 if csv_path.exists():
     st.subheader("📋 Team Preview")
