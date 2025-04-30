@@ -179,57 +179,65 @@ st.markdown("---")
 # Average Height by Average Height by Position (Grouped by Year)
 # -------------------------------
 
-st.subheader("📏 Average Height by Eligibility Year")
+st.subheader("📏 Average Height by Position (Grouped by Eligibility Year)")
 
-# Make sure height is in inches
+# Ensure height_in exists
+def convert_height_to_inches(ht):
+    try:
+        parts = ht.strip().replace('"', '').split("'")
+        feet = int(parts[0])
+        inches = int(parts[1]) if len(parts) > 1 else 0
+        return feet * 12 + inches
+    except:
+        return None
+
 if "height_in" not in df.columns:
-    def convert_height_to_inches(ht):
-        try:
-            parts = ht.strip().replace('"', '').split("'")
-            feet = int(parts[0])
-            inches = int(parts[1]) if len(parts) > 1 else 0
-            return feet * 12 + inches
-        except:
-            return None
     df["height_in"] = df["height"].apply(convert_height_to_inches)
 
-# Drop missing data
-valid_df = df.dropna(subset=["height_in", "year"])
+# Filter and group
+valid_df = df.dropna(subset=["height_in", "position", "year"])
 
-# Group and calculate average height by year
-avg_height_by_year = (
+avg_height = (
     valid_df
-    .groupby("year")["height_in"]
+    .groupby(["year", "position"])["height_in"]
     .mean()
     .reset_index()
-    .sort_values("year")
+    .sort_values("position")
 )
 
-fig = px.bar(
-    avg_height_by_year,
-    x="year",
-    y="height_in",
-    text=avg_height_by_year["height_in"].round(1),
-    labels={"height_in": "Avg Height (in)", "year": "Eligibility Year"},
-    title="Average Height by Year of Eligibility"
-)
-fig.update_traces(textposition="outside")
+# Unique values
+positions = sorted(avg_height["position"].unique())
+years = sorted(avg_height["year"].unique())
+
+# Build horizontal grouped bar chart
+traces = []
+for year in years:
+    year_data = avg_height[avg_height["year"] == year]
+    heights = [
+        year_data[year_data["position"] == pos]["height_in"].values[0]
+        if pos in year_data["position"].values else None
+        for pos in positions
+    ]
+
+    traces.append(go.Bar(
+        name=f"Year {year}",
+        y=positions,
+        x=heights,
+        orientation='h'
+    ))
+
+fig = go.Figure(data=traces)
 fig.update_layout(
-    yaxis_title="Average Height (inches)",
-    xaxis_title="Year",
-    height=450,
+    barmode='group',
+    title="Average Height by Position (Grouped by Eligibility Year)",
+    xaxis_title="Average Height (inches)",
+    yaxis_title="Position",
+    height=500,
     plot_bgcolor="#fafafa",
     paper_bgcolor="#fafafa"
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
-# Optional: display readable format
-st.markdown("#### Height Averages by Year (ft/in)")
-for _, row in avg_height_by_year.iterrows():
-    inches = int(round(row["height_in"] % 12))
-    feet = int(row["height_in"]) // 12
-    st.markdown(f"**Year {int(row['year'])}**: {feet}'{inches}\" ({round(row['height_in'], 1)} in)")
 
 # -------------------------------
 # Footer
