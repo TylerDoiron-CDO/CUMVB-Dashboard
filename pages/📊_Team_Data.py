@@ -235,6 +235,5 @@ for _, row in avg_height_by_year.iterrows():
 # Footer
 # -------------------------------
 st.markdown("---")
-st.markdown("---")
-
 st.caption("Advanced analytics powered by Streamlit • Crandall Chargers Volleyball © 2025")
+st.markdown("---")
