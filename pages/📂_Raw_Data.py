@@ -99,7 +99,40 @@ def process_athlete_data_file(file_path, file_name):
 # Main Loader Function
 # -------------------------------
 def load_preprocessed_athlete_data():
-    if os.path.exists(CACHE_FILE):
+    historical_path = "data/Historical Athlete Data.csv"
+    historical_df = pd.DataFrame()
+    if os.path.exists(historical_path):
+        try:
+            historical_df = pd.read_csv(historical_path)
+            historical_df.insert(0, "Season", "Unknown")
+            historical_df.insert(1, "Date", "Unknown")
+            historical_df.insert(2, "Home", "Unknown")
+            historical_df.insert(3, "Away", "Unknown")
+            historical_df.insert(4, "TEAM", "Unknown")
+            historical_df["source_file"] = "historical data"
+
+            # Drop columns starting with '0'
+            historical_df = historical_df[[col for col in historical_df.columns if not str(col).startswith("0")]]
+
+            # Reorder columns
+            metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+            other_cols = [col for col in historical_df.columns if col not in metadata + ["source_file"]]
+            historical_df = historical_df[metadata + other_cols + ["source_file"]]
+        except Exception as e:
+            st.warning(f"⚠️ Failed to load Historical Athlete Data: {e}")
+
+    all_dfs = []
+    for file in os.listdir(ATHLETE_DATA_DIR):
+        if file.endswith(".csv"):
+            file_path = os.path.join(ATHLETE_DATA_DIR, file)
+            df = process_athlete_data_file(file_path, file)
+            if df is not None:
+                all_dfs.append(df)
+
+    if historical_df is not None and not historical_df.empty:
+        all_dfs.append(historical_df)
+
+    if os.path.exists(CACHE_FILE) and not all_dfs:
         return pd.read_parquet(CACHE_FILE)
 
     all_dfs = []
@@ -112,6 +145,9 @@ def load_preprocessed_athlete_data():
 
     if not all_dfs:
         return pd.DataFrame()
+
+    if historical_df is not None and not historical_df.empty:
+        all_dfs.append(historical_df)
 
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
@@ -160,7 +196,7 @@ else:
             if os.path.exists(CACHE_FILE):
                 os.remove(CACHE_FILE)
                 st.warning("⚠️ Cache has been cleared. The app will now reload and rebuild from source files.")
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.info("ℹ️ No cache file found to reset.")
         st.caption("⚠️ Only use if data has changed or is outdated.")
