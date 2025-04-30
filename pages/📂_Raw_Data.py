@@ -107,11 +107,13 @@ def load_preprocessed_athlete_data():
             except Exception:
                 combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
 
-    # Write to parquet
+    # ✅ Write to parquet
     try:
         combined.to_parquet(CACHE_FILE, index=False)
-    except Exception
+    except Exception as e:
+        st.warning(f"❌ Failed to write cache: {e}")
 
+    return combined
 
 # -------------------------------
 # Main Display Logic
