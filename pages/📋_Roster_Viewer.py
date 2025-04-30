@@ -57,10 +57,9 @@ def load_all_rosters():
 
     return pd.concat(all_data, ignore_index=True)
 
-# Load data
+# Load and validate data
 df = load_all_rosters()
 
-# Validate required columns
 required_columns = {"name", "position", "year", "height", "hometown", "#", "season"}
 missing = required_columns - set(df.columns)
 
@@ -68,7 +67,7 @@ if missing:
     st.error(f"❌ Missing columns: {', '.join(missing)}. Check your team_info.csv files.")
     st.stop()
 
-# Filters
+# 🔎 Filter UI — starts with nothing selected
 with st.expander("🔎 Filter Options"):
     col1, col2, col3, col4 = st.columns(4)
 
@@ -76,31 +75,31 @@ with st.expander("🔎 Filter Options"):
     all_positions = sorted(df["position"].dropna().unique())
     all_years = sorted(df["year"].dropna().unique())
 
-    selected_seasons = col1.multiselect("Season", all_seasons, default=all_seasons)
-    selected_positions = col2.multiselect("Position", all_positions, default=all_positions)
-    selected_years = col3.multiselect("Year", all_years, default=all_years)
+    selected_seasons = col1.multiselect("Season", options=all_seasons)
+    selected_positions = col2.multiselect("Position", options=all_positions)
+    selected_years = col3.multiselect("Year", options=all_years)
     name_search = col4.text_input("Search by name")
 
-# Conditional filters
+# 🧠 Smart Filtering Logic (empty = all)
 filtered_df = df.copy()
 
-if selected_seasons and selected_seasons != all_seasons:
+if selected_seasons:
     filtered_df = filtered_df[filtered_df["season"].isin(selected_seasons)]
 
-if selected_positions and selected_positions != all_positions:
+if selected_positions:
     filtered_df = filtered_df[filtered_df["position"].isin(selected_positions)]
 
-if selected_years and selected_years != all_years:
+if selected_years:
     filtered_df = filtered_df[filtered_df["year"].isin(selected_years)]
 
 if name_search:
     filtered_df = filtered_df[filtered_df["name"].str.contains(name_search, case=False, na=False)]
 
-# Display table
+# 📄 Filtered Roster Table
 st.subheader("📄 Filtered Roster Data")
 st.dataframe(filtered_df.reset_index(drop=True))
 
-# Optional: Show headshots
+# 🖼️ Player Headshots Display
 st.markdown("### 🖼️ Player Headshots")
 for _, row in filtered_df.iterrows():
     season_dir = os.path.join(ROSTER_BASE_DIR, row["season"])
