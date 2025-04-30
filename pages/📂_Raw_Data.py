@@ -148,25 +148,22 @@ else:
     st.dataframe(athlete_df)
 
     col1, col2 = st.columns([3, 1])
-with col1:
-    st.download_button(
-        label="💾 Download CSV",
-        data=athlete_df.to_csv(index=False).encode('utf-8'),
-        file_name="athlete_data_processed.csv",
-        mime="text/csv"
-    )
-with col2:
-    if st.button("🔁 Reset Cache"):
-        if os.path.exists(CACHE_FILE):
-            os.remove(CACHE_FILE)
-            st.warning("⚠️ Cache has been cleared. The app will now reload and rebuild from source files.")
-            st.experimental_rerun()
-        else:
-            st.info("ℹ️ No cache file found to reset.")
-    st.caption("⚠️ Only use if data has changed or is outdated.").encode('utf-8'),
-        file_name="athlete_data_processed.csv",
-        mime="text/csv"
-    )
+    with col1:
+        st.download_button(
+            label="💾 Download CSV",
+            data=athlete_df.to_csv(index=False).encode('utf-8'),
+            file_name="athlete_data_processed.csv",
+            mime="text/csv"
+        )
+    with col2:
+        if st.button("🔁 Reset Cache"):
+            if os.path.exists(CACHE_FILE):
+                os.remove(CACHE_FILE)
+                st.warning("⚠️ Cache has been cleared. The app will now reload and rebuild from source files.")
+                st.experimental_rerun()
+            else:
+                st.info("ℹ️ No cache file found to reset.")
+        st.caption("⚠️ Only use if data has changed or is outdated.")
 
 st.markdown("---")
 st.caption("Raw athlete performance data from Balltime files • Crandall Chargers Volleyball © 2025")
