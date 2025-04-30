@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 
 ATHLETE_DATA_DIR = "data/Athlete Data"
-HISTORICAL_DATA_FILE = "data/Historical Athlete Data.csv"
+HISTORICAL_DATA_FILE = os.path.join(os.getcwd(), "data", "Historical Athlete Data.csv")
 CACHE_FILE = "data/athlete_data_cache.parquet"
 
 def infer_season_from_date(date_str):
