@@ -71,7 +71,7 @@ def load_preprocessed_athlete_data(force_rebuild=False):
 
     all_dfs = []
 
-    # Load Athlete Data
+    # Process Athlete Data files
     for file in os.listdir(ATHLETE_DATA_DIR):
         if file.endswith(".csv"):
             df = process_athlete_data_file(os.path.join(ATHLETE_DATA_DIR, file), file)
@@ -91,7 +91,8 @@ def load_preprocessed_athlete_data(force_rebuild=False):
             df = df[[col for col in df.columns if not str(col).startswith("0")]]
             metadata = ["Season", "Date", "Home", "Away", "TEAM"]
             other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-            all_dfs.append(df[metadata + other_cols + ["source_file"]])
+            df = df[metadata + other_cols + ["source_file"]]
+            all_dfs.append(df)
         except Exception:
             pass
 
