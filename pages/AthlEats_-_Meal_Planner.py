@@ -1,9 +1,19 @@
 import streamlit as st
-import openai
 import os
+from openai import OpenAI
 
-# Set your API key securely (you can also use st.secrets["OPENAI_API_KEY"])
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "system", "content": "You are a professional sports dietitian."},
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.7
+)
+
+plan = response.choices[0].message.content
 
 # -------------------------------
 # Page Setup
