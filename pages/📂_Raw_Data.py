@@ -1,25 +1,26 @@
 import streamlit as st
 import pandas as pd
 import os
-from functions import Athlete_Data_Load
+from functions import Overall_Data_Load
 
 # -------------------------------
 # Page Setup
 # -------------------------------
-st.set_page_config(page_title="📂 Raw Data", layout="wide")
-st.title("📂 Raw Athlete Data Viewer")
-st.markdown("This page displays the full combined dataset from raw match files and historical records.")
+st.set_page_config(page_title="📂 Overall Data", layout="wide")
+st.title("📂 Raw Overall Data Viewer")
+st.markdown("This page displays the full combined dataset from raw overall match summaries and historical records.")
 st.markdown("---")
 
 # -------------------------------
 # Load Data
 # -------------------------------
 force_refresh = st.session_state.get("reset_cache", False)
-with st.spinner("🔄 Loading and processing Athlete Data..."):
-    df = Athlete_Data_Load.load_preprocessed_athlete_data(force_rebuild=force_refresh)
+
+with st.spinner("🔄 Loading and processing Overall Data..."):
+    df = Overall_Data_Load.load_preprocessed_overall_data(force_rebuild=force_refresh)
 
 if df.empty:
-    st.warning("⚠️ No athlete data found or processed.")
+    st.warning("⚠️ No overall data found or processed.")
     st.stop()
 
 # -------------------------------
@@ -32,13 +33,13 @@ with st.expander("🔎 Filter Options"):
     all_teams = sorted(df["TEAM"].dropna().unique())
     all_home = sorted(df["Home"].dropna().unique())
     all_away = sorted(df["Away"].dropna().unique())
-    all_names = sorted(df["Athlete"].dropna().unique()) if "Athlete" in df.columns else []
+    all_teamnames = sorted(df["Team"].dropna().unique()) if "Team" in df.columns else []
 
     selected_seasons = col1.multiselect("Season", options=all_seasons)
     selected_teams = col2.multiselect("TEAM", options=all_teams)
     selected_home = col3.multiselect("Home", options=all_home)
     selected_away = col4.multiselect("Away", options=all_away)
-    name_search = col5.text_input("Search Athlete Name")
+    team_search = col5.text_input("Search Team Name")
 
 # -------------------------------
 # Apply Filters
@@ -57,8 +58,8 @@ if selected_home:
 if selected_away:
     filtered_df = filtered_df[filtered_df["Away"].isin(selected_away)]
 
-if name_search and "Athlete" in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df["Athlete"].str.contains(name_search, case=False, na=False)]
+if team_search and "Team" in filtered_df.columns:
+    filtered_df = filtered_df[filtered_df["Team"].str.contains(team_search, case=False, na=False)]
 
 # -------------------------------
 # Display Table
@@ -69,7 +70,7 @@ latest_date = pd.to_datetime(filtered_df["Date"], errors="coerce").dropna().max(
 if pd.notnull(latest_date):
     st.markdown(f"**🗓️ Data current as of:** {latest_date.date()}")
 
-st.subheader("📋 Filtered Athlete Data Table")
+st.subheader("📋 Filtered Overall Data Table")
 st.dataframe(filtered_df)
 
 # -------------------------------
@@ -80,13 +81,13 @@ with col1:
     st.download_button(
         label="💾 Download CSV",
         data=filtered_df.to_csv(index=False).encode("utf-8"),
-        file_name="athlete_data_filtered.csv",
+        file_name="overall_data_filtered.csv",
         mime="text/csv"
     )
 with col2:
     if st.button("🔁 Reset Cache"):
-        if os.path.exists(Athlete_Data_Load.CACHE_FILE):
-            os.remove(Athlete_Data_Load.CACHE_FILE)
+        if os.path.exists(Overall_Data_Load.CACHE_FILE):
+            os.remove(Overall_Data_Load.CACHE_FILE)
             st.session_state["reset_cache"] = True
             st.warning("⚠️ Cache has been cleared. Reloading now...")
             st.rerun()
