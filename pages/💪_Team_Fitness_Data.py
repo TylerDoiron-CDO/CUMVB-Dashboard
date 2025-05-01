@@ -166,23 +166,43 @@ with tab2:
 
 # --- 🕸 RADAR CHART ---
 with tab3:
-    selected_athlete = st.selectbox("Athlete", athlete_list, key="radar_ath")
-    radar_date = st.selectbox("Testing Date", dates, key="radar_date")
-    
-    radar_df = df[(df["Athlete"] == selected_athlete) & (df["Testing Date"] == radar_date)].dropna()
-    radar_metrics = radar_df[metric_cols].T
-    radar_metrics.columns = ["Value"]
-    radar_metrics = radar_metrics.reset_index().rename(columns={"index": "Metric"})
+    st.markdown("### 🕸 Radar Chart — Compare Key Metrics on One Date")
+    selected_athlete = st.selectbox("Select Athlete", athlete_list, key="radar_ath")
+    selected_date = st.selectbox("Select Testing Date", dates, key="radar_date")
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=radar_metrics["Value"],
-        theta=radar_metrics["Metric"],
-        fill='toself',
-        name=f"{selected_athlete} on {radar_date.date()}"
-    ))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True)
-    st.plotly_chart(fig, use_container_width=True)
+    # Filter to one athlete + one testing date
+    radar_df = df[(df["Athlete"] == selected_athlete) & (df["Testing Date"] == selected_date)]
+
+    # Use the same metrics from line plot
+    radar_metrics_raw = list(metric_map.keys())
+    radar_metrics_clean = list(metric_map.values())
+
+    # Check for missing data
+    if radar_df.empty or radar_df[radar_metrics_raw].dropna(axis=1).empty:
+        st.warning("⚠️ No valid data for this athlete on the selected date.")
+    else:
+        # Extract and reshape values
+        values = radar_df[radar_metrics_raw].iloc[0]
+        values.index = radar_metrics_clean
+
+        radar_data = pd.DataFrame({
+            "Metric": values.index,
+            "Value": values.values
+        })
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatterpolar(
+            r=radar_data["Value"],
+            theta=radar_data["Metric"],
+            fill='toself',
+            name=f"{selected_athlete} on {selected_date.date()}"
+        ))
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True)),
+            showlegend=True,
+            height=600
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 # --- 🔁 PROGRESS DELTA ---
 with tab4:
