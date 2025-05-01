@@ -10,30 +10,63 @@ from functions import (
 
 st.set_page_config(page_title="📂 Raw Data Viewer", layout="wide")
 
-# Summary intro for the full page
+# 🔎 Page Summary & Navigation Header
 st.markdown("""
-## 📂 Raw Data Viewer
-This page provides full access to the underlying match, rotation, overall, and athlete data used throughout the analytics dashboards.
-It is intended for exploratory analysis, enabling filters, downloads, and quick reviews of data trends. Use the navigation below to jump to specific sections.
+## 📂 Raw Data Viewer – For Exploratory Analysis
+This page provides full access to the underlying match, rotation, overall, athlete, and setter distribution datasets. 
+It is designed to support exploratory analysis and feeds all downstream visuals and advanced reports.
 """)
 
-# Horizontal navigation buttons
+# Pre-cached summaries
+from functions import (
+    Match_Data_Load,
+    Overall_Data_Load,
+    Rotation_Data_Load,
+    Athlete_Data_Load,
+)
+
+def get_data_summary(load_func, label):
+    try:
+        df = load_func(force_rebuild=False)
+        total = df.shape[0]
+        latest_date = pd.to_datetime(df["Date"], errors="coerce").dropna().max()
+        latest_str = latest_date.strftime("%Y-%m-%d") if pd.notnull(latest_date) else "N/A"
+        return f"**{label}**\n\n{total} records — Latest: {latest_str}"
+    except:
+        return f"**{label}**\n\n⚠️ Load error"
+
+# Summaries
+match_summary = get_data_summary(Match_Data_Load.load_preprocessed_match_data, "📘 Match Data")
+overall_summary = get_data_summary(Overall_Data_Load.load_preprocessed_overall_data, "📊 Overall Data")
+rotation_summary = get_data_summary(Rotation_Data_Load.load_preprocessed_rotation_data, "🔄 Rotation Data")
+athlete_summary = get_data_summary(Athlete_Data_Load.load_preprocessed_athlete_data, "🏐 Athlete Data")
+
+# Navigation Buttons
 nav1, nav2, nav3, nav4, nav5 = st.columns(5)
 with nav1:
     if st.button("📘 Match Data"):
-        st.experimental_set_query_params(section="match")
+        st.query_params(section="match")
+    st.markdown(match_summary)
+
 with nav2:
     if st.button("📊 Overall Data"):
-        st.experimental_set_query_params(section="overall")
+        st.query_params(section="overall")
+    st.markdown(overall_summary)
+
 with nav3:
     if st.button("🔄 Rotation Data"):
-        st.experimental_set_query_params(section="rotation")
+        st.query_params(section="rotation")
+    st.markdown(rotation_summary)
+
 with nav4:
     if st.button("🏐 Athlete Data"):
-        st.experimental_set_query_params(section="athlete")
+        st.query_params(section="athlete")
+    st.markdown(athlete_summary)
+
 with nav5:
     if st.button("📊 Setter Dist. Data"):
-        st.experimental_set_query_params(section="setter")
+        st.query_params(section="setter")
+    st.markdown("Loaded dynamically ↓")
 
 st.markdown("---")
 
