@@ -9,7 +9,7 @@ st.markdown("This page tests reading the `Historical Overall Data.csv` file from
 # -------------------------------
 # Load Historical File
 # -------------------------------
-file_path = "/mnt/data/Historical Overall Data.csv"
+file_path = "data/Historical Overall Data.csv"
 
 if os.path.exists(file_path):
     try:
