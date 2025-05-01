@@ -22,6 +22,25 @@ def infer_season_from_filename(file_name):
     except:
         return "Unknown"
 
+def adjust_result_for_team(row):
+    result = row.get("Result", "")
+    team = row.get("Team", "")
+
+    match = re.match(r"([WL])\s*(\d)-(\d)", result)
+    if not match:
+        return result
+
+    outcome, team_score, opp_score = match.groups()
+
+    if team == "Crandall":
+        return result
+    else:
+        if outcome == "W":
+            new_result = f"L {opp_score}-{team_score}"
+        else:
+            new_result = f"W {opp_score}-{team_score}"
+        return new_result
+
 def process_match_data_file(file_path, file_name):
     try:
         df = pd.read_csv(file_path)
@@ -50,6 +69,10 @@ def process_match_data_file(file_path, file_name):
 
         df["Season"] = season
         df["source_file"] = file_name
+
+        # Adjust Result column
+        if "Result" in df.columns:
+            df["Result"] = df.apply(adjust_result_for_team, axis=1)
 
         # Remove Opponent and Is_Opponent_File columns before reordering
         df.drop(columns=["Opponent"], inplace=True, errors="ignore")
