@@ -166,37 +166,44 @@ with tab2:
 
 # --- 🕸 RADAR CHART ---
 with tab3:
-    st.markdown("### 🕸 Radar Chart — Athlete Profile Over Time")
+    st.markdown("### 🕸 Radar Chart — Athlete Profile Across All Testing Dates")
 
-    # Select one athlete, show all testing dates together
-    selected_athlete = st.selectbox("Select Athlete", athlete_list, key="radar_all_dates_athlete")
+    selected_athlete = st.selectbox("Select Athlete", athlete_list, key="radar_across_all_dates")
 
-    # Get only valid test rows for the athlete
+    # Filter to selected athlete and convert date
     radar_df = df[df["Athlete"] == selected_athlete].copy()
     radar_df["Testing Date"] = pd.to_datetime(radar_df["Testing Date"], errors="coerce")
 
-    # Define raw and clean metric names
-    radar_metrics_raw = list(metric_map.keys())
-    radar_metrics_clean = list(metric_map.values())
+    # Define metrics to use (same 11 from earlier)
+    metric_map = {
+        'Height (in.)': 'Height',
+        'Weight (lbs)': 'Weight',
+        'Block Touch (in.)': 'Block Touch',
+        'Approach Touch (in.)': 'Approach Touch',
+        'Broad Jump (in.)': 'Broad Jump',
+        'Block Vertical (in.)': 'Block Vertical',
+        'Approach Vertical (in.)': 'Approach Vertical',
+        'Reps at E[X] Bench': 'Reps @ E[X] Bench',
+        'Agility Test (s)': 'Agility Test',
+        '10 Down and Backs (s)': '10 Down and Backs',
+        'Yo-Yo Cardio Test': 'Yo-Yo Test'
+    }
 
-    # Drop rows with too much missing data
-    radar_df = radar_df.dropna(subset=["Testing Date"] + radar_metrics_raw, thresh=5)
+    # Keep only rows with all metrics present
+    radar_df = radar_df.dropna(subset=list(metric_map.keys()), how="any")
 
     if radar_df.empty:
-        st.warning("⚠️ No valid testing records found for this athlete.")
+        st.warning("⚠️ No complete testing records for this athlete.")
     else:
         fig = go.Figure()
 
         for _, row in radar_df.iterrows():
-            raw_values = row[radar_metrics_raw]
-            if raw_values.isnull().sum() > 0:
-                continue  # skip incomplete tests
+            values = row[list(metric_map.keys())]
+            values.index = list(metric_map.values())
 
-            # Rename index for display
-            raw_values.index = radar_metrics_clean
             fig.add_trace(go.Scatterpolar(
-                r=raw_values.values,
-                theta=raw_values.index,
+                r=values.values,
+                theta=values.index,
                 fill='toself',
                 name=row["Testing Date"].strftime("%Y-%m-%d")
             ))
@@ -205,7 +212,7 @@ with tab3:
             polar=dict(radialaxis=dict(visible=True)),
             showlegend=True,
             height=600,
-            title=f"{selected_athlete} — Radar Chart Across All Testing Dates"
+            title=f"{selected_athlete} — Radar Chart Across Testing Dates"
         )
         st.plotly_chart(fig, use_container_width=True)
 
