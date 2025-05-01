@@ -31,21 +31,24 @@ def process_match_data_file(file_path, file_name):
         is_opponents_file = "Opponents" in file_name
         df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
-        # Determine Team
-        df["Team"] = "Crandall"
+        # Team is determined only by filename
+        df["Team"] = df["Opponent"]  # temporary assignment to preserve original content
+        df.loc[:, "Team"] = df["Team"] if is_opponents_file else "Crandall"
         if is_opponents_file:
-            df["Team"] = df["Opponent"].astype(str).str.extract(r"[@|vs|VS]\s*(.*)")[0].fillna("Unknown").str.strip()
+            df["Team"] = df["Opponent"].astype(str).apply(lambda val: val[1:].strip() if val.strip().startswith("@")
+                                                            else val[3:].strip() if val.strip().lower().startswith("vs")
+                                                            else "Unknown")
+        else:
+            df["Team"] = "Crandall"
 
-        # Determine Home and Away from Opponent column
+        # Home/Away determined by opponent prefix
         df["Home"] = df["Opponent"].apply(
-            lambda val: val.strip()[1:].strip() if val.strip().startswith("@") else (
-                "Crandall" if val.strip().lower().startswith("vs") else "Unknown"
-            )
+            lambda val: val[1:].strip() if val.strip().startswith("@")
+            else ("Crandall" if val.strip().lower().startswith("vs") else "Unknown")
         )
         df["Away"] = df["Opponent"].apply(
-            lambda val: "Crandall" if val.strip().startswith("@") else (
-                val.strip()[3:].strip() if val.strip().lower().startswith("vs") else "Unknown"
-            )
+            lambda val: "Crandall" if val.strip().startswith("@")
+            else (val[3:].strip() if val.strip().lower().startswith("vs") else "Unknown")
         )
 
         df["Season"] = season
