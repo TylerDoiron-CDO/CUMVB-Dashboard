@@ -17,6 +17,8 @@ This page provides access to the full underlying match, rotation, overall, athle
 Use this space for filtering, exploration, and validating raw data powering all dashboards.
 """)
 
+st.markdown("---")
+
 from functions import (
     Match_Data_Load,
     Overall_Data_Load,
@@ -82,6 +84,7 @@ with nav5:
         <small>Via CSV</small>
     </div>""", unsafe_allow_html=True)
 
+st.markdown("---")
 
 # -------------------------------
 # Section 1: Match Data
