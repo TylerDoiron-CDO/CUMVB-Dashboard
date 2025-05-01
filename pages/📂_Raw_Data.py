@@ -15,6 +15,8 @@ st.markdown("""
 ## 📂 Raw Data Viewer – For Exploratory Analysis
 This page provides access to the full underlying match, rotation, overall, athlete, and setter distribution datasets. 
 Use this space for filtering, exploration, and validating raw data powering all dashboards.
+
+⚠️ **Note:** We are aware of a bug where navigation buttons do not always jump to the correct table location. This will be addressed post-launch.
 """)
 
 st.markdown("---")
