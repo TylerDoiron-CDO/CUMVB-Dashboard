@@ -63,7 +63,7 @@ st.markdown("""
     display: flex;
     justify-content: space-around;
     margin-top: 1em;
-    margin-bottom: -1em;
+    margin-bottom: 0;
 }
 .nav-box {
     text-align: center;
@@ -128,7 +128,7 @@ st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", u
 st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
 
 # Squeeze out margin before line
-st.markdown("<div style='margin-top: -40px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: -40px; margin-bottom: -40px'></div>", unsafe_allow_html=True)
 
 # Separator line
 st.markdown("---")
