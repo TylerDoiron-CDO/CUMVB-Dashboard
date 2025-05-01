@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 
 # Constants
 TESTING_DATA_PATH = "data/Testing Data.csv"
@@ -43,9 +44,30 @@ if not df.empty:
     if selected_dates:
         filtered_df = filtered_df[filtered_df["Testing Date"].isin(selected_dates)]
 
-    # Display
+    # Display filtered data
     st.subheader("📋 Raw Fitness Testing Data")
     st.dataframe(filtered_df, use_container_width=True)
+
+    # Utility buttons
+    st.divider()
+    st.subheader("⚙️ Utilities")
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.download_button(
+            "💾 Download Fitness CSV",
+            filtered_df.to_csv(index=False).encode("utf-8"),
+            "team_fitness_data.csv",
+            "text/csv"
+        )
+
+    with col2:
+        if st.button("🔁 Reset Fitness Cache"):
+            st.cache_data.clear()
+            st.success("✅ Cache cleared. Reloading data...")
+            st.rerun()
+
+    st.caption("⚠️ Only use 'Reset Fitness Cache' if the source data file has changed.")
 
 else:
     st.warning("No data available.")
