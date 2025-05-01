@@ -16,20 +16,21 @@ def infer_season_from_date(date_str):
         return "Unknown"
 
 def extract_home_away_team(file_name):
-    file_name = file_name.replace("—", "-")  # normalize em-dash if needed
-    home_team, away_team = "Unknown", "Unknown"
+    cleaned_name = file_name.replace("—", "-").replace("–", "-")
 
-    if "@" in file_name:
-        parts = file_name.split("@")
+    if " @ " in cleaned_name:
+        parts = cleaned_name.split(" @ ")
         away_team = parts[0].strip()
         home_team = parts[1].split("-")[0].strip()
-    elif "vs." in file_name:
-        parts = file_name.split("vs.")
+    elif " vs " in cleaned_name:
+        parts = cleaned_name.split(" vs ")
         home_team = parts[0].strip()
         away_team = parts[1].split("-")[0].strip()
+    else:
+        home_team = away_team = "Unknown"
 
     return home_team, away_team
-
+    
 def process_athlete_data_file(file_path, file_name):
     try:
         df_raw = pd.read_csv(file_path, header=None, skiprows=1)
