@@ -1,90 +1,96 @@
 import streamlit as st
-from openai import OpenAI
-import os
-from datetime import datetime
+import requests
 
 # -------------------------------
-# API Client Setup
+# Hugging Face Model Config
 # -------------------------------
-client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY")))
+MODEL_OPTIONS = {
+    "🧠 Microsoft Phi-2 (small & smart)": "microsoft/phi-2",
+    "⚖️ Mistral-7B Instruct (strong general model)": "mistralai/Mistral-7B-Instruct",
+    "📚 TinyLlama (lightweight)": "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+}
+
+HF_TOKEN = st.secrets.get("HF_TOKEN", "")  # add your Hugging Face token to .streamlit/secrets.toml
+HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
 # -------------------------------
 # Page Setup
 # -------------------------------
-st.set_page_config(page_title="🥗 AthlEats: Smart Meal Planner", layout="centered")
-st.title("🥗 AthlEats: Smart Meal Planner")
-st.caption("Designed for high-performance volleyball athletes.")
+st.set_page_config(page_title="🥗 AthlEats (Free via HuggingFace)", layout="centered")
+st.title("🥗 AthlEats: Free Meal Planner (Hugging Face)")
+st.caption("Powered by open-access models on Hugging Face 🤗")
 st.markdown("---")
 
 # -------------------------------
-# Input Form
+# Prompt Construction
 # -------------------------------
-with st.form("meal_plan_form"):
-    st.markdown("### 👤 Athlete Profile")
-    col1, col2 = st.columns(2)
-    with col1:
-        energy_level = st.slider("Energy level today", 1, 10, 7)
-        weight = st.number_input("Weight (kg)", 40.0, 160.0, step=0.5)
-        wake_time = st.time_input("Wake-up time", value=datetime.strptime("07:00", "%H:%M").time())
-        sleep_time = st.time_input("Bedtime", value=datetime.strptime("22:30", "%H:%M").time())
-    with col2:
-        position = st.selectbox("Position", ["Outside", "Middle", "Setter", "Libero", "Opposite", "Other"])
-        goal = st.selectbox("Primary goal", ["Performance", "Muscle Gain", "Recovery", "Fat Loss", "Maintenance"])
-        meals_per_day = st.selectbox("Meals per day", [3, 4, 5, 6])
-        allergies = st.multiselect("Dietary restrictions", ["None", "Dairy-Free", "Gluten-Free", "Nut-Free", "Vegan", "Vegetarian"])
+st.markdown("### 🔧 Model & Athlete Setup")
 
+model_label = st.selectbox("Choose a model to generate meal plan", list(MODEL_OPTIONS.keys()))
+model_id = MODEL_OPTIONS[model_label]
+
+col1, col2 = st.columns(2)
+with col1:
+    position = st.selectbox("Position", ["Outside", "Middle", "Setter", "Libero", "Opposite"])
+    weight = st.number_input("Weight (kg)", 45.0, 140.0, step=1.0)
+    meals_per_day = st.selectbox("Meals per day", [3, 4, 5, 6])
+    goal = st.selectbox("Goal", ["Performance", "Muscle Gain", "Recovery", "Fat Loss", "Maintenance"])
+
+with col2:
+    training_type = st.selectbox("Training Type", ["Game", "Practice", "Weights", "Rest"])
+    training_intensity = st.selectbox("Intensity", ["Low", "Moderate", "High", "Extreme"])
+    energy = st.slider("Current energy level", 1, 10, 7)
+    allergies = st.multiselect("Allergies / Restrictions", ["None", "Vegan", "Vegetarian", "Dairy-Free", "Gluten-Free", "Nut-Free"])
+
+generate = st.button("🧠 Generate Meal Plan")
+
+# -------------------------------
+# Generate Prompt + Call API
+# -------------------------------
+if generate:
     st.markdown("---")
-    st.markdown("### 🏋️ Game / Training Day Info")
-    col3, col4 = st.columns(2)
-    with col3:
-        training_type = st.selectbox("Activity type", ["Practice", "Game", "Weights", "Rest"])
-        training_level = st.selectbox("Intensity", ["Low", "Moderate", "High", "Extreme"])
-    with col4:
-        training_time = st.time_input("Activity start time", value=datetime.strptime("10:00", "%H:%M").time())
+    st.info("Generating meal plan using Hugging Face...")
 
-    submitted = st.form_submit_button("🧠 Generate Meal Plan", type="primary")
-
-# -------------------------------
-# Generate Prompt + GPT Response
-# -------------------------------
-if submitted:
-    st.markdown("---")
-    st.info("🔄 Generating personalized meal plan...")
+    allergy_text = ", ".join(allergies) if allergies else "None"
 
     prompt = f"""
-You are a performance nutritionist.
-
-Build a meal plan for a {weight}kg volleyball {position} with an energy level of {energy_level}/10.
-Today's activity is a {training_type} session at {training_level} intensity, starting at {training_time}.
-Wake-up: {wake_time}, Bedtime: {sleep_time}, {meals_per_day} meals per day.
-Dietary restrictions: {', '.join(allergies) if allergies else "None"}.
-Primary goal: {goal.lower()}.
+You are a performance dietitian. Build a day-long meal plan for a volleyball player with this profile:
+- Position: {position}
+- Weight: {weight}kg
+- Meals per day: {meals_per_day}
+- Energy level: {energy}/10
+- Goal: {goal}
+- Training: {training_type} ({training_intensity} intensity)
+- Allergies or restrictions: {allergy_text}
 
 Respond with:
-1. 🥗 A complete meal plan — include timing, exact foods, and why each is recommended.
-2. 🔬 Optimize nutrient timing around metabolic outcomes (recovery, energy, digestion).
-3. ❌ List what foods/habits this athlete should avoid today based on their profile.
+1. A full list of meals and times
+2. Nutritional justification for each major item
+3. Foods or patterns to avoid today
 """
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # ✅ guaranteed to work
-            messages=[
-                {"role": "system", "content": "You are a professional sports dietitian."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
-        plan = response.choices[0].message.content
-        st.success("✅ Meal plan generated successfully!")
-        st.markdown("### 📋 Personalized Meal Plan")
-        st.markdown(plan)
+    # Call Hugging Face Inference API
+    HF_API_URL = f"https://api-inference.huggingface.co/models/{model_id}"
+    with st.spinner("⏳ Querying model..."):
+        try:
+            response = requests.post(HF_API_URL, headers=HEADERS, json={"inputs": prompt})
+            result = response.json()
 
-    except Exception as e:
-        st.error(f"❌ Failed to generate meal plan: {e}")
+            if isinstance(result, dict) and "error" in result:
+                st.error(f"❌ API Error: {result['error']}")
+            elif isinstance(result, list):
+                st.success("✅ Meal plan generated!")
+                st.markdown("### 📋 Suggested Meal Plan")
+                st.markdown(result[0]["generated_text"])
+            else:
+                st.warning("⚠️ Unexpected response format")
+                st.json(result)
+        except Exception as e:
+            st.error(f"⚠️ Request failed: {e}")
 
 # -------------------------------
 # Footer
 # -------------------------------
 st.markdown("---")
-st.caption("Built for Crandall Chargers Volleyball • Powered by OpenAI • © 2025")
+st.caption("Built for Crandall Chargers • Free AI via HuggingFace • 2025")
+
