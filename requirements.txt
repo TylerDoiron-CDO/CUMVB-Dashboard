@@ -2,4 +2,4 @@ streamlit
 pandas
 Pillow
 plotly>=5.0
-openai
+openai>=1.0.0
