@@ -88,7 +88,7 @@ with nav5:
     </div>""", unsafe_allow_html=True)
 
 # Spacer tightened
-st.markdown("<div style='margin-top: -10px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: -40px'></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
