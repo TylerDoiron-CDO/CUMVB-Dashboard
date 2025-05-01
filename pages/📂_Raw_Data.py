@@ -304,57 +304,16 @@ st.markdown("---")
 st.header("📊 Setter Distribution Data")
 
 setter_file = "data/Setter Distribution Data.csv"
-match_file = "data/Match Data by Set.csv"
 
 if os.path.exists(setter_file):
     try:
         setter_df = pd.read_csv(setter_file)
 
-        # Rename TEAM to Team for consistency
-        setter_df.rename(columns={"TEAM": "Team"}, inplace=True)
-
-        # Load match data
-        if os.path.exists(match_file):
-            match_df = pd.read_csv(match_file)
-            match_df["Date"] = pd.to_datetime(match_df["Date"], errors='coerce')
-            setter_df["Date"] = pd.to_datetime(setter_df["Date"], errors='coerce')
-
-            # Map Home and Away based on matching date and team logic
-            home_list, away_list = [], []
-            for _, row in setter_df.iterrows():
-                match_subset = match_df[(match_df["Date"] == row["Date"]) & (match_df["Team"] == row["Team"])]
-                unique_home = match_subset["Home"].unique()
-                unique_away = match_subset["Away"].unique()
-
-                home_list.append("Multiple" if len(unique_home) > 1 else (unique_home[0] if len(unique_home) == 1 else "Unknown"))
-                away_list.append("Multiple" if len(unique_away) > 1 else (unique_away[0] if len(unique_away) == 1 else "Unknown"))
-
-            setter_df["Home"] = home_list
-            setter_df["Away"] = away_list
-
-        # Identify opponent per date based on Team grouping
-        opponents = []
-        for date, group in setter_df.groupby("Date"):
-            teams = group["Team"].unique()
-            for idx, row in group.iterrows():
-                if row["Team"] == "Crandall":
-                    if len(teams) == 2:
-                        opponent = [t for t in teams if t != "Crandall"][0]
-                    elif len(teams) > 2:
-                        opponent = "Multiple"
-                    else:
-                        opponent = "Unknown"
-                else:
-                    opponent = "Crandall"
-                opponents.append(opponent)
-
-        setter_df["Opponent"] = opponents
-
         # Filters
         st.markdown("### 🔍 Filter Setter Distribution Data")
         f1, f2, f3, f4 = st.columns(4)
         teams = sorted(setter_df["Team"].dropna().unique())
-        opponents = sorted(setter_df["Opponent"].dropna().unique())
+        opponents = sorted(setter_df["Opponent"].dropna().unique()) if "Opponent" in setter_df.columns else []
         tendencies = sorted(setter_df["Setter Tendency"].dropna().unique()) if "Setter Tendency" in setter_df.columns else []
         positions = sorted(setter_df["Position"].dropna().unique()) if "Position" in setter_df.columns else []
 
@@ -366,7 +325,7 @@ if os.path.exists(setter_file):
         filtered_setter_df = setter_df.copy()
         if f_team:
             filtered_setter_df = filtered_setter_df[filtered_setter_df["Team"].isin(f_team)]
-        if f_oppo:
+        if f_oppo and "Opponent" in filtered_setter_df.columns:
             filtered_setter_df = filtered_setter_df[filtered_setter_df["Opponent"].isin(f_oppo)]
         if f_tend and "Setter Tendency" in filtered_setter_df.columns:
             filtered_setter_df = filtered_setter_df[filtered_setter_df["Setter Tendency"].isin(f_tend)]
