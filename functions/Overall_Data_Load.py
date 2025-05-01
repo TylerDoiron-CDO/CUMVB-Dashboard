@@ -70,12 +70,14 @@ def load_preprocessed_overall_data(force_rebuild=False):
 
     all_dfs = []
 
+    # Load new season files
     for file in os.listdir(OVERALL_DATA_DIR):
         if file.endswith(".csv"):
             df = process_overall_data_file(os.path.join(OVERALL_DATA_DIR, file), file)
             if df is not None:
                 all_dfs.append(df)
 
+    # Try loading historical file
     if os.path.exists(HISTORICAL_FILE):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
@@ -86,33 +88,23 @@ def load_preprocessed_overall_data(force_rebuild=False):
             hist_df.insert(4, "TEAM", "Unknown")
             hist_df["source_file"] = "historical data"
 
+            # Drop '0' columns and reorder
             hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
             metadata = ["Season", "Date", "Home", "Away", "TEAM"]
             other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
             hist_df = hist_df[metadata + other_cols + ["source_file"]]
 
+            # Drop 'By Set' if present
             if "Matches" in hist_df.columns:
                 hist_df = hist_df[hist_df["Matches"] != "By Set"]
 
             all_dfs.append(hist_df)
         except Exception as e:
-            print(f"❌ Error reading historical data: {e}")
-    else:
-        print("⚠️ Historical file not found.")
+            print(f"⚠️ Failed to load Historical Overall Data: {e}")
 
     if not all_dfs:
         return pd.DataFrame()
 
-# -------------------------------
-# 🔍 Debug: Confirm historical columns match
-# -------------------------------
-if all_dfs:
-    print("✅ First file columns:", all_dfs[0].columns.tolist())
-
-if 'hist_df' in locals() and not hist_df.empty:
-    print("✅ Historical columns:", hist_df.columns.tolist())
-
-    
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
