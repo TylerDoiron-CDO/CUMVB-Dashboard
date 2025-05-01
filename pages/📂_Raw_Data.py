@@ -135,8 +135,6 @@ else:
                 st.info("ℹ️ No rotation cache found.")
         st.caption("⚠️ Only use if source rotation data changed.")
 
-st.markdown("---")
-
 # -------------------------------
 # Section 4: Match Data by Set (Placeholder)
 # -------------------------------
