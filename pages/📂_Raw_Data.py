@@ -90,27 +90,27 @@ button.nav-button {
 st.markdown("""
 <div class="nav-container">
   <div class="nav-box">
-    <button class="nav-button" onclick="scrollToSection('match-data-section')">📘 Match Data</button><br>
-    <strong>{} records</strong><br>
-    <small>Latest: {}</small>
+    <a href="#match-data-section"><button class="nav-button">📘 Match Data</button></a><br>
+    <strong>{0} records</strong><br>
+    <small>Latest: {1}</small>
   </div>
   <div class="nav-box">
-    <button class="nav-button" onclick="scrollToSection('overall-data-section')">📊 Overall Data</button><br>
-    <strong>{} records</strong><br>
-    <small>Latest: {}</small>
+    <a href="#overall-data-section"><button class="nav-button">📊 Overall Data</button></a><br>
+    <strong>{2} records</strong><br>
+    <small>Latest: {3}</small>
   </div>
   <div class="nav-box">
-    <button class="nav-button" onclick="scrollToSection('rotation-data-section')">🔄 Rotation Data</button><br>
-    <strong>{} records</strong><br>
-    <small>Latest: {}</small>
+    <a href="#rotation-data-section"><button class="nav-button">🔄 Rotation Data</button></a><br>
+    <strong>{4} records</strong><br>
+    <small>Latest: {5}</small>
   </div>
   <div class="nav-box">
-    <button class="nav-button" onclick="scrollToSection('athlete-data-section')">🏐 Athlete Data</button><br>
-    <strong>{} records</strong><br>
-    <small>Latest: {}</small>
+    <a href="#athlete-data-section"><button class="nav-button">🏐 Athlete Data</button></a><br>
+    <strong>{6} records</strong><br>
+    <small>Latest: {7}</small>
   </div>
   <div class="nav-box">
-    <button class="nav-button" onclick="scrollToSection('setter-dist-data-section')">📊 Setter Dist. Data</button><br>
+    <a href="#setter-dist-data-section"><button class="nav-button">📊 Setter Dist. Data</button></a><br>
     <strong>Dynamic load</strong><br>
     <small>Via CSV</small>
   </div>
