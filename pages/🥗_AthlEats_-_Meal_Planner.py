@@ -12,6 +12,8 @@ openai.api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="🥗 AthlEats: Smart Meal Planner", layout="centered")
 st.title("🥗 AthlEats: Smart Meal Planner")
 st.caption("Designed for high-performance volleyball athletes.")
+st.caption("Beta 1.0.2 - Created by Astute Innovations")
+
 st.markdown("---")
 
 # -------------------------------
