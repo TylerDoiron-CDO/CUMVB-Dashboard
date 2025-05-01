@@ -61,10 +61,9 @@ else:
     # Title with latest date only
     st.title(f"📘 Match Data — Latest Match: {latest_date_str}")
 
-    # Summary section (inline)
-    st.markdown("### 📊 Summary by Season")
+    # Summary section (inline single line)
     summary_line = " | ".join([f"{row['Season']}: {row['Records']} records" for _, row in season_summary.iterrows()])
-    st.markdown(f"**{summary_line}**")
+    st.markdown(f"### 📊 Summary by Season — {summary_line}")
 
     # Explanation
     st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons. Summary counts reflect only matches played by Crandall.")
