@@ -158,7 +158,6 @@ def load_historical_overall_data_only():
 # -------------------------------
 # Section 3: Historical Overall Data (Standalone)
 # -------------------------------
-st.header("📚 Historical Overall Data (Standalone View)")
 
 with st.spinner("Loading historical overall data..."):
     hist_df = Overall_Data_Load.load_historical_overall_data_only()
