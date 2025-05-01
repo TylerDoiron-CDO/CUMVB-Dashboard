@@ -119,78 +119,29 @@ st.markdown("""
     rotation_total, rotation_latest,
     athlete_total, athlete_latest
 ), unsafe_allow_html=True)
-# Spacer tightened
-st.markdown("<div style='margin-top: -10px'></div>", unsafe_allow_html=True)
 
+# Anchors now integrated with headers
+st.markdown("""<h2 class='scroll-target' id='match-data-section'>📘 Match Data</h2>""", unsafe_allow_html=True)
+# ... your Match Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='overall-data-section'>📊 Overall Data</h2>""", unsafe_allow_html=True)
+# ... your Overall Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='rotation-data-section'>🔄 Rotation Data</h2>""", unsafe_allow_html=True)
+# ... your Rotation Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='athlete-data-section'>🏐 Athlete Data</h2>""", unsafe_allow_html=True)
+# ... your Athlete Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='setter-dist-data-section'>📊 Setter Dist. Data</h2>""", unsafe_allow_html=True)
+# ... your Setter Distribution Data section code ...
+
+# Remove spacing before the line
+st.markdown("""<div style='margin-top: -100px;'></div>""", unsafe_allow_html=True)
+
+# Separator line
 st.markdown("---")
 
-# Section Anchors (to jump to)
-st.markdown("""<h2 id='match-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='overall-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='rotation-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='athlete-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='setter-dist-data-section'></h2>""", unsafe_allow_html=True)
-
-# -------------------------------
-# Section 1: Match Data
-# -------------------------------
-st.header("📘 Match Data")
-
-force_refresh_match = st.session_state.get("reset_cache_match", False)
-
-with st.spinner("🔄 Loading Match Data..."):
-    match_df = Match_Data_Load.load_preprocessed_match_data(force_rebuild=force_refresh_match)
-
-if match_df.empty:
-    st.warning("⚠️ No match data found or processed.")
-else:
-    # Normalize team names
-    match_df["Home"] = match_df["Home"].replace({"CU": "Crandall", "Holland College": "Holland"})
-    match_df["Away"] = match_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
-    match_df["Team"] = match_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
-
-    # Caption summary
-    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons.")
-
-    # Filters
-    col1, col2, col3, col4 = st.columns(4)
-    seasons = sorted(match_df["Season"].dropna().unique())
-    homes = sorted(match_df["Home"].dropna().unique())
-    aways = sorted(match_df["Away"].dropna().unique())
-    teams = sorted(match_df["Team"].dropna().unique())
-
-    f_season = col1.multiselect("Season", options=seasons)
-    f_home = col2.multiselect("Home", options=homes)
-    f_away = col3.multiselect("Away", options=aways)
-    f_team = col4.multiselect("Team", options=teams)
-
-    filtered_match = match_df.copy()
-    if f_season:
-        filtered_match = filtered_match[filtered_match["Season"].isin(f_season)]
-    if f_home:
-        filtered_match = filtered_match[filtered_match["Home"].isin(f_home)]
-    if f_away:
-        filtered_match = filtered_match[filtered_match["Away"].isin(f_away)]
-    if f_team:
-        filtered_match = filtered_match[filtered_match["Team"].isin(f_team)]
-
-    st.success(f"✅ {filtered_match.shape[0]} match records shown")
-    st.dataframe(filtered_match)
-
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.download_button("💾 Download Match CSV", filtered_match.to_csv(index=False).encode("utf-8"), "match_data.csv", "text/csv")
-    with col2:
-        if st.button("🔁 Reset Match Cache"):
-            if os.path.exists(Match_Data_Load.CACHE_FILE):
-                os.remove(Match_Data_Load.CACHE_FILE)
-                st.session_state["reset_cache_match"] = True
-                st.rerun()
-            else:
-                st.info("ℹ️ No match cache found.")
-        st.caption("⚠️ Only use if source match data changed.")
-
-st.markdown("---")
 # -------------------------------
 # Section 1: Match Data
 # -------------------------------
