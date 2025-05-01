@@ -7,6 +7,9 @@ OVERALL_DATA_DIR = "data/Overall Data"
 HISTORICAL_FILE = "data/Historical Overall Data.csv"
 CACHE_FILE = "data/overall_data_cache.parquet"
 
+# -------------------------------
+# Infer season based on match date
+# -------------------------------
 def infer_season_from_date(date_str):
     try:
         match_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -15,6 +18,9 @@ def infer_season_from_date(date_str):
     except:
         return "Unknown"
 
+# -------------------------------
+# Process a single overall data file
+# -------------------------------
 def process_overall_data_file(file_path, file_name):
     try:
         df_raw = pd.read_csv(file_path, header=None, skiprows=1)
@@ -33,6 +39,7 @@ def process_overall_data_file(file_path, file_name):
     except Exception:
         return None
 
+    # Extract metadata
     date_match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", file_name)
     date_str = date_match.group(1) if date_match else "Unknown"
     season = infer_season_from_date(date_str)
@@ -50,6 +57,7 @@ def process_overall_data_file(file_path, file_name):
     team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
     team = team_match.group(1).strip() if team_match else "Unknown"
 
+    # Add metadata
     df.insert(0, "Season", season)
     df.insert(1, "Date", date_str)
     df.insert(2, "Home", home_team)
@@ -57,6 +65,7 @@ def process_overall_data_file(file_path, file_name):
     df.insert(4, "TEAM", team)
     df["source_file"] = file_name
 
+    # Drop problematic columns and reorder
     df = df[[col for col in df.columns if not str(col).startswith("0")]]
     metadata = ["Season", "Date", "Home", "Away", "TEAM"]
     other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
@@ -64,25 +73,26 @@ def process_overall_data_file(file_path, file_name):
 
     return df
 
+# -------------------------------
+# Load and preprocess all overall data
+# -------------------------------
 def load_preprocessed_overall_data(force_rebuild=False):
     if os.path.exists(CACHE_FILE) and not force_rebuild:
         return pd.read_parquet(CACHE_FILE)
 
     all_dfs = []
 
-    # Load regular files
+    # Load Overall Data files
     for file in os.listdir(OVERALL_DATA_DIR):
         if file.endswith(".csv"):
             df = process_overall_data_file(os.path.join(OVERALL_DATA_DIR, file), file)
             if df is not None:
                 all_dfs.append(df)
 
-    # 🔍 Load historical overall data
-    hist_path = HISTORICAL_FILE
-    if os.path.exists(hist_path):
+    # Load historical overall data
+    if os.path.exists(HISTORICAL_FILE):
         try:
-            hist_df = pd.read_csv(hist_path)
-
+            hist_df = pd.read_csv(HISTORICAL_FILE)
             hist_df.insert(0, "Season", "Unknown")
             hist_df.insert(1, "Date", "Unknown")
             hist_df.insert(2, "Home", "Unknown")
@@ -90,27 +100,25 @@ def load_preprocessed_overall_data(force_rebuild=False):
             hist_df.insert(4, "TEAM", "Unknown")
             hist_df["source_file"] = "historical data"
 
-            # Drop columns starting with "0"
             hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
             metadata = ["Season", "Date", "Home", "Away", "TEAM"]
             other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
             hist_df = hist_df[metadata + other_cols + ["source_file"]]
 
-            # 🔻 Remove any 'By Set' rows
+            # Remove 'By Set' rows if 'Matches' column exists
             if "Matches" in hist_df.columns:
                 hist_df = hist_df[hist_df["Matches"] != "By Set"]
 
             all_dfs.append(hist_df)
-            print(f"✅ Loaded {hist_df.shape[0]} rows from historical overall data")
         except Exception as e:
-            print(f"❌ Error reading historical overall data: {e}")
+            print(f"❌ Failed to load historical overall data: {e}")
     else:
-        print(f"❌ Historical file not found at: {hist_path}")
+        print(f"⚠️ Historical overall file not found: {HISTORICAL_FILE}")
 
     if not all_dfs:
-        print("⚠️ No data found in regular or historical sources")
         return pd.DataFrame()
 
+    # Combine and clean
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
