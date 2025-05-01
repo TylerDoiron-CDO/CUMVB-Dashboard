@@ -70,17 +70,19 @@ def load_preprocessed_overall_data(force_rebuild=False):
 
     all_dfs = []
 
-    # Step 1: Load and process all current files first
+    # Step 1: Load current season data
     for file in os.listdir(OVERALL_DATA_DIR):
         if file.endswith(".csv"):
             df = process_overall_data_file(os.path.join(OVERALL_DATA_DIR, file), file)
             if df is not None:
                 all_dfs.append(df)
 
-    # Step 2: Then add historical data
+    # Step 2: Append historical data after processing
     if os.path.exists(HISTORICAL_FILE):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
+
+            # Add missing metadata
             hist_df.insert(0, "Season", "Unknown")
             hist_df.insert(1, "Date", "Unknown")
             hist_df.insert(2, "Home", "Unknown")
@@ -88,11 +90,10 @@ def load_preprocessed_overall_data(force_rebuild=False):
             hist_df.insert(4, "TEAM", "Unknown")
             hist_df["source_file"] = "historical data"
 
+            # Drop columns starting with "0"
             hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
 
-            if "Matches" in hist_df.columns:
-                hist_df = hist_df[hist_df["Matches"] != "By Set"]
-
+            # Reorder columns
             metadata = ["Season", "Date", "Home", "Away", "TEAM"]
             other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
             hist_df = hist_df[metadata + other_cols + ["source_file"]]
@@ -101,15 +102,14 @@ def load_preprocessed_overall_data(force_rebuild=False):
         except Exception as e:
             print(f"⚠️ Failed to load Historical Overall Data: {e}")
 
+    # Step 3: Combine all
     if not all_dfs:
         return pd.DataFrame()
 
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
-    if "Matches" in combined.columns:
-        combined = combined[combined["Matches"] != "By Set"]
-
+    # Step 4: Normalize types
     for col in combined.columns:
         try:
             combined[col] = pd.to_numeric(combined[col], errors="ignore")
@@ -121,9 +121,11 @@ def load_preprocessed_overall_data(force_rebuild=False):
             except:
                 combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
 
+    # Step 5: Write cache
     try:
         combined.to_parquet(CACHE_FILE, index=False)
     except Exception as e:
         print(f"❌ Failed to write cache: {e}")
 
     return combined
+
