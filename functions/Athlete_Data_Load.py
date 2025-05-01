@@ -38,18 +38,23 @@ def process_athlete_data_file(file_path, file_name):
     date_str = date_match.group(1) if date_match else "Unknown"
     season = infer_season_from_date(date_str)
 
+# Determine Home, Away, and TEAM based on file name
+if "@" in file_name:
+    parts = file_name.split("@")
+    away_team = parts[0].strip()
+    home_team = parts[1].split("—")[0].strip()
+elif "vs." in file_name:
+    parts = file_name.split("vs.")
+    home_team = parts[0].strip()
+    away_team = parts[1].split("—")[0].strip()
+else:
     home_team = away_team = "Unknown"
-    if "@" in file_name:
-        parts = file_name.split("@")
-        away_team = parts[0].strip()
-        home_team = parts[1].split("—")[0].strip()
-    elif "vs." in file_name:
-        parts = file_name.split("vs.")
-        home_team = parts[0].strip()
-        away_team = parts[1].split("—")[0].strip()
 
-    team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
-    team = team_match.group(1).strip() if team_match else "Unknown"
+# Determine team based on whether this is an Opponents file
+if "Opponents" in file_name:
+    team = away_team  # i.e. opponent team is the subject
+else:
+    team = "Crandall"
 
     df.insert(0, "Season", season)
     df.insert(1, "Date", date_str)
