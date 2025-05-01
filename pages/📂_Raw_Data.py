@@ -50,54 +50,69 @@ overall_total, overall_latest = get_summary(Overall_Data_Load.load_preprocessed_
 rotation_total, rotation_latest = get_summary(Rotation_Data_Load.load_preprocessed_rotation_data)
 athlete_total, athlete_latest = get_summary(Athlete_Data_Load.load_preprocessed_athlete_data)
 
+# CSS & JavaScript for scroll behavior
+st.markdown("""
+<style>
+.scroll-target {
+    position: relative;
+    top: -80px;
+}
+</style>
+<script>
+    function scrollToSection(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+</script>
+""", unsafe_allow_html=True)
+
 nav1, nav2, nav3, nav4, nav5 = st.columns(5)
 with nav1:
     st.markdown(f"""
     <div style='text-align: center'>
-        <a href='#match-data-section'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📘 Match Data</button></a><br>
+        <button onclick=\"scrollToSection('match-data-section')\" style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📘 Match Data</button><br>
         <strong>{match_total} records</strong><br>
         <small>Latest: {match_latest}</small>
     </div>""", unsafe_allow_html=True)
 with nav2:
     st.markdown(f"""
     <div style='text-align: center'>
-        <a href='#overall-data-section'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Overall Data</button></a><br>
+        <button onclick=\"scrollToSection('overall-data-section')\" style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Overall Data</button><br>
         <strong>{overall_total} records</strong><br>
         <small>Latest: {overall_latest}</small>
     </div>""", unsafe_allow_html=True)
 with nav3:
     st.markdown(f"""
     <div style='text-align: center'>
-        <a href='#rotation-data-section'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🔄 Rotation Data</button></a><br>
+        <button onclick=\"scrollToSection('rotation-data-section')\" style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🔄 Rotation Data</button><br>
         <strong>{rotation_total} records</strong><br>
         <small>Latest: {rotation_latest}</small>
     </div>""", unsafe_allow_html=True)
 with nav4:
     st.markdown(f"""
     <div style='text-align: center'>
-        <a href='#athlete-data-section'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🏐 Athlete Data</button></a><br>
+        <button onclick=\"scrollToSection('athlete-data-section')\" style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🏐 Athlete Data</button><br>
         <strong>{athlete_total} records</strong><br>
         <small>Latest: {athlete_latest}</small>
     </div>""", unsafe_allow_html=True)
 with nav5:
     st.markdown(f"""
     <div style='text-align: center'>
-        <a href='#setter-dist-data-section'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Setter Dist. Data</button></a><br>
+        <button onclick=\"scrollToSection('setter-dist-data-section')\" style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Setter Dist. Data</button><br>
         <strong>Dynamic load</strong><br>
         <small>Via CSV</small>
     </div>""", unsafe_allow_html=True)
 
-# Spacer tightened
-st.markdown("<div style='margin-top: -40px'></div>", unsafe_allow_html=True)
+# Anchors for scrolling target
+st.markdown("""<div class='scroll-target' id='match-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='overall-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='rotation-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
 
 st.markdown("---")
-
-# Section Anchors (to jump to)
-st.markdown("""<h2 id='match-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='overall-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='rotation-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='athlete-data-section'></h2>""", unsafe_allow_html=True)
-st.markdown("""<h2 id='setter-dist-data-section'></h2>""", unsafe_allow_html=True)
 
 # -------------------------------
 # Section 1: Match Data
