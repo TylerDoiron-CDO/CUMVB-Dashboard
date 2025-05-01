@@ -11,12 +11,18 @@ CACHE_FILE = "data/match_data_cache.parquet"
 
 def infer_season_from_filename(file_name):
     try:
+        # Try first to find academic-style season (e.g., 2023-2024)
+        season_match = re.search(r"(\d{4}-\d{4})", file_name)
+        if season_match:
+            return season_match.group(1)
+
+        # Fallback to date-based inference
         date_match = re.search(r"(\d{4}-\d{2}-\d{2})", file_name)
-        if not date_match:
-            return "Unknown"
-        match_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
-        year = match_date.year
-        return f"{year}-{year + 1}" if match_date.month >= 9 else f"{year - 1}-{year}"
+        if date_match:
+            match_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
+            year = match_date.year
+            return f"{year}-{year + 1}" if match_date.month >= 9 else f"{year - 1}-{year}"
+        return "Unknown"
     except:
         return "Unknown"
 
@@ -26,7 +32,7 @@ def infer_home_away_team(row, file_name, team_label):
     if opp.startswith("@"):
         home = opp.replace("@", "").strip()
         away = team_label
-    elif opp.startswith("vs") or opp.startswith("Vs"):
+    elif opp.lower().startswith("vs"):
         home = team_label
         away = opp.replace("vs", "").replace("Vs", "").strip()
     return home, away
@@ -56,6 +62,11 @@ def process_match_data_file(file_path, file_name):
 
         df["Home"] = homes
         df["Away"] = aways
+
+        # Reorder columns
+        start_cols = ["Season", "Date", "Home", "Away", "Team"]
+        other_cols = [col for col in df.columns if col not in start_cols + ["source_file"]]
+        df = df[start_cols + other_cols + ["source_file"]]
 
         return df
     except Exception as e:
