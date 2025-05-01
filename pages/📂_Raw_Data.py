@@ -243,6 +243,11 @@ with st.spinner("🔄 Loading Athlete Data..."):
 if athlete_df.empty:
     st.warning("⚠️ No athlete data found or processed.")
 else:
+    # Normalize team names
+    athlete_df["Home"] = athlete_df["Home"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    athlete_df["Away"] = athlete_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    athlete_df["Team"] = athlete_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
+
     with st.expander("🔎 Filter Athlete Data"):
         col1, col2, col3, col4, col5 = st.columns(5)
         seasons = sorted(athlete_df["Season"].dropna().unique())
