@@ -94,7 +94,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 with tab1:
     st.markdown("### 📈 Track Athlete Progress Over Time")
 
-    # Mapping original column names to clean display labels
+    # Mapping raw column names to clean display labels
     metric_map = {
         'Height (in.)': 'Height',
         'Weight (lbs)': 'Weight',
@@ -108,17 +108,16 @@ with tab1:
         '10 Down and Backs (s)': '10 Down and Backs',
         'Yo-Yo Cardio Test': 'Yo-Yo Test'
     }
-
     inverse_map = {v: k for k, v in metric_map.items()}
     available_metrics = list(inverse_map.keys())
 
-    # Filters
+    # Filters with explicit unique keys
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("Metric", available_metrics)
-    selected_athletes = col2.multiselect("Athlete", sorted(df["Athlete"].dropna().unique()))
-    selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()))
+    selected_metric = col1.selectbox("Metric", available_metrics, key="lineplot_metric")
+    selected_athletes = col2.multiselect("Athlete", sorted(df["Athlete"].dropna().unique()), key="lineplot_athletes")
+    selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="lineplot_positions")
 
-    # Prepare filtered data
+    # Filter the data
     filtered_df = df.copy()
     filtered_df["Testing Date"] = pd.to_datetime(filtered_df["Testing Date"], errors="coerce")
 
@@ -130,7 +129,7 @@ with tab1:
     raw_metric = inverse_map[selected_metric]
     filtered_df = filtered_df.dropna(subset=["Testing Date", raw_metric])
 
-    # Plot
+    # Plotting
     if not filtered_df.empty:
         import plotly.express as px
         fig = px.line(
