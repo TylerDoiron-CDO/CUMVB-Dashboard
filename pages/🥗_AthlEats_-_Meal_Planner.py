@@ -68,7 +68,7 @@ Respond with:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",  # ✅ guaranteed to work
             messages=[
                 {"role": "system", "content": "You are a professional sports dietitian."},
                 {"role": "user", "content": prompt}
@@ -79,6 +79,7 @@ Respond with:
         st.success("✅ Meal plan generated successfully!")
         st.markdown("### 📋 Personalized Meal Plan")
         st.markdown(plan)
+
     except Exception as e:
         st.error(f"❌ Failed to generate meal plan: {e}")
 
