@@ -396,7 +396,6 @@ if os.path.exists(setter_file):
         setter_df = pd.read_csv(setter_file)
 
         # Filters
-        st.markdown("### 🔍 Filter Setter Distribution Data")
         f1, f2, f3, f4, f5 = st.columns(5)
         teams = sorted(setter_df["Team"].dropna().unique())
         homes = sorted(setter_df["Home"].dropna().unique()) if "Home" in setter_df.columns else []
