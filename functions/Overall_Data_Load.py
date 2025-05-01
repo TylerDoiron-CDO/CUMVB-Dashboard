@@ -70,38 +70,50 @@ def load_preprocessed_overall_data(force_rebuild=False):
 
     all_dfs = []
 
-    # Load regular Overall Data files
+    # Load regular files
     for file in os.listdir(OVERALL_DATA_DIR):
         if file.endswith(".csv"):
             df = process_overall_data_file(os.path.join(OVERALL_DATA_DIR, file), file)
             if df is not None:
                 all_dfs.append(df)
 
-    # Load historical data
-    if os.path.exists(HISTORICAL_FILE):
+    # 🔍 Load historical overall data
+    hist_path = HISTORICAL_FILE
+    if os.path.exists(hist_path):
         try:
-            df = pd.read_csv(HISTORICAL_FILE)
-            df.insert(0, "Season", "Unknown")
-            df.insert(1, "Date", "Unknown")
-            df.insert(2, "Home", "Unknown")
-            df.insert(3, "Away", "Unknown")
-            df.insert(4, "TEAM", "Unknown")
-            df["source_file"] = "historical data"
-            df = df[[col for col in df.columns if not str(col).startswith("0")]]
+            hist_df = pd.read_csv(hist_path)
+
+            hist_df.insert(0, "Season", "Unknown")
+            hist_df.insert(1, "Date", "Unknown")
+            hist_df.insert(2, "Home", "Unknown")
+            hist_df.insert(3, "Away", "Unknown")
+            hist_df.insert(4, "TEAM", "Unknown")
+            hist_df["source_file"] = "historical data"
+
+            # Drop columns starting with "0"
+            hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
             metadata = ["Season", "Date", "Home", "Away", "TEAM"]
-            other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-            df = df[metadata + other_cols + ["source_file"]]
-            all_dfs.append(df)
+            other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
+            hist_df = hist_df[metadata + other_cols + ["source_file"]]
+
+            # 🔻 Remove any 'By Set' rows
+            if "Matches" in hist_df.columns:
+                hist_df = hist_df[hist_df["Matches"] != "By Set"]
+
+            all_dfs.append(hist_df)
+            print(f"✅ Loaded {hist_df.shape[0]} rows from historical overall data")
         except Exception as e:
-            print(f"❌ Failed to load historical overall data: {e}")
+            print(f"❌ Error reading historical overall data: {e}")
+    else:
+        print(f"❌ Historical file not found at: {hist_path}")
 
     if not all_dfs:
+        print("⚠️ No data found in regular or historical sources")
         return pd.DataFrame()
 
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
-    # 🔻 Remove 'By Set' rows from Matches column if it exists
     if "Matches" in combined.columns:
         combined = combined[combined["Matches"] != "By Set"]
 
