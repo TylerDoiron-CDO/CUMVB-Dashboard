@@ -10,6 +10,17 @@ from functions import (
 
 st.set_page_config(page_title="📂 Raw Data Viewer", layout="wide")
 
+# Interactive page summary with anchor links
+st.markdown("""
+### 🧭 Page Navigation
+- [📘 Match Data](#match-data--latest-match)
+- [📊 Overall Data](#overall-data)
+- [🔄 Rotation Data](#rotation-data)
+- [🏐 Athlete Data](#athlete-data)
+- [📊 Setter Distribution Data](#setter-distribution-data)
+---
+""")
+
 force_refresh_match = st.session_state.get("reset_cache_match", False)
 
 with st.spinner("🔄 Loading Match Data..."):
@@ -24,21 +35,23 @@ else:
     match_df["Away"] = match_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
     match_df["Team"] = match_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
 
-    # Summary by season
-    season_summary = match_df.groupby("Season").size().reset_index(name="Records")
+    # Filter for Crandall team only for summary
+    crandall_matches = match_df[match_df["Team"] == "Crandall"]
+    season_summary = crandall_matches.groupby("Season").size().reset_index(name="Records")
+
     latest_date = pd.to_datetime(match_df["Date"], errors='coerce').dropna().max()
     latest_date_str = latest_date.date() if pd.notnull(latest_date) else "Unknown"
 
     # Title with latest date only
     st.title(f"📘 Match Data — Latest Match: {latest_date_str}")
 
-    # Summary section
+    # Summary section (inline)
     st.markdown("### 📊 Summary by Season")
-    for _, row in season_summary.iterrows():
-        st.markdown(f"- 📅 **{row['Season']}**: {row['Records']} matches")
+    summary_line = " | ".join([f"{row['Season']}: {row['Records']} records" for _, row in season_summary.iterrows()])
+    st.markdown(f"**{summary_line}**")
 
     # Explanation
-    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons.")
+    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons. Summary counts reflect only matches played by Crandall.")
 
     # Filters
     col1, col2, col3, col4 = st.columns(4)
