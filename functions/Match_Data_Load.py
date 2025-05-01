@@ -8,7 +8,6 @@ from datetime import datetime
 MATCH_DATA_DIR = "data/Match Data"
 CACHE_FILE = "data/match_data_cache.parquet"
 
-
 def infer_season_from_filename(file_name):
     try:
         season_match = re.search(r"(\d{4}-\d{4})", file_name)
@@ -32,17 +31,25 @@ def process_match_data_file(file_path, file_name):
         is_opponents_file = "Opponents" in file_name
         df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
-        # Team based only on file name
-        df["Team"] = df["Opponent"]
+        # Team based solely on file name
+        df["Team"] = df["Opponent"]  # placeholder
         df.loc[~is_opponents_file, "Team"] = "Crandall"
-        df.loc[is_opponents_file, "Team"] = df.loc[is_opponents_file, "Opponent"].astype(str).str.extract(r"[@vsVS]+\s*(.*)")[0].fillna("Unknown").str.strip()
+        df.loc[is_opponents_file, "Team"] = df.loc[is_opponents_file, "Opponent"]
+            .astype(str)
+            .str.extract(r"[@|vs|VS]\s*(.*)")[0]
+            .fillna("Unknown")
+            .str.strip()
 
-        # Home/Away based only on Opponent prefix
+        # Home and Away based on Opponent prefix only
         df["Home"] = df["Opponent"].apply(
-            lambda val: val.replace("@", "").strip() if val.strip().startswith("@") else ("Crandall" if val.strip().lower().startswith("vs") else "Unknown")
+            lambda val: val.strip()[1:].strip() if val.strip().startswith("@") else (
+                "Crandall" if val.strip().lower().startswith("vs") else "Unknown"
+            )
         )
         df["Away"] = df["Opponent"].apply(
-            lambda val: "Crandall" if val.strip().startswith("@") else (val.replace("vs", "").replace("Vs", "").strip() if val.strip().lower().startswith("vs") else "Unknown")
+            lambda val: "Crandall" if val.strip().startswith("@") else (
+                val.strip()[3:].strip() if val.strip().lower().startswith("vs") else "Unknown"
+            )
         )
 
         df["Season"] = season
