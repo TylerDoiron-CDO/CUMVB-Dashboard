@@ -177,9 +177,11 @@ if rotation_df.empty:
     st.warning("⚠️ No rotation data found or processed.")
 else:
     if "Rotation" in rotation_df.columns:
-        valid_rotations = rotation_df[rotation_df["Rotation"].astype(str).str.strip().str.isnumeric() & rotation_df["Rotation"].astype(int).between(0, 5)]
-        unknown_rotations = rotation_df[rotation_df["Rotation"].isna() | ~rotation_df["Rotation"].astype(str).str.strip().str.isnumeric()]
-        rotation_df = pd.concat([valid_rotations, unknown_rotations], ignore_index=True)
+        rotation_df["Rotation_str"] = rotation_df["Rotation"].astype(str).str.strip()
+        rotation_df = rotation_df[
+            rotation_df["Rotation_str"].isin(["0", "1", "2", "3", "4", "5", "Unknown", "unknown", "nan"])
+        ]
+        rotation_df.drop(columns=["Rotation_str"], inplace=True, errors="ignore")
 
     s1, s2, s3, s4 = st.columns(4)
     seasons = sorted(rotation_df["Season"].dropna().unique())
