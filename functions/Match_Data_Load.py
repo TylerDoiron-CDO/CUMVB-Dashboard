@@ -11,12 +11,9 @@ CACHE_FILE = "data/match_data_cache.parquet"
 
 def infer_season_from_filename(file_name):
     try:
-        # Try first to find academic-style season (e.g., 2023-2024)
         season_match = re.search(r"(\d{4}-\d{4})", file_name)
         if season_match:
             return season_match.group(1)
-
-        # Fallback to date-based inference
         date_match = re.search(r"(\d{4}-\d{2}-\d{2})", file_name)
         if date_match:
             match_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
@@ -26,24 +23,13 @@ def infer_season_from_filename(file_name):
     except:
         return "Unknown"
 
-def infer_home_away_team(row, is_opponents_file, team_label):
-    opp = row.get("Opponent", "")
-    home, away = "Unknown", "Unknown"
-    if opp.startswith("@"):
-        if is_opponents_file:
-            home = team_label
-            away = opp.replace("@", "").strip()
-        else:
-            home = opp.replace("@", "").strip()
-            away = team_label
-    elif opp.lower().startswith("vs"):
-        if is_opponents_file:
-            home = opp.replace("vs", "").replace("Vs", "").strip()
-            away = team_label
-        else:
-            home = team_label
-            away = opp.replace("vs", "").replace("Vs", "").strip()
-    return home, away
+def infer_home_away_team(row, is_opponents_file, is_away, team_label):
+    opp = row.get("Opponent", "").strip()
+    opp_team = opp.replace("@", "").replace("vs", "").replace("Vs", "").strip()
+    if is_away:
+        return (opp_team, team_label) if not is_opponents_file else (team_label, opp_team)
+    else:
+        return (team_label, opp_team) if not is_opponents_file else (opp_team, team_label)
 
 def process_match_data_file(file_path, file_name):
     try:
@@ -54,25 +40,32 @@ def process_match_data_file(file_path, file_name):
         is_opponents_file = "Opponents" in file_name
         df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
-        if is_opponents_file:
-            df["Team"] = df["Opponent"].astype(str).str.extract(r"[@vsVS]+\s*(.*)")[0].fillna("Unknown").str.strip()
-        else:
-            df["Team"] = "Crandall"
+        is_away_flags = df["Opponent"].astype(str).str.startswith("@")
+        is_vs_flags = df["Opponent"].astype(str).str.lower().str.startswith("vs")
 
+        team_list = []
+        home_list = []
+        away_list = []
+
+        for idx, row in df.iterrows():
+            opp = row.get("Opponent", "").strip()
+            is_away = opp.startswith("@")
+            if is_opponents_file:
+                team_name = re.sub(r"[@vsVS]+", "", opp).strip()
+            else:
+                team_name = "Crandall"
+
+            home, away = infer_home_away_team(row, is_opponents_file, is_away, team_name)
+            team_list.append(team_name)
+            home_list.append(home)
+            away_list.append(away)
+
+        df["Team"] = team_list
         df["Season"] = season
+        df["Home"] = home_list
+        df["Away"] = away_list
         df["source_file"] = file_name
 
-        # Apply Home and Away extraction
-        homes, aways = [], []
-        for _, row in df.iterrows():
-            home, away = infer_home_away_team(row, is_opponents_file, df.at[_, "Team"])
-            homes.append(home)
-            aways.append(away)
-
-        df["Home"] = homes
-        df["Away"] = aways
-
-        # Reorder columns
         start_cols = ["Season", "Date", "Home", "Away", "Team", "Is_Opponent_File"]
         other_cols = [col for col in df.columns if col not in start_cols + ["source_file"]]
         df = df[start_cols + other_cols + ["source_file"]]
@@ -114,4 +107,3 @@ def load_preprocessed_match_data(force_rebuild=False):
         print(f"❌ Failed to write match data cache: {e}")
 
     return combined
-
