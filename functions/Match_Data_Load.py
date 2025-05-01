@@ -16,6 +16,7 @@ def infer_season_from_date(date_str):
         return "Unknown"
 
 def extract_home_away_team(file_name):
+    # Normalize any em-dashes or en-dashes
     cleaned_name = file_name.replace("—", "-").replace("–", "-")
 
     if " @ " in cleaned_name:
@@ -30,7 +31,7 @@ def extract_home_away_team(file_name):
         home_team = away_team = "Unknown"
 
     return home_team, away_team
-    
+
 def process_athlete_data_file(file_path, file_name):
     try:
         df_raw = pd.read_csv(file_path, header=None, skiprows=1)
@@ -50,26 +51,17 @@ def process_athlete_data_file(file_path, file_name):
     except Exception:
         return None
 
-    # Extract date from file name
+    # Extract metadata
     date_match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", file_name)
     date_str = date_match.group(1) if date_match else "Unknown"
     season = infer_season_from_date(date_str)
+    home_team, away_team = extract_home_away_team(file_name)
 
-    # Determine Home and Away based on file name content
-    home_team = away_team = "Unknown"
-    if "@" in file_name:
-        parts = file_name.split("@")
-        away_team = parts[0].strip()
-        home_team = parts[1].split("—")[0].strip()
-    elif "vs." in file_name:
-        parts = file_name.split("vs.")
-        home_team = parts[0].strip()
-        away_team = parts[1].split("—")[0].strip()
-
-    # Extract team name after "Totals" and before "("
+    # Extract team name from "Totals ..." section
     team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
     team = team_match.group(1).strip() if team_match else "Unknown"
 
+    # Insert metadata into dataframe
     df.insert(0, "Season", season)
     df.insert(1, "Date", date_str)
     df.insert(2, "Home", home_team)
@@ -77,6 +69,7 @@ def process_athlete_data_file(file_path, file_name):
     df.insert(4, "Team", team)
     df["source_file"] = file_name
 
+    # Clean and order columns
     df = df[[col for col in df.columns if not str(col).startswith("0")]]
     metadata = ["Season", "Date", "Home", "Away", "Team"]
     other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
@@ -93,7 +86,7 @@ def load_preprocessed_athlete_data(force_rebuild=False):
             historical_df.insert(1, "Date", "Unknown")
             historical_df.insert(2, "Home", "Unknown")
             historical_df.insert(3, "Away", "Unknown")
-            historical_df.insert(4, "Team", "Unknown")  # Renamed from TEAM
+            historical_df.insert(4, "Team", "Unknown")
             historical_df["source_file"] = "historical data"
 
             historical_df = historical_df[[col for col in historical_df.columns if not str(col).startswith("0")]]
