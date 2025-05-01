@@ -8,16 +8,15 @@ from functions import (
     Match_Data_Load
 )
 
-st.set_page_config(page_title="📂 Raw Data Viewer", layout="wide")
+st.set_page_config(page_title="📂 Raw Data Viewer – For Exploratory Analysis", layout="wide")
 
-# 🔎 Page Summary & Navigation Header
+# 🔎 Page Introduction
 st.markdown("""
 ## 📂 Raw Data Viewer – For Exploratory Analysis
-This page provides full access to the underlying match, rotation, overall, athlete, and setter distribution datasets. 
-It is designed to support exploratory analysis and feeds all downstream visuals and advanced reports.
+This page provides access to the full underlying match, rotation, overall, athlete, and setter distribution datasets. 
+Use this space for filtering, exploration, and validating raw data powering all dashboards.
 """)
 
-# Pre-cached summaries
 from functions import (
     Match_Data_Load,
     Overall_Data_Load,
@@ -25,48 +24,43 @@ from functions import (
     Athlete_Data_Load,
 )
 
-def get_data_summary(load_func, label):
+def get_summary(load_func):
     try:
         df = load_func(force_rebuild=False)
         total = df.shape[0]
-        latest_date = pd.to_datetime(df["Date"], errors="coerce").dropna().max()
-        latest_str = latest_date.strftime("%Y-%m-%d") if pd.notnull(latest_date) else "N/A"
-        return f"**{label}**\n\n{total} records — Latest: {latest_str}"
+        latest = pd.to_datetime(df["Date"], errors="coerce").dropna().max()
+        return total, latest.strftime("%Y-%m-%d") if pd.notnull(latest) else "N/A"
     except:
-        return f"**{label}**\n\n⚠️ Load error"
+        return 0, "N/A"
 
 # Summaries
-match_summary = get_data_summary(Match_Data_Load.load_preprocessed_match_data, "📘 Match Data")
-overall_summary = get_data_summary(Overall_Data_Load.load_preprocessed_overall_data, "📊 Overall Data")
-rotation_summary = get_data_summary(Rotation_Data_Load.load_preprocessed_rotation_data, "🔄 Rotation Data")
-athlete_summary = get_data_summary(Athlete_Data_Load.load_preprocessed_athlete_data, "🏐 Athlete Data")
+match_total, match_latest = get_summary(Match_Data_Load.load_preprocessed_match_data)
+overall_total, overall_latest = get_summary(Overall_Data_Load.load_preprocessed_overall_data)
+rotation_total, rotation_latest = get_summary(Rotation_Data_Load.load_preprocessed_rotation_data)
+athlete_total, athlete_latest = get_summary(Athlete_Data_Load.load_preprocessed_athlete_data)
 
-# Navigation Buttons
+# Navigation with Summary Rows
 nav1, nav2, nav3, nav4, nav5 = st.columns(5)
 with nav1:
-    if st.button("📘 Match Data"):
-        st.query_params(section="match")
-    st.markdown(match_summary)
-
+    st.button("📘 Match Data")
+    st.markdown(f"**{match_total} records**")
+    st.caption(f"Latest: {match_latest}")
 with nav2:
-    if st.button("📊 Overall Data"):
-        st.query_params(section="overall")
-    st.markdown(overall_summary)
-
+    st.button("📊 Overall Data")
+    st.markdown(f"**{overall_total} records**")
+    st.caption(f"Latest: {overall_latest}")
 with nav3:
-    if st.button("🔄 Rotation Data"):
-        st.query_params(section="rotation")
-    st.markdown(rotation_summary)
-
+    st.button("🔄 Rotation Data")
+    st.markdown(f"**{rotation_total} records**")
+    st.caption(f"Latest: {rotation_latest}")
 with nav4:
-    if st.button("🏐 Athlete Data"):
-        st.query_params(section="athlete")
-    st.markdown(athlete_summary)
-
+    st.button("🏐 Athlete Data")
+    st.markdown(f"**{athlete_total} records**")
+    st.caption(f"Latest: {athlete_latest}")
 with nav5:
-    if st.button("📊 Setter Dist. Data"):
-        st.query_params(section="setter")
-    st.markdown("Loaded dynamically ↓")
+    st.button("📊 Setter Dist. Data")
+    st.markdown("**Dynamic load**")
+    st.caption("Via CSV")
 
 st.markdown("---")
 
