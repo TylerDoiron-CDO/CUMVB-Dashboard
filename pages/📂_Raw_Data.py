@@ -121,6 +121,11 @@ with st.spinner("🔄 Loading Overall Data..."):
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
 else:
+    # Normalize team names
+    overall_df["Home"] = overall_df["Home"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    overall_df["Away"] = overall_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    overall_df["Team"] = overall_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
+
     if "Matches" in overall_df.columns:
         overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.isnumeric()]
         overall_df = overall_df[overall_df["Matches"].astype(int).between(0, 5)]
@@ -130,10 +135,10 @@ else:
     homes = sorted(overall_df["Home"].dropna().unique())
     aways = sorted(overall_df["Away"].dropna().unique())
     teams = sorted(overall_df["Team"].dropna().unique())
-    f_season = col1.multiselect("Season", options=seasons)
-    f_home = col2.multiselect("Home", options=homes)
-    f_away = col3.multiselect("Away", options=aways)
-    f_team = col4.multiselect("Team", options=teams)
+    f_season = col1.multiselect("Overall Season", options=seasons, key="overall_season")
+    f_home = col2.multiselect("Overall Home", options=homes, key="overall_home")
+    f_away = col3.multiselect("Overall Away", options=aways, key="overall_away")
+    f_team = col4.multiselect("Overall Team", options=teams, key="overall_team")
 
     filtered_overall = overall_df.copy()
     if f_season:
@@ -176,6 +181,11 @@ with st.spinner("🔄 Loading Rotation Data..."):
 if rotation_df.empty:
     st.warning("⚠️ No rotation data found or processed.")
 else:
+    # Normalize team names
+    rotation_df["Home"] = rotation_df["Home"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    rotation_df["Away"] = rotation_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    rotation_df["Team"] = rotation_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
+
     if "Rotation" in rotation_df.columns:
         rotation_df["Rotation_str"] = rotation_df["Rotation"].astype(str).str.strip()
         rotation_df = rotation_df[
