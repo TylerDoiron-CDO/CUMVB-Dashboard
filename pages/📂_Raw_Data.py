@@ -9,14 +9,6 @@ from functions import (
 )
 
 st.set_page_config(page_title="📂 Raw Data Viewer", layout="wide")
-st.title("📂 Raw Data Viewer — For Exploratory Analysis")
-st.markdown("This page combines the full processed Match Data, Overall Data, Rotation Data, Athlete Data, and Setter Distribution Data for deep-dive inspection.")
-st.markdown("---")
-
-# -------------------------------
-# Section 1: Match Data by Set
-# -------------------------------
-st.header("📘 Match Data")
 
 force_refresh_match = st.session_state.get("reset_cache_match", False)
 
@@ -24,6 +16,7 @@ with st.spinner("🔄 Loading Match Data..."):
     match_df = Match_Data_Load.load_preprocessed_match_data(force_rebuild=force_refresh_match)
 
 if match_df.empty:
+    st.title("📘 Match Data — No Records Found")
     st.warning("⚠️ No match data found or processed.")
 else:
     # Normalize team names
@@ -31,8 +24,24 @@ else:
     match_df["Away"] = match_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
     match_df["Team"] = match_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
 
-    # Filters
-    st.markdown("### 🔎 Filter Match Data")
+    # Summary by season
+    season_summary = match_df.groupby("Season").size().reset_index(name="Records")
+    summary_line = "  ".join([f"📅 {row['Season']}: **{row['Records']}**" for _, row in season_summary.iterrows()])
+
+    latest_date = pd.to_datetime(match_df["Date"], errors='coerce').dropna().max()
+    latest_date_str = latest_date.date() if pd.notnull(latest_date) else "Unknown"
+
+    # Title with latest date
+    st.title(f"📘 Match Data — Latest Match: {latest_date_str}")
+
+    # Summary block
+    st.markdown("### 📈 Summary")
+    st.markdown(summary_line)
+
+    # Explanation
+    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons.")
+
+    # Filters below summary
     col1, col2, col3, col4 = st.columns(4)
     seasons = sorted(match_df["Season"].dropna().unique())
     homes = sorted(match_df["Home"].dropna().unique())
@@ -53,19 +62,6 @@ else:
         filtered_match = filtered_match[filtered_match["Away"].isin(f_away)]
     if f_team:
         filtered_match = filtered_match[filtered_match["Team"].isin(f_team)]
-
-    # Summary by season
-    st.markdown("### 📈 Summary")
-    season_summary = filtered_match.groupby("Season").size().reset_index(name="Records")
-    st.dataframe(season_summary)
-
-    # Latest date available
-    latest_date = pd.to_datetime(filtered_match["Date"], errors='coerce').dropna().max()
-    if pd.notnull(latest_date):
-        st.markdown(f"**🗓️ Latest match data date:** {latest_date.date()}")
-
-    # Explanation
-    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons. Use the filters above to inspect specific match contexts or teams.")
 
     st.success(f"✅ {filtered_match.shape[0]} match records shown")
     st.dataframe(filtered_match)
