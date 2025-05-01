@@ -1,11 +1,16 @@
 import streamlit as st
 import pandas as pd
 import os
-from functions import Athlete_Data_Load, Overall_Data_Load
+from functions import (
+    Athlete_Data_Load,
+    Overall_Data_Load,
+    Rotation_Data_Load,
+    Match_Data_Load  # Future use
+)
 
 st.set_page_config(page_title="📂 Raw Data Viewer", layout="wide")
 st.title("📂 Raw Data Viewer — For Exploratory Analysis")
-st.markdown("This page combines the full processed Athlete Data and Overall Data for deep-dive inspection and exploration.")
+st.markdown("This page combines the full processed Athlete Data, Overall Data, Rotation Data, and additional scouting files for deep-dive inspection.")
 st.markdown("---")
 
 # -------------------------------
@@ -77,50 +82,18 @@ force_refresh_overall = st.session_state.get("reset_cache_overall", False)
 
 with st.spinner("🔄 Loading Overall Data..."):
     overall_df = Overall_Data_Load.load_preprocessed_overall_data(force_rebuild=force_refresh_overall)
-
-    # ❌ Filter out 'By Set' entries
     if "Matches" in overall_df.columns:
         overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.lower() != "by set"]
 
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
 else:
-    with st.expander("🔎 Filter Overall Data"):
-        col1, col2, col3, col4, col5 = st.columns(5)
-        seasons = sorted(overall_df["Season"].dropna().unique())
-        teams = sorted(overall_df["Team"].dropna().unique())
-        homes = sorted(overall_df["Home"].dropna().unique())
-        aways = sorted(overall_df["Away"].dropna().unique())
-        opponents = sorted(overall_df["Opponent"].dropna().unique()) if "Opponent" in overall_df.columns else []
-
-        o_seasons = col1.multiselect("Overall Season", options=seasons)
-        o_teams = col2.multiselect("Overall Team", options=teams)
-        o_home = col3.multiselect("Overall Home", options=homes)
-        o_away = col4.multiselect("Overall Away", options=aways)
-        o_search = col5.text_input("Search Opponent")
-
-    filtered_overall = overall_df.copy()
-    if o_seasons:
-        filtered_overall = filtered_overall[filtered_overall["Season"].isin(o_seasons)]
-    if o_teams:
-        filtered_overall = filtered_overall[filtered_overall["Team"].isin(o_teams)]
-    if o_home:
-        filtered_overall = filtered_overall[filtered_overall["Home"].isin(o_home)]
-    if o_away:
-        filtered_overall = filtered_overall[filtered_overall["Away"].isin(o_away)]
-    if o_search and "Opponent" in filtered_overall.columns:
-        filtered_overall = filtered_overall[filtered_overall["Opponent"].str.contains(o_search, case=False, na=False)]
-
-    st.success(f"✅ {filtered_overall.shape[0]} overall records shown")
-    latest_overall_date = pd.to_datetime(filtered_overall["Date"], errors='coerce').dropna().max()
-    if pd.notnull(latest_overall_date):
-        st.markdown(f"**🗓️ Overall data current as of:** {latest_overall_date.date()}")
-
-    st.dataframe(filtered_overall)
+    st.success(f"✅ {overall_df.shape[0]} overall records shown")
+    st.dataframe(overall_df)
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.download_button("💾 Download Overall CSV", filtered_overall.to_csv(index=False).encode("utf-8"), "overall_data.csv", "text/csv")
+        st.download_button("💾 Download Overall CSV", overall_df.to_csv(index=False).encode("utf-8"), "overall_data.csv", "text/csv")
     with col2:
         if st.button("🔁 Reset Overall Cache"):
             if os.path.exists(Overall_Data_Load.CACHE_FILE):
@@ -130,6 +103,75 @@ else:
             else:
                 st.info("ℹ️ No overall cache found.")
         st.caption("⚠️ Only use if source overall data changed.")
+
+st.markdown("---")
+
+# -------------------------------
+# Section 3: Rotation Data
+# -------------------------------
+st.header("🔄 Rotation Data")
+
+force_refresh_rotation = st.session_state.get("reset_cache_rotation", False)
+with st.spinner("🔄 Loading Rotation Data..."):
+    rotation_df = Rotation_Data_Load.load_preprocessed_rotation_data(force_rebuild=force_refresh_rotation)
+
+if rotation_df.empty:
+    st.warning("⚠️ No rotation data found or processed.")
+else:
+    st.success(f"✅ {rotation_df.shape[0]} rotation records shown")
+    st.dataframe(rotation_df)
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.download_button("💾 Download Rotation CSV", rotation_df.to_csv(index=False).encode("utf-8"), "rotation_data.csv", "text/csv")
+    with col2:
+        if st.button("🔁 Reset Rotation Cache"):
+            if os.path.exists(Rotation_Data_Load.CACHE_FILE):
+                os.remove(Rotation_Data_Load.CACHE_FILE)
+                st.session_state["reset_cache_rotation"] = True
+                st.rerun()
+            else:
+                st.info("ℹ️ No rotation cache found.")
+        st.caption("⚠️ Only use if source rotation data changed.")
+
+st.markdown("---")
+
+# -------------------------------
+# Section 4: Match Data by Set (Placeholder)
+# -------------------------------
+st.header("📘 Match Data by Set")
+
+st.info("📂 This section is reserved for loading and displaying Match Data by Set. Functionality coming soon.")
+
+st.markdown("---")
+
+# -------------------------------
+# Section 5: Setter Distribution Data
+# -------------------------------
+st.header("📊 Setter Distribution Data")
+
+setter_file = "data/Setter Distribution Data.csv"
+
+if os.path.exists(setter_file):
+    try:
+        setter_df = pd.read_csv(setter_file)
+        st.success(f"✅ Loaded {setter_df.shape[0]} rows from Setter Distribution Data")
+        st.dataframe(setter_df)
+
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.download_button(
+                "💾 Download Setter Distribution CSV",
+                data=setter_df.to_csv(index=False).encode("utf-8"),
+                file_name="setter_distribution_data.csv",
+                mime="text/csv"
+            )
+        with col2:
+            st.caption("📌 Direct from scouting reports and analytics exports")
+    except Exception as e:
+        st.error(f"❌ Failed to load Setter Distribution Data: {e}")
+else:
+    st.warning("⚠️ Setter Distribution file not found at `data/Setter Distribution Data.csv`")
 
 # -------------------------------
 # Footer
