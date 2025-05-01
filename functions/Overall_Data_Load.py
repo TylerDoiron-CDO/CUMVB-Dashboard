@@ -101,6 +101,10 @@ def load_preprocessed_overall_data(force_rebuild=False):
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
+    # 🔻 Remove 'By Set' rows from Matches column if it exists
+    if "Matches" in combined.columns:
+        combined = combined[combined["Matches"] != "By Set"]
+
     for col in combined.columns:
         try:
             combined[col] = pd.to_numeric(combined[col], errors="ignore")
