@@ -1,142 +1,69 @@
-import pandas as pd 
+import pandas as pd
 import os
 import re
 from datetime import datetime
 
-ATHLETE_DATA_DIR = "data/Athlete Data"
-HISTORICAL_DATA_FILE = "data/Historical Athlete Data.csv"
-CACHE_FILE = "data/athlete_data_cache.parquet"
+MATCH_DATA_DIR = "data/Match Data"
+CACHE_FILE = "data/match_data_cache.parquet"
 
-def infer_season_from_date(date_str):
+def infer_season_from_filename(file_name):
     try:
-        match_date = datetime.strptime(date_str, "%Y-%m-%d")
-        year = match_date.year
-        return f"{year}-{year + 1}" if match_date.month >= 9 else f"{year - 1}-{year}"
+        season_match = re.search(r"(\d{4}-\d{4})", file_name)
+        if season_match:
+            return season_match.group(1)
+        date_match = re.search(r"(\d{4}-\d{2}-\d{2})", file_name)
+        if date_match:
+            match_date = datetime.strptime(date_match.group(1), "%Y-%m-%d")
+            year = match_date.year
+            return f"{year}-{year + 1}" if match_date.month >= 9 else f"{year - 1}-{year}"
+        return "Unknown"
     except:
         return "Unknown"
 
-def extract_home_away_team(file_name):
-    # Normalize dashes and whitespace
-    cleaned = file_name.replace("—", "-").replace("–", "-")
-    cleaned = re.sub(r"\s+", " ", cleaned)  # collapse multiple spaces
-
-    # Isolate portion before "Totals"
-    prefix = cleaned.split("Totals")[0].strip()
-
-    # Match using vs or @, then stop at first dash after opponent
-    vs_match = re.search(r"(.+?)\s+vs\s+([^-^(]+)", prefix, re.IGNORECASE)
-    at_match = re.search(r"(.+?)\s+@\s+([^-^(]+)", prefix, re.IGNORECASE)
-
-    if vs_match:
-        home = vs_match.group(1).strip()
-        away = vs_match.group(2).strip()
-    elif at_match:
-        away = at_match.group(1).strip()
-        home = at_match.group(2).strip()
-    else:
-        home = away = "Unknown"
-
-    return home, away
-
-def process_athlete_data_file(file_path, file_name):
+def parse_date_column(raw_date, season):
     try:
-        df_raw = pd.read_csv(file_path, header=None, skiprows=1)
+        raw_date = str(raw_date).strip()
+        if re.match(r"\d{4}-\d{2}-\d{2}", raw_date):
+            return raw_date
 
-        raw_cols = list(df_raw.iloc[0])
-        seen = {}
-        deduped_cols = []
-        for col in raw_cols:
-            if col not in seen:
-                seen[col] = 0
-                deduped_cols.append(col)
-            else:
-                seen[col] += 1
-                deduped_cols.append(f"{col}.{seen[col]}")
-        df_raw.columns = deduped_cols
-        df = df_raw.drop(index=0).reset_index(drop=True)
-    except Exception:
-        return None
+        month_map = {
+            'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+        }
 
-    # Extract metadata
-    date_match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", file_name)
-    date_str = date_match.group(1) if date_match else "Unknown"
-    season = infer_season_from_date(date_str)
-    home_team, away_team = extract_home_away_team(file_name)
+        start_year, end_year = map(int, season.split("-"))
 
-    # Extract team name from "Totals ..." section
-    team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
-    team = team_match.group(1).strip() if team_match else "Unknown"
+        # Handles formats like "Sep 29" or "29 Sep"
+        match1 = re.match(r"([A-Za-z]{3})[\s\-]*(\d{1,2})", raw_date)
+        if match1:
+            month_str = match1.group(1).capitalize()
+            day = int(match1.group(2))
+            month = month_map.get(month_str)
+            year = start_year if month >= 9 else end_year
+            return datetime(year, month, day).strftime("%Y-%m-%d")
 
-    # Insert metadata into dataframe
-    df.insert(0, "Season", season)
-    df.insert(1, "Date", date_str)
-    df.insert(2, "Home", home_team)
-    df.insert(3, "Away", away_team)
-    df.insert(4, "Team", team)
-    df["source_file"] = file_name
+        # Handles formats like "02-Dec" or "2-Dec"
+        match2 = re.match(r"(\d{1,2})[\s\-]*([A-Za-z]{3})", raw_date)
+        if match2:
+            day = int(match2.group(1))
+            month_str = match2.group(2).capitalize()
+            month = month_map.get(month_str)
+            year = start_year if month >= 9 else end_year
+            return datetime(year, month, day).strftime("%Y-%m-%d")
 
-    # Clean and order columns
-    df = df[[col for col in df.columns if not str(col).startswith("0")]]
-    metadata = ["Season", "Date", "Home", "Away", "Team"]
-    other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-    df = df[metadata + other_cols + ["source_file"]]
-
-    return df
-
-def load_preprocessed_athlete_data(force_rebuild=False):
-    historical_df = pd.DataFrame()
-    if os.path.exists(HISTORICAL_DATA_FILE):
+        # Catch Excel misinterpreted format (datetime object interpreted as string)
         try:
-            historical_df = pd.read_csv(HISTORICAL_DATA_FILE)
-            historical_df.insert(0, "Season", "Unknown")
-            historical_df.insert(1, "Date", "Unknown")
-            historical_df.insert(2, "Home", "Unknown")
-            historical_df.insert(3, "Away", "Unknown")
-            historical_df.insert(4, "Team", "Unknown")
-            historical_df["source_file"] = "historical data"
-
-            historical_df = historical_df[[col for col in historical_df.columns if not str(col).startswith("0")]]
-            metadata = ["Season", "Date", "Home", "Away", "Team"]
-            other_cols = [col for col in historical_df.columns if col not in metadata + ["source_file"]]
-            historical_df = historical_df[metadata + other_cols + ["source_file"]]
-        except Exception as e:
-            print(f"⚠️ Failed to load Historical Athlete Data: {e}")
-
-    all_dfs = []
-    for file in os.listdir(ATHLETE_DATA_DIR):
-        if file.endswith(".csv"):
-            file_path = os.path.join(ATHLETE_DATA_DIR, file)
-            df = process_athlete_data_file(file_path, file)
-            if df is not None:
-                all_dfs.append(df)
-
-    if historical_df is not None and not historical_df.empty:
-        all_dfs.append(historical_df)
-
-    if os.path.exists(CACHE_FILE) and not all_dfs:
-        return pd.read_parquet(CACHE_FILE)
-
-    if not all_dfs:
-        return pd.DataFrame()
-
-    combined = pd.concat(all_dfs, ignore_index=True)
-    combined.columns = [str(col) for col in combined.columns]
-
-    for col in combined.columns:
-        try:
-            combined[col] = pd.to_numeric(combined[col], errors="ignore")
+            dt = pd.to_datetime(raw_date, errors='coerce')
+            if pd.notnull(dt):
+                month = dt.month
+                year = start_year if month >= 9 else end_year
+                return datetime(year, month, dt.day).strftime("%Y-%m-%d")
         except:
             pass
-        if not pd.api.types.is_numeric_dtype(combined[col]) and not pd.api.types.is_bool_dtype(combined[col]):
-            try:
-                combined[col] = combined[col].astype(str)
-            except:
-                combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
 
-    try:
-        combined.to_parquet(CACHE_FILE, index=False)
     except Exception as e:
-        print(f"❌ Failed to write cache: {e}")
+        print(f"⚠️ Failed to parse date '{raw_date}' with season '{season}': {e}")
+        return raw_date
 
-    return combined
+    return raw_date
 
