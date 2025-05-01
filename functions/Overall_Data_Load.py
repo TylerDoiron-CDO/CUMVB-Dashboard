@@ -1,11 +1,10 @@
-# functions/Overall_Data_Load.py
 import pandas as pd
 import os
 import re
 from datetime import datetime
 
 OVERALL_DATA_DIR = "data/Overall Data"
-HISTORICAL_FILE = "/mnt/data/Historical Overall Data.csv"
+HISTORICAL_FILE = "/mnt/data/Historical Overall Data.csv"  # Updated to match uploaded location
 CACHE_FILE = "data/overall_data_cache.parquet"
 
 def infer_season_from_date(date_str):
@@ -59,7 +58,7 @@ def process_overall_data_file(file_path, file_name):
     df["source_file"] = file_name
 
     df = df[[col for col in df.columns if not str(col).startswith("0")]]
-    metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+    metadata = ["Season", "Date", "Home", "Away", "Team"]
     other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
     df = df[metadata + other_cols + ["source_file"]]
 
@@ -87,7 +86,7 @@ def load_preprocessed_overall_data(force_rebuild=False):
             hist_df.insert(4, "Team", "Unknown")
             hist_df["source_file"] = "historical data"
             hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
-            metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+            metadata = ["Season", "Date", "Home", "Away", "Team"]
             other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
             hist_df = hist_df[metadata + other_cols + ["source_file"]]
             all_dfs.append(hist_df)
@@ -119,15 +118,11 @@ def load_preprocessed_overall_data(force_rebuild=False):
     return combined
 
 def load_historical_overall_data_only():
-    HISTORICAL_FILE = "/mnt/data/Historical Overall Data.csv"  # Runtime path for Streamlit
-
     if not os.path.exists(HISTORICAL_FILE):
         return pd.DataFrame()
 
     try:
         df = pd.read_csv(HISTORICAL_FILE)
-
-        # Add required metadata
         df.insert(0, "Season", "Unknown")
         df.insert(1, "Date", "Unknown")
         df.insert(2, "Home", "Unknown")
@@ -135,11 +130,8 @@ def load_historical_overall_data_only():
         df.insert(4, "Team", "Unknown")
         df["source_file"] = "historical data"
 
-        # Drop columns starting with '0'
         df = df[[col for col in df.columns if not str(col).startswith("0")]]
-
-        # Reorder columns
-        metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+        metadata = ["Season", "Date", "Home", "Away", "Team"]
         other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
         df = df[metadata + other_cols + ["source_file"]]
 
