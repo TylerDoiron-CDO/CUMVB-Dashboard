@@ -107,11 +107,34 @@ else:
 st.markdown("---")
 
 # -------------------------------
-# Section 3: Rotation Data (Placeholder)
+# Section 3: Rotation Data
 # -------------------------------
 st.header("🔄 Rotation Data")
 
-st.info("📂 This section is reserved for loading and displaying Rotation Data. Functionality coming soon.")
+force_refresh_rotation = st.session_state.get("reset_cache_rotation", False)
+
+with st.spinner("🔄 Loading Rotation Data..."):
+    rotation_df = Rotation_Data_Load.load_preprocessed_rotation_data(force_rebuild=force_refresh_rotation)
+
+if rotation_df.empty:
+    st.warning("⚠️ No rotation data found or processed.")
+else:
+    st.success(f"✅ {rotation_df.shape[0]} rotation records shown")
+    st.dataframe(rotation_df)
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.download_button("💾 Download Rotation CSV", rotation_df.to_csv(index=False).encode("utf-8"), "rotation_data.csv", "text/csv")
+    with col2:
+        if st.button("🔁 Reset Rotation Cache"):
+            if os.path.exists(Rotation_Data_Load.CACHE_FILE):
+                os.remove(Rotation_Data_Load.CACHE_FILE)
+                st.session_state["reset_cache_rotation"] = True
+                st.rerun()
+            else:
+                st.info("ℹ️ No rotation cache found.")
+        st.caption("⚠️ Only use if source rotation data changed.")
+
 st.markdown("---")
 
 # -------------------------------
