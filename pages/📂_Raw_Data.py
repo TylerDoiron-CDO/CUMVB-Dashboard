@@ -311,22 +311,26 @@ if os.path.exists(setter_file):
 
         # Filters
         st.markdown("### 🔍 Filter Setter Distribution Data")
-        f1, f2, f3, f4 = st.columns(4)
+        f1, f2, f3, f4, f5 = st.columns(5)
         teams = sorted(setter_df["Team"].dropna().unique())
-        opponents = sorted(setter_df["Opponent"].dropna().unique()) if "Opponent" in setter_df.columns else []
+        homes = sorted(setter_df["Home"].dropna().unique()) if "Home" in setter_df.columns else []
+        aways = sorted(setter_df["Away"].dropna().unique()) if "Away" in setter_df.columns else []
         tendencies = sorted(setter_df["Setter Tendency"].dropna().unique()) if "Setter Tendency" in setter_df.columns else []
         positions = sorted(setter_df["Position"].dropna().unique()) if "Position" in setter_df.columns else []
 
         f_team = f1.multiselect("Team", options=teams)
-        f_oppo = f2.multiselect("Opponent", options=opponents)
-        f_tend = f3.multiselect("Setter Tendency", options=tendencies)
-        f_pos  = f4.multiselect("Position", options=positions)
+        f_home = f2.multiselect("Home", options=homes)
+        f_away = f3.multiselect("Away", options=aways)
+        f_tend = f4.multiselect("Setter Tendency", options=tendencies)
+        f_pos  = f5.multiselect("Position", options=positions)
 
         filtered_setter_df = setter_df.copy()
         if f_team:
             filtered_setter_df = filtered_setter_df[filtered_setter_df["Team"].isin(f_team)]
-        if f_oppo and "Opponent" in filtered_setter_df.columns:
-            filtered_setter_df = filtered_setter_df[filtered_setter_df["Opponent"].isin(f_oppo)]
+        if f_home and "Home" in filtered_setter_df.columns:
+            filtered_setter_df = filtered_setter_df[filtered_setter_df["Home"].isin(f_home)]
+        if f_away and "Away" in filtered_setter_df.columns:
+            filtered_setter_df = filtered_setter_df[filtered_setter_df["Away"].isin(f_away)]
         if f_tend and "Setter Tendency" in filtered_setter_df.columns:
             filtered_setter_df = filtered_setter_df[filtered_setter_df["Setter Tendency"].isin(f_tend)]
         if f_pos and "Position" in filtered_setter_df.columns:
