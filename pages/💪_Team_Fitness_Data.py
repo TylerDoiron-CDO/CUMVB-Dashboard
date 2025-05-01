@@ -23,40 +23,52 @@ def load_testing_data():
 
 df = load_testing_data()
 
-# Apply filters
+# Display filters if data is loaded
 if not df.empty:
-    # Filter options
     athlete_options = sorted(df["Athlete"].dropna().unique())
     position_options = sorted(df["Primary Position"].dropna().unique())
     date_options = sorted(df["Testing Date"].dropna().unique())
 
-# Inline filters — always visible and horizontal
-st.markdown("### 🔍 Filter Options")
-filter_cols = st.columns([3, 3, 2])
+    # 🧭 Inline filters — always visible and clean layout
+    st.markdown("### 🔍 Filter Options")
+    filter_cols = st.columns([4, 3, 3])
 
-with filter_cols[0]:
-    selected_athletes = st.multiselect("Athlete", athlete_options)
+    with filter_cols[0]:
+        selected_athletes = st.multiselect(
+            "Filter by Athlete",
+            options=athlete_options,
+            default=athlete_options,
+            key="filter_athlete"
+        )
 
-with filter_cols[1]:
-    selected_positions = st.multiselect("Position", position_options)
+    with filter_cols[1]:
+        selected_positions = st.multiselect(
+            "Filter by Position",
+            options=position_options,
+            default=position_options,
+            key="filter_position"
+        )
 
-with filter_cols[2]:
-    selected_dates = st.multiselect("Testing Date", date_options)
+    with filter_cols[2]:
+        selected_dates = st.multiselect(
+            "Filter by Testing Date",
+            options=date_options,
+            default=date_options,
+            key="filter_date"
+        )
 
-    # Apply filters
-    filtered_df = df.copy()
-    if selected_athletes:
-        filtered_df = filtered_df[filtered_df["Athlete"].isin(selected_athletes)]
-    if selected_positions:
-        filtered_df = filtered_df[filtered_df["Primary Position"].isin(selected_positions)]
-    if selected_dates:
-        filtered_df = filtered_df[filtered_df["Testing Date"].isin(selected_dates)]
+    # Filter the data
+    filtered_df = df[
+        df["Athlete"].isin(selected_athletes) &
+        df["Primary Position"].isin(selected_positions) &
+        df["Testing Date"].isin(selected_dates)
+    ]
 
-    # Display filtered data
+    # Display the table
     st.subheader("📋 Raw Fitness Testing Data")
     st.dataframe(filtered_df, use_container_width=True)
 
-    # 🔘 Utility buttons directly below the table
+    # Utility buttons directly below the table
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -74,6 +86,7 @@ with filter_cols[2]:
             st.rerun()
 
     st.caption("⚠️ Only use 'Reset Fitness Cache' if the source data file has changed.")
+
 else:
     st.warning("No data available.")
 
