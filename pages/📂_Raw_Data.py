@@ -248,23 +248,21 @@ else:
     athlete_df["Away"] = athlete_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
     athlete_df["Team"] = athlete_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
 
-    # Create combined index column
+    # Create combined index column without decimal padding
     if "#" in athlete_df.columns and "Athlete" in athlete_df.columns:
-        athlete_df.insert(0, "# - Athlete", athlete_df["#"].astype(str).str.strip() + " - " + athlete_df["Athlete"].astype(str).str.strip())
+        athlete_df.insert(0, "# - Athlete", athlete_df["#"].apply(lambda x: str(int(float(x))) if pd.notnull(x) and str(x).replace('.', '', 1).isdigit() else str(x)) + " - " + athlete_df["Athlete"].astype(str).str.strip())
 
-    with st.expander("🔎 Filter Athlete Data"):
-        col1, col2, col3, col4, col5 = st.columns(5)
-        seasons = sorted(athlete_df["Season"].dropna().unique())
-        teams = sorted(athlete_df["Team"].dropna().unique()) if "Team" in athlete_df.columns else []
-        homes = sorted(athlete_df["Home"].dropna().unique())
-        aways = sorted(athlete_df["Away"].dropna().unique())
-        names = sorted(athlete_df["Athlete"].dropna().unique()) if "Athlete" in athlete_df.columns else []
-
-        s_seasons = col1.multiselect("Athlete Season", options=seasons)
-        s_teams = col2.multiselect("Athlete Team", options=teams)
-        s_home = col3.multiselect("Athlete Home", options=homes)
-        s_away = col4.multiselect("Athlete Away", options=aways)
-        s_name = col5.text_input("Search Athlete")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    seasons = sorted(athlete_df["Season"].dropna().unique())
+    teams = sorted(athlete_df["Team"].dropna().unique()) if "Team" in athlete_df.columns else []
+    homes = sorted(athlete_df["Home"].dropna().unique())
+    aways = sorted(athlete_df["Away"].dropna().unique())
+    names = sorted(athlete_df["Athlete"].dropna().unique()) if "Athlete" in athlete_df.columns else []
+    s_seasons = col1.multiselect("Athlete Season", options=seasons)
+    s_teams = col2.multiselect("Athlete Team", options=teams)
+    s_home = col3.multiselect("Athlete Home", options=homes)
+    s_away = col4.multiselect("Athlete Away", options=aways)
+    s_name = col5.text_input("Search Athlete")
 
     filtered_athlete = athlete_df.copy()
     if s_seasons:
