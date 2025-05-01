@@ -30,10 +30,18 @@ if not df.empty:
     position_options = sorted(df["Primary Position"].dropna().unique())
     date_options = sorted(df["Testing Date"].dropna().unique())
 
-    with st.expander("🔍 Filter Options"):
-        selected_athletes = st.multiselect("Filter by Athlete", athlete_options)
-        selected_positions = st.multiselect("Filter by Position", position_options)
-        selected_dates = st.multiselect("Filter by Testing Date", date_options)
+# Inline filters — always visible and horizontal
+st.markdown("### 🔍 Filter Options")
+filter_cols = st.columns([3, 3, 2])
+
+with filter_cols[0]:
+    selected_athletes = st.multiselect("Athlete", athlete_options)
+
+with filter_cols[1]:
+    selected_positions = st.multiselect("Position", position_options)
+
+with filter_cols[2]:
+    selected_dates = st.multiselect("Testing Date", date_options)
 
     # Apply filters
     filtered_df = df.copy()
