@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 
 OVERALL_DATA_DIR = "data/Overall Data"
-HISTORICAL_FILE = "data/Historical Overall Data.csv"
+HISTORICAL_FILE = "/mnt/data/Historical Overall Data.csv"
 CACHE_FILE = "data/overall_data_cache.parquet"
 
 def infer_season_from_date(date_str):
