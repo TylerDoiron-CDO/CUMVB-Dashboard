@@ -17,8 +17,6 @@ This page provides access to the full underlying match, rotation, overall, athle
 Use this space for filtering, exploration, and validating raw data powering all dashboards.
 """)
 
-st.markdown("---")
-
 # --- Navigation anchor logic ---
 section = st.query_params.get("section", None)
 if isinstance(section, list):
@@ -64,8 +62,8 @@ st.markdown("""
 .nav-container {
     display: flex;
     justify-content: space-around;
-    margin-top: 0em;
-    margin-bottom: -6.5em;
+    margin-top: 1em;
+    margin-bottom: -3.5em;
 }
 .nav-box {
     text-align: center;
@@ -90,27 +88,27 @@ button.nav-button {
 st.markdown("""
 <div class="nav-container">
   <div class="nav-box">
-    <a href="#match-data-section"><button class="nav-button">📘 Match Data</button></a><br>
-    <strong>{0} records</strong><br>
-    <small>Latest: {1}</small>
+    <button class="nav-button" onclick="scrollToSection('match-data-section')">📘 Match Data</button><br>
+    <strong>{} records</strong><br>
+    <small>Latest: {}</small>
   </div>
   <div class="nav-box">
-    <a href="#overall-data-section"><button class="nav-button">📊 Overall Data</button></a><br>
-    <strong>{2} records</strong><br>
-    <small>Latest: {3}</small>
+    <button class="nav-button" onclick="scrollToSection('overall-data-section')">📊 Overall Data</button><br>
+    <strong>{} records</strong><br>
+    <small>Latest: {}</small>
   </div>
   <div class="nav-box">
-    <a href="#rotation-data-section"><button class="nav-button">🔄 Rotation Data</button></a><br>
-    <strong>{4} records</strong><br>
-    <small>Latest: {5}</small>
+    <button class="nav-button" onclick="scrollToSection('rotation-data-section')">🔄 Rotation Data</button><br>
+    <strong>{} records</strong><br>
+    <small>Latest: {}</small>
   </div>
   <div class="nav-box">
-    <a href="#athlete-data-section"><button class="nav-button">🏐 Athlete Data</button></a><br>
-    <strong>{6} records</strong><br>
-    <small>Latest: {7}</small>
+    <button class="nav-button" onclick="scrollToSection('athlete-data-section')">🏐 Athlete Data</button><br>
+    <strong>{} records</strong><br>
+    <small>Latest: {}</small>
   </div>
   <div class="nav-box">
-    <a href="#setter-dist-data-section"><button class="nav-button">📊 Setter Dist. Data</button></a><br>
+    <button class="nav-button" onclick="scrollToSection('setter-dist-data-section')">📊 Setter Dist. Data</button><br>
     <strong>Dynamic load</strong><br>
     <small>Via CSV</small>
   </div>
@@ -122,12 +120,21 @@ st.markdown("""
     athlete_total, athlete_latest
 ), unsafe_allow_html=True)
 
-# Anchors for scrolling target
-st.markdown("""<div class='scroll-target' id='match-data-section'></div>""", unsafe_allow_html=True)
-st.markdown("""<div class='scroll-target' id='overall-data-section'></div>""", unsafe_allow_html=True)
-st.markdown("""<div class='scroll-target' id='rotation-data-section'></div>""", unsafe_allow_html=True)
-st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", unsafe_allow_html=True)
-st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
+# Anchors now integrated with headers
+st.markdown("""<h2 class='scroll-target' id='match-data-section'>📘 Match Data</h2>""", unsafe_allow_html=True)
+# ... your Match Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='overall-data-section'>📊 Overall Data</h2>""", unsafe_allow_html=True)
+# ... your Overall Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='rotation-data-section'>🔄 Rotation Data</h2>""", unsafe_allow_html=True)
+# ... your Rotation Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='athlete-data-section'>🏐 Athlete Data</h2>""", unsafe_allow_html=True)
+# ... your Athlete Data section code ...
+
+st.markdown("""<h2 class='scroll-target' id='setter-dist-data-section'>📊 Setter Dist. Data</h2>""", unsafe_allow_html=True)
+# ... your Setter Distribution Data section code ...
 
 # Remove spacing before the line
 st.markdown("""<div style='margin-top: -100px;'></div>""", unsafe_allow_html=True)
