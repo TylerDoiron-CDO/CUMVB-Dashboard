@@ -55,7 +55,7 @@ st.markdown("""
 <style>
 .scroll-target {
     position: relative;
-    top: -40px;
+    top: -60px;
     margin: 0;
     padding: 0;
 }
@@ -63,7 +63,7 @@ st.markdown("""
     display: flex;
     justify-content: space-around;
     margin-top: 1em;
-    margin-bottom: -2em;
+    margin-bottom: -3.5em;
 }
 .nav-box {
     text-align: center;
@@ -127,8 +127,8 @@ st.markdown("""<div class='scroll-target' id='rotation-data-section'></div>""", 
 st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", unsafe_allow_html=True)
 st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
 
-# Remove excessive spacing before the line
-st.markdown("""<div style='margin-top: -600px;'></div>""", unsafe_allow_html=True)
+# Remove spacing before the line
+st.markdown("""<div style='margin-top: -80px;'></div>""", unsafe_allow_html=True)
 
 # Separator line
 st.markdown("---")
