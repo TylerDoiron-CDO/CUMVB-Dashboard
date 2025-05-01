@@ -16,17 +16,18 @@ def infer_season_from_date(date_str):
         return "Unknown"
 
 def extract_home_away_team(file_name):
-    # Normalize any em-dashes or en-dashes
-    cleaned_name = file_name.replace("—", "-").replace("–", "-")
+    # Normalize special dashes and spacing
+    cleaned = file_name.replace("—", "-").replace("–", "-").strip()
 
-    if " @ " in cleaned_name:
-        parts = cleaned_name.split(" @ ")
-        away_team = parts[0].strip()
-        home_team = parts[1].split("-")[0].strip()
-    elif " vs " in cleaned_name:
-        parts = cleaned_name.split(" vs ")
-        home_team = parts[0].strip()
-        away_team = parts[1].split("-")[0].strip()
+    vs_match = re.search(r"(.+?)\s+vs\s+(.+?)-", cleaned, re.IGNORECASE)
+    at_match = re.search(r"(.+?)\s+@\s+(.+?)-", cleaned, re.IGNORECASE)
+
+    if vs_match:
+        home_team = vs_match.group(1).strip()
+        away_team = vs_match.group(2).strip()
+    elif at_match:
+        away_team = at_match.group(1).strip()
+        home_team = at_match.group(2).strip()
     else:
         home_team = away_team = "Unknown"
 
