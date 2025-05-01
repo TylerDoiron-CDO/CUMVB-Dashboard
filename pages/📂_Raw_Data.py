@@ -10,16 +10,32 @@ from functions import (
 
 st.set_page_config(page_title="📂 Raw Data Viewer", layout="wide")
 
-# Interactive page summary with anchor links
+# Summary intro for the full page
 st.markdown("""
-### 🧭 Page Navigation
-- [📘 Match Data](#match-data--latest-match)
-- [📊 Overall Data](#overall-data)
-- [🔄 Rotation Data](#rotation-data)
-- [🏐 Athlete Data](#athlete-data)
-- [📊 Setter Distribution Data](#setter-distribution-data)
----
+## 📂 Raw Data Viewer
+This page provides full access to the underlying match, rotation, overall, and athlete data used throughout the analytics dashboards.
+It is intended for exploratory analysis, enabling filters, downloads, and quick reviews of data trends. Use the navigation below to jump to specific sections.
 """)
+
+# Horizontal navigation buttons
+nav1, nav2, nav3, nav4, nav5 = st.columns(5)
+with nav1:
+    if st.button("📘 Match Data"):
+        st.experimental_set_query_params(section="match")
+with nav2:
+    if st.button("📊 Overall Data"):
+        st.experimental_set_query_params(section="overall")
+with nav3:
+    if st.button("🔄 Rotation Data"):
+        st.experimental_set_query_params(section="rotation")
+with nav4:
+    if st.button("🏐 Athlete Data"):
+        st.experimental_set_query_params(section="athlete")
+with nav5:
+    if st.button("📊 Setter Dist. Data"):
+        st.experimental_set_query_params(section="setter")
+
+st.markdown("---")
 
 force_refresh_match = st.session_state.get("reset_cache_match", False)
 
