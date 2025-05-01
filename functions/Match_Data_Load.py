@@ -26,15 +26,23 @@ def infer_season_from_filename(file_name):
     except:
         return "Unknown"
 
-def infer_home_away_team(row, file_name, team_label):
+def infer_home_away_team(row, is_opponents_file, team_label):
     opp = row.get("Opponent", "")
     home, away = "Unknown", "Unknown"
     if opp.startswith("@"):
-        home = opp.replace("@", "").strip()
-        away = team_label
+        if is_opponents_file:
+            home = team_label
+            away = opp.replace("@", "").strip()
+        else:
+            home = opp.replace("@", "").strip()
+            away = team_label
     elif opp.lower().startswith("vs"):
-        home = team_label
-        away = opp.replace("vs", "").replace("Vs", "").strip()
+        if is_opponents_file:
+            home = opp.replace("vs", "").replace("Vs", "").strip()
+            away = team_label
+        else:
+            home = team_label
+            away = opp.replace("vs", "").replace("Vs", "").strip()
     return home, away
 
 def process_match_data_file(file_path, file_name):
@@ -44,6 +52,7 @@ def process_match_data_file(file_path, file_name):
 
         season = infer_season_from_filename(file_name)
         is_opponents_file = "Opponents" in file_name
+        df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
         if is_opponents_file:
             df["Team"] = df["Opponent"].astype(str).str.extract(r"[@vsVS]+\s*(.*)")[0].fillna("Unknown").str.strip()
@@ -56,7 +65,7 @@ def process_match_data_file(file_path, file_name):
         # Apply Home and Away extraction
         homes, aways = [], []
         for _, row in df.iterrows():
-            home, away = infer_home_away_team(row, file_name, df.at[_, "Team"])
+            home, away = infer_home_away_team(row, is_opponents_file, df.at[_, "Team"])
             homes.append(home)
             aways.append(away)
 
@@ -64,7 +73,7 @@ def process_match_data_file(file_path, file_name):
         df["Away"] = aways
 
         # Reorder columns
-        start_cols = ["Season", "Date", "Home", "Away", "Team"]
+        start_cols = ["Season", "Date", "Home", "Away", "Team", "Is_Opponent_File"]
         other_cols = [col for col in df.columns if col not in start_cols + ["source_file"]]
         df = df[start_cols + other_cols + ["source_file"]]
 
