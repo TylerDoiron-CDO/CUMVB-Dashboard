@@ -1,4 +1,6 @@
-import pandas as pd 
+# functions/Athlete_Data_Load.py
+
+import pandas as pd
 import os
 import re
 from datetime import datetime
@@ -14,6 +16,26 @@ def infer_season_from_date(date_str):
         return f"{year}-{year + 1}" if match_date.month >= 9 else f"{year - 1}-{year}"
     except:
         return "Unknown"
+
+def extract_home_away_team(file_name):
+    # Normalize dashes and whitespace
+    cleaned = file_name.replace("—", "-").replace("–", "-")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+
+    prefix = cleaned.split("Totals")[0].strip()
+    vs_match = re.search(r"(.+?)\s+vs\s+([^-^(]+)", prefix, re.IGNORECASE)
+    at_match = re.search(r"(.+?)\s+@\s+([^-^(]+)", prefix, re.IGNORECASE)
+
+    if vs_match:
+        home_team = vs_match.group(1).strip()
+        away_team = vs_match.group(2).strip()
+    elif at_match:
+        away_team = at_match.group(1).strip()
+        home_team = at_match.group(2).strip()
+    else:
+        home_team = away_team = "Unknown"
+
+    return home_team, away_team
 
 def process_athlete_data_file(file_path, file_name):
     try:
@@ -38,15 +60,7 @@ def process_athlete_data_file(file_path, file_name):
     date_str = date_match.group(1) if date_match else "Unknown"
     season = infer_season_from_date(date_str)
 
-    home_team = away_team = "Unknown"
-    if "@" in file_name:
-        parts = file_name.split("@")
-        away_team = parts[0].strip()
-        home_team = parts[1].split("—")[0].strip()
-    elif "vs." in file_name:
-        parts = file_name.split("vs.")
-        home_team = parts[0].strip()
-        away_team = parts[1].split("—")[0].strip()
+    home_team, away_team = extract_home_away_team(file_name)
 
     team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
     team = team_match.group(1).strip() if team_match else "Unknown"
@@ -74,7 +88,7 @@ def load_preprocessed_athlete_data(force_rebuild=False):
             historical_df.insert(1, "Date", "Unknown")
             historical_df.insert(2, "Home", "Unknown")
             historical_df.insert(3, "Away", "Unknown")
-            historical_df.insert(4, "Team", "Unknown")  # Fixed from TEAM to Team
+            historical_df.insert(4, "Team", "Unknown")
             historical_df["source_file"] = "historical data"
 
             historical_df = historical_df[[col for col in historical_df.columns if not str(col).startswith("0")]]
