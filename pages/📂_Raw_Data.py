@@ -57,7 +57,9 @@ st.markdown("""
 <style>
 .scroll-target {
     position: relative;
-    top: -80px;
+    top: -50px; /* reduced offset for tighter scroll */
+    margin: 0;
+    padding: 0;
 }
 </style>
 <script>
@@ -113,6 +115,9 @@ st.markdown("""<div class='scroll-target' id='overall-data-section'></div>""", u
 st.markdown("""<div class='scroll-target' id='rotation-data-section'></div>""", unsafe_allow_html=True)
 st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", unsafe_allow_html=True)
 st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
+
+# Spacer tightened
+st.markdown("<div style='margin-top: -40px'></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
