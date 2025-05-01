@@ -71,13 +71,16 @@ st.markdown("---")
 # -------------------------------
 # Section 2: Overall Data
 # -------------------------------
-
 st.header("📊 Overall Data")
 
-force_refresh = st.session_state.get("reset_cache_overall", False)
+force_refresh_overall = st.session_state.get("reset_cache_overall", False)
+
 with st.spinner("🔄 Loading Overall Data..."):
     overall_df = Overall_Data_Load.load_preprocessed_overall_data(force_rebuild=force_refresh_overall)
-    overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.lower() != "by set"]
+
+    # ❌ Filter out 'By Set' entries from Matches column
+    if "Matches" in overall_df.columns:
+        overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.lower() != "by set"]
 
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
