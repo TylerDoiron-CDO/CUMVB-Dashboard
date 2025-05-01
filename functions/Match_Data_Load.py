@@ -22,28 +22,50 @@ def infer_season_from_filename(file_name):
     except:
         return "Unknown"
 
+def parse_date_column(raw_date, season):
+    try:
+        raw_date = str(raw_date).strip()
+        if re.match(r"\d{4}-\d{2}-\d{2}", raw_date):
+            return raw_date
+
+        month_map = {
+            'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+        }
+
+        month_years = season.split("-")
+        year_start = int(month_years[0])
+        year_end = int(month_years[1])
+
+        match = re.match(r"(\d{1,2})[-\s]?([A-Za-z]{3})", raw_date)
+        if match:
+            day = int(match.group(1))
+            month_str = match.group(2).capitalize()
+            month = month_map.get(month_str)
+            if not month:
+                return raw_date
+            year = year_start if month >= 9 else year_end
+            date_obj = datetime(year, month, day)
+            return date_obj.strftime("%Y-%m-%d")
+    except:
+        return raw_date
+    return raw_date
+
 def adjust_result_for_team(row):
     result = row.get("Result", "")
     team = row.get("Team", "")
-
     match = re.match(r"([WL])\s*(\d+)-(\d+)", result)
     if not match:
         return result
-
     outcome, team_score, opp_score = match.groups()
-
     if team == "Crandall":
         return result
     else:
-        if outcome == "W":
-            return f"L {opp_score}-{team_score}"
-        else:
-            return f"W {opp_score}-{team_score}"
+        return f"{'L' if outcome == 'W' else 'W'} {opp_score}-{team_score}"
 
 def normalize_set_score(value):
     try:
         value = str(value).strip()
-        # Fix formats like '26-Sep' to '26-9'
         month_map = {
             'Jan': '1', 'Feb': '2', 'Mar': '3', 'Apr': '4', 'May': '5',
             'Jun': '6', 'Jul': '7', 'Aug': '8', 'Sep': '9', 'Oct': '10', 'Nov': '11', 'Dec': '12'
@@ -92,6 +114,9 @@ def process_match_data_file(file_path, file_name):
         df["Season"] = season
         df["source_file"] = file_name
 
+        if "Date" in df.columns:
+            df["Date"] = df["Date"].apply(lambda d: parse_date_column(d, season))
+
         if "Result" in df.columns:
             df["Result"] = df.apply(adjust_result_for_team, axis=1)
 
@@ -116,7 +141,6 @@ def load_preprocessed_match_data(force_rebuild=False):
         return pd.read_parquet(CACHE_FILE)
 
     all_dfs = []
-
     for file in os.listdir(MATCH_DATA_DIR):
         if file.endswith(".csv"):
             df = process_match_data_file(os.path.join(MATCH_DATA_DIR, file), file)
