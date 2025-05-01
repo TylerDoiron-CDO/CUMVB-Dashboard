@@ -23,14 +23,6 @@ def infer_season_from_filename(file_name):
     except:
         return "Unknown"
 
-def infer_home_away_team(row, is_opponents_file, is_away, team_label):
-    opp = row.get("Opponent", "").strip()
-    opp_team = opp.replace("@", "").replace("vs", "").replace("Vs", "").strip()
-    if is_away:
-        return (opp_team, team_label) if not is_opponents_file else (team_label, opp_team)
-    else:
-        return (team_label, opp_team) if not is_opponents_file else (opp_team, team_label)
-
 def process_match_data_file(file_path, file_name):
     try:
         df = pd.read_csv(file_path)
@@ -40,30 +32,20 @@ def process_match_data_file(file_path, file_name):
         is_opponents_file = "Opponents" in file_name
         df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
-        is_away_flags = df["Opponent"].astype(str).str.startswith("@")
-        is_vs_flags = df["Opponent"].astype(str).str.lower().str.startswith("vs")
+        # Team based only on file name
+        df["Team"] = df["Opponent"]
+        df.loc[~is_opponents_file, "Team"] = "Crandall"
+        df.loc[is_opponents_file, "Team"] = df.loc[is_opponents_file, "Opponent"].astype(str).str.extract(r"[@vsVS]+\s*(.*)")[0].fillna("Unknown").str.strip()
 
-        team_list = []
-        home_list = []
-        away_list = []
+        # Home/Away based only on Opponent prefix
+        df["Home"] = df["Opponent"].apply(
+            lambda val: val.replace("@", "").strip() if val.strip().startswith("@") else ("Crandall" if val.strip().lower().startswith("vs") else "Unknown")
+        )
+        df["Away"] = df["Opponent"].apply(
+            lambda val: "Crandall" if val.strip().startswith("@") else (val.replace("vs", "").replace("Vs", "").strip() if val.strip().lower().startswith("vs") else "Unknown")
+        )
 
-        for idx, row in df.iterrows():
-            opp = row.get("Opponent", "").strip()
-            is_away = opp.startswith("@")
-            if is_opponents_file:
-                team_name = re.sub(r"[@vsVS]+", "", opp).strip()
-            else:
-                team_name = "Crandall"
-
-            home, away = infer_home_away_team(row, is_opponents_file, is_away, team_name)
-            team_list.append(team_name)
-            home_list.append(home)
-            away_list.append(away)
-
-        df["Team"] = team_list
         df["Season"] = season
-        df["Home"] = home_list
-        df["Away"] = away_list
         df["source_file"] = file_name
 
         start_cols = ["Season", "Date", "Home", "Away", "Team", "Is_Opponent_File"]
