@@ -17,6 +17,8 @@ This page provides access to the full underlying match, rotation, overall, athle
 Use this space for filtering, exploration, and validating raw data powering all dashboards.
 """)
 
+st.markdown("---")
+
 # --- Navigation anchor logic ---
 section = st.query_params.get("section", None)
 if isinstance(section, list):
@@ -62,8 +64,8 @@ st.markdown("""
 .nav-container {
     display: flex;
     justify-content: space-around;
-    margin-top: 1em;
-    margin-bottom: -3.5em;
+    margin-top: -4em;
+    margin-bottom: -6.5em;
 }
 .nav-box {
     text-align: center;
@@ -120,21 +122,12 @@ st.markdown("""
     athlete_total, athlete_latest
 ), unsafe_allow_html=True)
 
-# Anchors now integrated with headers
-st.markdown("""<h2 class='scroll-target' id='match-data-section'>📘 Match Data</h2>""", unsafe_allow_html=True)
-# ... your Match Data section code ...
-
-st.markdown("""<h2 class='scroll-target' id='overall-data-section'>📊 Overall Data</h2>""", unsafe_allow_html=True)
-# ... your Overall Data section code ...
-
-st.markdown("""<h2 class='scroll-target' id='rotation-data-section'>🔄 Rotation Data</h2>""", unsafe_allow_html=True)
-# ... your Rotation Data section code ...
-
-st.markdown("""<h2 class='scroll-target' id='athlete-data-section'>🏐 Athlete Data</h2>""", unsafe_allow_html=True)
-# ... your Athlete Data section code ...
-
-st.markdown("""<h2 class='scroll-target' id='setter-dist-data-section'>📊 Setter Dist. Data</h2>""", unsafe_allow_html=True)
-# ... your Setter Distribution Data section code ...
+# Anchors for scrolling target
+st.markdown("""<div class='scroll-target' id='match-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='overall-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='rotation-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", unsafe_allow_html=True)
+st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
 
 # Remove spacing before the line
 st.markdown("""<div style='margin-top: -100px;'></div>""", unsafe_allow_html=True)
