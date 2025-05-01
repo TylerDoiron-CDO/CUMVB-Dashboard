@@ -17,6 +17,8 @@ This page provides access to the full underlying match, rotation, overall, athle
 Use this space for filtering, exploration, and validating raw data powering all dashboards.
 """)
 
+st.markdown("---")
+
 from functions import (
     Match_Data_Load,
     Overall_Data_Load,
@@ -33,31 +35,55 @@ def get_summary(load_func):
     except:
         return 0, "N/A"
 
-# Summaries
+# Get summaries
 match_total, match_latest = get_summary(Match_Data_Load.load_preprocessed_match_data)
 overall_total, overall_latest = get_summary(Overall_Data_Load.load_preprocessed_overall_data)
 rotation_total, rotation_latest = get_summary(Rotation_Data_Load.load_preprocessed_rotation_data)
 athlete_total, athlete_latest = get_summary(Athlete_Data_Load.load_preprocessed_athlete_data)
 
-# Navigation with Centered Summaries
+# Navigation with aligned buttons + summaries
 nav1, nav2, nav3, nav4, nav5 = st.columns(5)
-with nav1:
-    st.button("📘 Match Data")
-    st.markdown(f"<div style='text-align: center'><strong>{match_total} records</strong><br><small>Latest: {match_latest}</small></div>", unsafe_allow_html=True)
-with nav2:
-    st.button("📊 Overall Data")
-    st.markdown(f"<div style='text-align: center'><strong>{overall_total} records</strong><br><small>Latest: {overall_latest}</small></div>", unsafe_allow_html=True)
-with nav3:
-    st.button("🔄 Rotation Data")
-    st.markdown(f"<div style='text-align: center'><strong>{rotation_total} records</strong><br><small>Latest: {rotation_latest}</small></div>", unsafe_allow_html=True)
-with nav4:
-    st.button("🏐 Athlete Data")
-    st.markdown(f"<div style='text-align: center'><strong>{athlete_total} records</strong><br><small>Latest: {athlete_latest}</small></div>", unsafe_allow_html=True)
-with nav5:
-    st.button("📊 Setter Dist. Data")
-    st.markdown("<div style='text-align: center'><strong>Dynamic load</strong><br><small>Via CSV</small></div>", unsafe_allow_html=True)
 
-st.markdown("---")
+with nav1:
+    st.markdown(f"""
+    <div style='text-align: center'>
+        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📘 Match Data</button><br>
+        <strong>{match_total} records</strong><br>
+        <small>Latest: {match_latest}</small>
+    </div>""", unsafe_allow_html=True)
+
+with nav2:
+    st.markdown(f"""
+    <div style='text-align: center'>
+        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Overall Data</button><br>
+        <strong>{overall_total} records</strong><br>
+        <small>Latest: {overall_latest}</small>
+    </div>""", unsafe_allow_html=True)
+
+with nav3:
+    st.markdown(f"""
+    <div style='text-align: center'>
+        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🔄 Rotation Data</button><br>
+        <strong>{rotation_total} records</strong><br>
+        <small>Latest: {rotation_latest}</small>
+    </div>""", unsafe_allow_html=True)
+
+with nav4:
+    st.markdown(f"""
+    <div style='text-align: center'>
+        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🏐 Athlete Data</button><br>
+        <strong>{athlete_total} records</strong><br>
+        <small>Latest: {athlete_latest}</small>
+    </div>""", unsafe_allow_html=True)
+
+with nav5:
+    st.markdown(f"""
+    <div style='text-align: center'>
+        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Setter Dist. Data</button><br>
+        <strong>Dynamic load</strong><br>
+        <small>Via CSV</small>
+    </div>""", unsafe_allow_html=True)
+
 
 # -------------------------------
 # Section 1: Match Data
