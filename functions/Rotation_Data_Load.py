@@ -79,6 +79,8 @@ def load_preprocessed_rotation_data(force_rebuild=False):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
             hist_df = hist_df.drop(columns=["Unnamed: 0"], errors="ignore")
+            hist_df = hist_df.rename(columns={"Matches": "Rotation"})
+            hist_df = hist_df[hist_df["Rotation"].astype(str).str.strip().str.lower() != "by rotation"]
             hist_df["source_file"] = os.path.basename(HISTORICAL_FILE)
 
             if all_dfs:
@@ -109,10 +111,13 @@ def load_preprocessed_rotation_data(force_rebuild=False):
         if not pd.api.types.is_numeric_dtype(combined[col]) and not pd.api.types.is_bool_dtype(combined[col]):
             combined[col] = combined[col].astype(str)
 
+    # Filter out 'By Rotation' records if present
+    if "Rotation" in combined.columns:
+        combined = combined[combined["Rotation"].astype(str).str.strip().str.lower() != "by rotation"]
+
     try:
         combined.to_parquet(CACHE_FILE, index=False)
     except Exception as e:
         print(f"❌ Failed to write cache: {e}")
 
     return combined
-
