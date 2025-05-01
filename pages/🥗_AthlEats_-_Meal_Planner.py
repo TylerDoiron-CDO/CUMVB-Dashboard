@@ -1,10 +1,12 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import os
 from datetime import datetime
 
-# Secure API key
-openai.api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
+# -------------------------------
+# API Client Setup
+# -------------------------------
+client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY")))
 
 # -------------------------------
 # Page Setup
@@ -12,8 +14,6 @@ openai.api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
 st.set_page_config(page_title="🥗 AthlEats: Smart Meal Planner", layout="centered")
 st.title("🥗 AthlEats: Smart Meal Planner")
 st.caption("Designed for high-performance volleyball athletes.")
-st.caption("Beta 1.0.2 - Created by Astute Innovations")
-
 st.markdown("---")
 
 # -------------------------------
@@ -50,8 +50,8 @@ with st.form("meal_plan_form"):
 if submitted:
     st.markdown("---")
     st.info("🔄 Generating personalized meal plan...")
-    try:
-        prompt = f"""
+
+    prompt = f"""
 You are a performance nutritionist.
 
 Build a meal plan for a {weight}kg volleyball {position} with an energy level of {energy_level}/10.
@@ -66,7 +66,8 @@ Respond with:
 3. ❌ List what foods/habits this athlete should avoid today based on their profile.
 """
 
-        response = openai.ChatCompletion.create(
+    try:
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a professional sports dietitian."},
@@ -74,14 +75,12 @@ Respond with:
             ],
             temperature=0.7
         )
-
         plan = response.choices[0].message.content
         st.success("✅ Meal plan generated successfully!")
         st.markdown("### 📋 Personalized Meal Plan")
         st.markdown(plan)
-
     except Exception as e:
-        st.error(f"❌ An error occurred: {e}")
+        st.error(f"❌ Failed to generate meal plan: {e}")
 
 # -------------------------------
 # Footer
