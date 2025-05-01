@@ -118,27 +118,36 @@ def load_preprocessed_overall_data(force_rebuild=False):
     return combined
 
 def load_historical_overall_data_only():
-    if not os.path.exists(HISTORICAL_FILE):
-        return pd.DataFrame()
+    possible_paths = [
+        "data/Historical Overall Data.csv",            # GitHub-tracked source
+        "/mnt/data/Historical Overall Data.csv"        # Manually uploaded to session
+    ]
 
-    try:
-        df = pd.read_csv(HISTORICAL_FILE)
-        df.insert(0, "Season", "Unknown")
-        df.insert(1, "Date", "Unknown")
-        df.insert(2, "Home", "Unknown")
-        df.insert(3, "Away", "Unknown")
-        df.insert(4, "Team", "Unknown")
-        df["source_file"] = "historical data"
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path)
 
-        df = df[[col for col in df.columns if not str(col).startswith("0")]]
-        metadata = ["Season", "Date", "Home", "Away", "Team"]
-        other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-        df = df[metadata + other_cols + ["source_file"]]
+                df.insert(0, "Season", "Unknown")
+                df.insert(1, "Date", "Unknown")
+                df.insert(2, "Home", "Unknown")
+                df.insert(3, "Away", "Unknown")
+                df.insert(4, "Team", "Unknown")
+                df["source_file"] = "historical data"
 
-        return df
+                df = df[[col for col in df.columns if not str(col).startswith("0")]]
+                metadata = ["Season", "Date", "Home", "Away", "Team"]
+                other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
+                df = df[metadata + other_cols + ["source_file"]]
 
-    except Exception as e:
-        print(f"⚠️ Failed to load Historical Overall Data: {e}")
-        return pd.DataFrame()
+                print(f"✅ Historical data loaded from: {path}")
+                return df
+
+            except Exception as e:
+                print(f"⚠️ Failed to load historical data from {path}: {e}")
+                return pd.DataFrame()
+
+    print("❌ No historical data file found at any expected path.")
+    return pd.DataFrame()
 
 
