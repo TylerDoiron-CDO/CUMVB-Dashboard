@@ -180,15 +180,15 @@ else:
         rotation_df = rotation_df[rotation_df["Rotation"].astype(str).str.strip().str.isnumeric()]
         rotation_df = rotation_df[rotation_df["Rotation"].astype(int).between(0, 5)]
 
-    col1, col2, col3, col4 = st.columns(4)
+    s1, s2, s3, s4 = st.columns(4)
     seasons = sorted(rotation_df["Season"].dropna().unique())
     homes = sorted(rotation_df["Home"].dropna().unique())
     aways = sorted(rotation_df["Away"].dropna().unique())
     teams = sorted(rotation_df["Team"].dropna().unique())
-    f_season = col1.multiselect("Season", options=seasons)
-    f_home = col2.multiselect("Home", options=homes)
-    f_away = col3.multiselect("Away", options=aways)
-    f_team = col4.multiselect("Team", options=teams)
+    f_season = s1.multiselect("Rotation Season", options=seasons, key="rotation_season")
+    f_home = s2.multiselect("Rotation Home", options=homes, key="rotation_home")
+    f_away = s3.multiselect("Rotation Away", options=aways, key="rotation_away")
+    f_team = s4.multiselect("Rotation Team", options=teams, key="rotation_team")
 
     filtered_rotation = rotation_df.copy()
     if f_season:
@@ -203,10 +203,10 @@ else:
     st.success(f"✅ {filtered_rotation.shape[0]} rotation records shown")
     st.dataframe(filtered_rotation)
 
-    col1, col2 = st.columns([3, 1])
-    with col1:
+    c1, c2 = st.columns([3, 1])
+    with c1:
         st.download_button("💾 Download Rotation CSV", filtered_rotation.to_csv(index=False).encode("utf-8"), "rotation_data.csv", "text/csv")
-    with col2:
+    with c2:
         if st.button("🔁 Reset Rotation Cache"):
             if os.path.exists(Rotation_Data_Load.CACHE_FILE):
                 os.remove(Rotation_Data_Load.CACHE_FILE)
