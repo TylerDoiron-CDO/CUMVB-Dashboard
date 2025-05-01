@@ -103,6 +103,16 @@ def load_preprocessed_overall_data(force_rebuild=False):
     if not all_dfs:
         return pd.DataFrame()
 
+# -------------------------------
+# 🔍 Debug: Confirm historical columns match
+# -------------------------------
+if all_dfs:
+    print("✅ First file columns:", all_dfs[0].columns.tolist())
+
+if 'hist_df' in locals() and not hist_df.empty:
+    print("✅ Historical columns:", hist_df.columns.tolist())
+
+    
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
