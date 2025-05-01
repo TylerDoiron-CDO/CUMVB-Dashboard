@@ -128,7 +128,7 @@ st.markdown("""<div class='scroll-target' id='athlete-data-section'></div>""", u
 st.markdown("""<div class='scroll-target' id='setter-dist-data-section'></div>""", unsafe_allow_html=True)
 
 # Remove spacing before the line
-st.markdown("""<div style='margin-top: -80px;'></div>""", unsafe_allow_html=True)
+st.markdown("""<div style='margin-top: -100px;'></div>""", unsafe_allow_html=True)
 
 # Separator line
 st.markdown("---")
