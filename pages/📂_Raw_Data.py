@@ -28,7 +28,7 @@ def get_summary(load_func):
     try:
         df = load_func(force_rebuild=False)
         total = df.shape[0]
-        latest = pd.to_datetime(df["Date"], errors="coerce").dropna().max()
+        latest = pd.to_datetime(df["Date"], errors='coerce').dropna().max()
         return total, latest.strftime("%Y-%m-%d") if pd.notnull(latest) else "N/A"
     except:
         return 0, "N/A"
@@ -39,28 +39,23 @@ overall_total, overall_latest = get_summary(Overall_Data_Load.load_preprocessed_
 rotation_total, rotation_latest = get_summary(Rotation_Data_Load.load_preprocessed_rotation_data)
 athlete_total, athlete_latest = get_summary(Athlete_Data_Load.load_preprocessed_athlete_data)
 
-# Navigation with Summary Rows
+# Navigation with Centered Summaries
 nav1, nav2, nav3, nav4, nav5 = st.columns(5)
 with nav1:
     st.button("📘 Match Data")
-    st.markdown(f"**{match_total} records**")
-    st.caption(f"Latest: {match_latest}")
+    st.markdown(f"<div style='text-align: center'><strong>{match_total} records</strong><br><small>Latest: {match_latest}</small></div>", unsafe_allow_html=True)
 with nav2:
     st.button("📊 Overall Data")
-    st.markdown(f"**{overall_total} records**")
-    st.caption(f"Latest: {overall_latest}")
+    st.markdown(f"<div style='text-align: center'><strong>{overall_total} records</strong><br><small>Latest: {overall_latest}</small></div>", unsafe_allow_html=True)
 with nav3:
     st.button("🔄 Rotation Data")
-    st.markdown(f"**{rotation_total} records**")
-    st.caption(f"Latest: {rotation_latest}")
+    st.markdown(f"<div style='text-align: center'><strong>{rotation_total} records</strong><br><small>Latest: {rotation_latest}</small></div>", unsafe_allow_html=True)
 with nav4:
     st.button("🏐 Athlete Data")
-    st.markdown(f"**{athlete_total} records**")
-    st.caption(f"Latest: {athlete_latest}")
+    st.markdown(f"<div style='text-align: center'><strong>{athlete_total} records</strong><br><small>Latest: {athlete_latest}</small></div>", unsafe_allow_html=True)
 with nav5:
     st.button("📊 Setter Dist. Data")
-    st.markdown("**Dynamic load**")
-    st.caption("Via CSV")
+    st.markdown("<div style='text-align: center'><strong>Dynamic load</strong><br><small>Via CSV</small></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
