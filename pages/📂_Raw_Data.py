@@ -26,13 +26,13 @@ else:
     with st.expander("🔎 Filter Athlete Data"):
         col1, col2, col3, col4, col5 = st.columns(5)
         seasons = sorted(athlete_df["Season"].dropna().unique())
-        teams = sorted(athlete_df["TEAM"].dropna().unique())
+        teams = sorted(athlete_df["Team"].dropna().unique()) if "Team" in athlete_df.columns else []
         homes = sorted(athlete_df["Home"].dropna().unique())
         aways = sorted(athlete_df["Away"].dropna().unique())
         names = sorted(athlete_df["Athlete"].dropna().unique()) if "Athlete" in athlete_df.columns else []
 
         s_seasons = col1.multiselect("Season", options=seasons)
-        s_teams = col2.multiselect("TEAM", options=teams)
+        s_teams = col2.multiselect("Team", options=teams)
         s_home = col3.multiselect("Home", options=homes)
         s_away = col4.multiselect("Away", options=aways)
         s_name = col5.text_input("Search Athlete")
@@ -41,7 +41,7 @@ else:
     if s_seasons:
         filtered_athlete = filtered_athlete[filtered_athlete["Season"].isin(s_seasons)]
     if s_teams:
-        filtered_athlete = filtered_athlete[filtered_athlete["TEAM"].isin(s_teams)]
+        filtered_athlete = filtered_athlete[filtered_athlete["Team"].isin(s_teams)]
     if s_home:
         filtered_athlete = filtered_athlete[filtered_athlete["Home"].isin(s_home)]
     if s_away:
@@ -50,7 +50,7 @@ else:
         filtered_athlete = filtered_athlete[filtered_athlete["Athlete"].str.contains(s_name, case=False, na=False)]
 
     st.success(f"✅ {filtered_athlete.shape[0]} athlete records shown")
-    latest_athlete_date = pd.to_datetime(filtered_athlete["Date"], errors="coerce").dropna().max()
+    latest_athlete_date = pd.to_datetime(filtered_athlete["Date"], errors='coerce').dropna().max()
     if pd.notnull(latest_athlete_date):
         st.markdown(f"**🗓️ Athlete data current as of:** {latest_athlete_date.date()}")
 
@@ -83,40 +83,34 @@ with st.spinner("🔄 Loading Overall Data..."):
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
 else:
-    st.markdown("### 🔍 Overall Record Summary")
-    st.write("Total records loaded:", overall_df.shape[0])
-    st.write("Historical records:", (overall_df["source_file"] == "historical data").sum())
-    st.write("Recent records:", overall_df[overall_df["source_file"] != "historical data"].shape[0])
-    st.write("Unique seasons:", sorted(overall_df["Season"].dropna().unique()))
-
     with st.expander("🔎 Filter Overall Data"):
         col1, col2, col3, col4, col5 = st.columns(5)
         seasons = sorted(overall_df["Season"].dropna().unique())
-        teams = sorted(overall_df["TEAM"].dropna().unique())
+        teams = sorted(overall_df["Team"].dropna().unique()) if "Team" in overall_df.columns else []
         homes = sorted(overall_df["Home"].dropna().unique())
         aways = sorted(overall_df["Away"].dropna().unique())
-        teamnames = sorted(overall_df["Team"].dropna().unique()) if "Team" in overall_df.columns else []
+        opponents = sorted(overall_df["Opponent"].dropna().unique()) if "Opponent" in overall_df.columns else []
 
         o_seasons = col1.multiselect("Season", options=seasons)
-        o_teams = col2.multiselect("TEAM", options=teams)
+        o_teams = col2.multiselect("Team", options=teams)
         o_home = col3.multiselect("Home", options=homes)
         o_away = col4.multiselect("Away", options=aways)
-        o_search = col5.text_input("Search Team Name")
+        o_search = col5.text_input("Search Opponent")
 
     filtered_overall = overall_df.copy()
     if o_seasons:
         filtered_overall = filtered_overall[filtered_overall["Season"].isin(o_seasons)]
     if o_teams:
-        filtered_overall = filtered_overall[filtered_overall["TEAM"].isin(o_teams)]
+        filtered_overall = filtered_overall[filtered_overall["Team"].isin(o_teams)]
     if o_home:
         filtered_overall = filtered_overall[filtered_overall["Home"].isin(o_home)]
     if o_away:
         filtered_overall = filtered_overall[filtered_overall["Away"].isin(o_away)]
-    if o_search and "Team" in filtered_overall.columns:
-        filtered_overall = filtered_overall[filtered_overall["Team"].str.contains(o_search, case=False, na=False)]
+    if o_search and "Opponent" in filtered_overall.columns:
+        filtered_overall = filtered_overall[filtered_overall["Opponent"].str.contains(o_search, case=False, na=False)]
 
     st.success(f"✅ {filtered_overall.shape[0]} overall records shown")
-    latest_overall_date = pd.to_datetime(filtered_overall["Date"], errors="coerce").dropna().max()
+    latest_overall_date = pd.to_datetime(filtered_overall["Date"], errors='coerce').dropna().max()
     if pd.notnull(latest_overall_date):
         st.markdown(f"**🗓️ Overall data current as of:** {latest_overall_date.date()}")
 
@@ -136,8 +130,9 @@ else:
         st.caption("⚠️ Only use if source overall data changed.")
 
 # -------------------------------
-# Section 3: Historical Overall Data (Standalone View)
+# Section 3: Historical Overall Data
 # -------------------------------
+st.markdown("---")
 st.header("📚 Historical Overall Data (Standalone View)")
 
 with st.spinner("Loading historical overall data..."):
@@ -151,12 +146,7 @@ else:
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.download_button(
-            label="Download Historical Overall CSV",
-            data=hist_df.to_csv(index=False).encode("utf-8"),
-            file_name="historical_overall_data.csv",
-            mime="text/csv"
-        )
+        st.download_button("Download Historical Overall CSV", hist_df.to_csv(index=False).encode("utf-8"), "historical_overall_data.csv", "text/csv")
     with col2:
         st.caption("🕰️ Historical view only — no cache reset required")
 
