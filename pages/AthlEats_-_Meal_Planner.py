@@ -1,103 +1,88 @@
 import streamlit as st
+import openai
 import os
-from openai import OpenAI
+from datetime import datetime
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You are a professional sports dietitian."},
-        {"role": "user", "content": prompt}
-    ],
-    temperature=0.7
-)
-
-plan = response.choices[0].message.content
+# Secure API key
+openai.api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
 
 # -------------------------------
 # Page Setup
 # -------------------------------
-st.set_page_config(page_title="🏐 Team Meal Plan Assistant", layout="centered")
-st.title("🏐 Team Meal Plan Generator")
-st.markdown("Answer the questions below to receive a personalized, metabolically-optimized meal plan for your volleyball athletes.")
+st.set_page_config(page_title="🥗 AthlEats: Smart Meal Planner", layout="centered")
+st.title("🥗 AthlEats: Smart Meal Planner")
+st.caption("Designed for high-performance volleyball athletes.")
 st.markdown("---")
 
 # -------------------------------
-# Input Section
+# Input Form
 # -------------------------------
-st.subheader("📋 Athlete Profile")
-col1, col2 = st.columns(2)
-with col1:
-    energy_level = st.slider("Energy level today?", 1, 10, 5)
-    weight = st.number_input("Body weight (kg)", 40.0, 160.0, step=0.5)
-with col2:
-    position = st.selectbox("Volleyball position", ["Outside", "Middle", "Setter", "Libero", "Opposite", "Other"])
-    fitness_goal = st.selectbox("Primary goal", ["Performance", "Muscle Gain", "Recovery", "Fat Loss", "Maintenance"])
+with st.form("meal_plan_form"):
+    st.markdown("### 👤 Athlete Profile")
+    col1, col2 = st.columns(2)
+    with col1:
+        energy_level = st.slider("Energy level today", 1, 10, 7)
+        weight = st.number_input("Weight (kg)", 40.0, 160.0, step=0.5)
+        wake_time = st.time_input("Wake-up time", value=datetime.strptime("07:00", "%H:%M").time())
+        sleep_time = st.time_input("Bedtime", value=datetime.strptime("22:30", "%H:%M").time())
+    with col2:
+        position = st.selectbox("Position", ["Outside", "Middle", "Setter", "Libero", "Opposite", "Other"])
+        goal = st.selectbox("Primary goal", ["Performance", "Muscle Gain", "Recovery", "Fat Loss", "Maintenance"])
+        meals_per_day = st.selectbox("Meals per day", [3, 4, 5, 6])
+        allergies = st.multiselect("Dietary restrictions", ["None", "Dairy-Free", "Gluten-Free", "Nut-Free", "Vegan", "Vegetarian"])
+
+    st.markdown("---")
+    st.markdown("### 🏋️ Game / Training Day Info")
+    col3, col4 = st.columns(2)
+    with col3:
+        training_type = st.selectbox("Activity type", ["Practice", "Game", "Weights", "Rest"])
+        training_level = st.selectbox("Intensity", ["Low", "Moderate", "High", "Extreme"])
+    with col4:
+        training_time = st.time_input("Activity start time", value=datetime.strptime("10:00", "%H:%M").time())
+
+    submitted = st.form_submit_button("🧠 Generate Meal Plan", type="primary")
 
 # -------------------------------
-# Training Context
+# Generate Prompt + GPT Response
 # -------------------------------
-st.subheader("🏋️ Game / Training Day Info")
+if submitted:
+    st.markdown("---")
+    st.info("🔄 Generating personalized meal plan...")
+    try:
+        prompt = f"""
+You are a performance nutritionist.
 
-col3, col4 = st.columns(2)
-with col3:
-    training_type = st.selectbox("Type of day", ["Practice", "Game", "Weights", "Rest"])
-    training_level = st.selectbox("Intensity", ["Low", "Moderate", "High", "Extreme"])
-    training_time = st.time_input("Activity start time")
-with col4:
-    wake_time = st.time_input("Wake-up time")
-    sleep_time = st.time_input("Bedtime")
-    meals_required = st.selectbox("Meals per day", [3, 4, 5, 6])
-    allergies = st.multiselect("Dietary restrictions", ["None", "Dairy-Free", "Gluten-Free", "Nut-Free", "Vegan", "Vegetarian"])
+Build a meal plan for a {weight}kg volleyball {position} with an energy level of {energy_level}/10.
+Today's activity is a {training_type} session at {training_level} intensity, starting at {training_time}.
+Wake-up: {wake_time}, Bedtime: {sleep_time}, {meals_per_day} meals per day.
+Dietary restrictions: {', '.join(allergies) if allergies else "None"}.
+Primary goal: {goal.lower()}.
 
-# -------------------------------
-# Prompt Construction
-# -------------------------------
-prompt = f"""
-You are a performance nutritionist for volleyball athletes.
-
-Please create a full-day meal plan for a {weight}kg volleyball {position}.
-Energy level: {energy_level}/10.
-Goal: {fitness_goal.lower()}.
-
-Today is a {training_type.lower()} day with {training_level.lower()} intensity, starting at {training_time}.
-The athlete wakes at {wake_time} and goes to bed at {sleep_time}, and eats {meals_required} meals per day.
-Their dietary restrictions are: {', '.join(allergies) if allergies else 'None'}.
-
-Structure the results by:
-1. 📅 **Meal plan with timing** — list specific foods at each meal (with time), aligned with best metabolic and performance outcomes based on training and recovery windows.
-2. 🚫 **What to avoid** — list specific foods or habits this athlete should avoid today based on their profile.
-
-Be specific and consider carbohydrate timing, hydration, digestion, and recovery needs.
+Respond with:
+1. 🥗 A complete meal plan — include timing, exact foods, and why each is recommended.
+2. 🔬 Optimize nutrient timing around metabolic outcomes (recovery, energy, digestion).
+3. ❌ List what foods/habits this athlete should avoid today based on their profile.
 """
 
-# -------------------------------
-# Generate Meal Plan
-# -------------------------------
-st.markdown("---")
-if st.button("🧠 Generate Meal Plan with ChatGPT"):
-    with st.spinner("Generating meal plan..."):
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a performance dietitian for elite volleyball athletes."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7
-            )
-            reply = response.choices[0].message.content
-            st.success("✅ Meal plan generated!")
-            st.markdown("### 🥗 Meal Plan + Guidelines")
-            st.markdown(reply)
-        except Exception as e:
-            st.error(f"⚠️ Failed to generate meal plan: {e}")
-else:
-    st.info("Fill out the form and click 'Generate Meal Plan' to get started.")
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a professional sports dietitian."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+
+        plan = response.choices[0].message.content
+        st.success("✅ Meal plan generated successfully!")
+        st.markdown("### 📋 Personalized Meal Plan")
+        st.markdown(plan)
+
+    except Exception as e:
+        st.error(f"❌ An error occurred: {e}")
 
 # -------------------------------
 # Footer
 # -------------------------------
 st.markdown("---")
-st.caption("Built for high-performance athletes • Crandall Chargers Volleyball © 2025")
+st.caption("Built for Crandall Chargers Volleyball • Powered by OpenAI • © 2025")
