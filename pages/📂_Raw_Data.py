@@ -26,18 +26,21 @@ else:
 
     # Summary by season
     season_summary = match_df.groupby("Season").size().reset_index(name="Records")
-    summary_line = "  ".join([f"📅 {row['Season']}: **{row['Records']} matches**" for _, row in season_summary.iterrows()])
-
     latest_date = pd.to_datetime(match_df["Date"], errors='coerce').dropna().max()
     latest_date_str = latest_date.date() if pd.notnull(latest_date) else "Unknown"
 
-    # Combined summary in title
-    st.title(f"📘 Match Data Summary — {summary_line} | Latest Match: {latest_date_str}")
+    # Title with latest date only
+    st.title(f"📘 Match Data — Latest Match: {latest_date_str}")
+
+    # Summary section
+    st.markdown("### 📊 Summary by Season")
+    for _, row in season_summary.iterrows():
+        st.markdown(f"- 📅 **{row['Season']}**: {row['Records']} matches")
 
     # Explanation
     st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons.")
 
-    # Filters below summary
+    # Filters
     col1, col2, col3, col4 = st.columns(4)
     seasons = sorted(match_df["Season"].dropna().unique())
     homes = sorted(match_df["Home"].dropna().unique())
