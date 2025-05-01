@@ -57,7 +57,7 @@ st.markdown("""
 <style>
 .scroll-target {
     position: relative;
-    top: -50px; /* reduced offset for tighter scroll */
+    top: -100px; /* reduced offset for tighter scroll */
     margin: 0;
     padding: 0;
 }
