@@ -1,28 +1,64 @@
 import streamlit as st
-import pandas as pd
-import os
-
-st.set_page_config(page_title="📄 Test Historical Data", layout="wide")
-st.title("📄 Test: Historical Overall Data Viewer")
-st.markdown("This page tests reading the `Historical Overall Data.csv` file from `/mnt/data` and displaying it.")
 
 # -------------------------------
-# Load Historical File
+# Page Setup
 # -------------------------------
-file_path = "data/Historical Overall Data.csv"
+st.set_page_config(page_title="🏐 Team Meal Plan Assistant", layout="centered")
+st.title("🏐 Team Meal Plan Generator")
+st.markdown("Answer the following to generate a full-day meal plan for your volleyball athletes.")
+st.markdown("---")
 
-if os.path.exists(file_path):
-    try:
-        df = pd.read_csv(file_path)
-        st.success(f"✅ Loaded {df.shape[0]} rows from historical data.")
-        st.dataframe(df)
-    except Exception as e:
-        st.error(f"❌ Failed to load CSV: {e}")
+# -------------------------------
+# Input Fields
+# -------------------------------
+st.subheader("📋 Athlete Profile")
+
+col1, col2 = st.columns(2)
+with col1:
+    energy_level = st.slider("How is your energy level today?", 1, 10, 5)
+    weight = st.number_input("Current body weight (kg)", min_value=40.0, max_value=160.0, step=0.5)
+
+with col2:
+    position = st.selectbox("What is your volleyball position?", ["Outside", "Middle", "Setter", "Libero", "Opposite", "Other"])
+    fitness_goal = st.selectbox("Primary fitness goal", ["Performance", "Muscle Gain", "Recovery", "Fat Loss", "Maintenance"])
+
+# -------------------------------
+# Training Context
+# -------------------------------
+st.subheader("🏋️ Training Day Info")
+
+col3, col4 = st.columns(2)
+with col3:
+    training_type = st.selectbox("What type of activity today?", ["Practice", "Game", "Weights", "Rest"])
+    training_level = st.selectbox("Intensity of training", ["Low", "Moderate", "High", "Extreme"])
+    training_time = st.time_input("Training start time")
+
+with col4:
+    wake_time = st.time_input("Wake-up time")
+    sleep_time = st.time_input("Bedtime")
+    meals_required = st.selectbox("Number of meals required", [3, 4, 5, 6])
+    allergies = st.multiselect("Dietary restrictions", ["None", "Dairy-Free", "Gluten-Free", "Nut-Free", "Vegan", "Vegetarian"])
+
+# -------------------------------
+# Submit / Output Placeholder
+# -------------------------------
+st.markdown("---")
+if st.button("🧠 Generate Meal Plan"):
+    st.success("Prompt assembled! (Next step: send to GPT or custom logic)")
+    st.markdown("##### 🤖 Prompt Summary")
+
+    st.code(f"""
+Create a meal plan for a {weight}kg volleyball {position} with an energy level of {energy_level}/10.
+Today is a {training_type} day with {training_level} intensity, starting at {training_time}.
+The athlete woke up at {wake_time} and will sleep around {sleep_time}.
+Their primary goal is {fitness_goal.lower()}, and they require {meals_required} meals today.
+They have the following dietary restrictions: {", ".join(allergies) if allergies else "None"}.
+""", language="markdown")
 else:
-    st.warning("⚠️ File not found at /mnt/data/Historical Overall Data.csv")
+    st.info("Fill in the form and click 'Generate Meal Plan' to build your prompt.")
 
 # -------------------------------
 # Footer
 # -------------------------------
 st.markdown("---")
-st.caption("Test utility for verifying historical data ingestion.")
+st.caption("Team Meal Plan Generator • Built with Streamlit for Volleyball Performance")
