@@ -1,5 +1,3 @@
-# functions/Rotation_Data_Load.py
-
 import pandas as pd
 import os
 import re
@@ -19,6 +17,24 @@ def infer_season_from_date(date_str):
     except:
         return "Unknown"
 
+def extract_home_away_team(file_name):
+    cleaned = file_name.replace("—", "-").replace("–", "-")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    prefix = cleaned.split("Totals")[0].strip()
+    vs_match = re.search(r"(.+?)\s+vs\s+([^-^(]+)", prefix, re.IGNORECASE)
+    at_match = re.search(r"(.+?)\s+@\s+([^-^(]+)", prefix, re.IGNORECASE)
+
+    if vs_match:
+        home_team = vs_match.group(1).strip()
+        away_team = vs_match.group(2).strip()
+    elif at_match:
+        away_team = at_match.group(1).strip()
+        home_team = at_match.group(2).strip()
+    else:
+        home_team = away_team = "Unknown"
+
+    return home_team, away_team
+
 def process_rotation_data_file(file_path, file_name):
     try:
         df_raw = pd.read_csv(file_path, header=None, skiprows=1)
@@ -35,10 +51,8 @@ def process_rotation_data_file(file_path, file_name):
         df_raw.columns = deduped_cols
         df = df_raw.drop(index=0).reset_index(drop=True)
 
-        # Rename "Matches" column to "Rotation"
         df.columns = [TARGET_COLUMN_NAME if col == "Matches" else col for col in df.columns]
 
-        # Filter out rows where Rotation == "By Rotation"
         if TARGET_COLUMN_NAME in df.columns:
             df = df[df[TARGET_COLUMN_NAME].astype(str).str.strip().str.lower() != "by rotation"]
 
@@ -48,17 +62,7 @@ def process_rotation_data_file(file_path, file_name):
     date_match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", file_name)
     date_str = date_match.group(1) if date_match else "Unknown"
     season = infer_season_from_date(date_str)
-
-    home_team = away_team = "Unknown"
-    if "@" in file_name:
-        parts = file_name.split("@")
-        away_team = parts[0].strip()
-        home_team = parts[1].split("\u2014")[0].strip()
-    elif "vs." in file_name:
-        parts = file_name.split("vs.")
-        home_team = parts[0].strip()
-        away_team = parts[1].split("\u2014")[0].strip()
-
+    home_team, away_team = extract_home_away_team(file_name)
     team_match = re.search(r"Totals\s+(.*?)\s+\(", file_name)
     team = team_match.group(1).strip() if team_match else "Unknown"
 
@@ -84,7 +88,6 @@ def load_preprocessed_rotation_data(force_rebuild=False):
             if df is not None:
                 all_dfs.append(df)
 
-    # Load historical
     if os.path.exists(HISTORICAL_FILE):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
