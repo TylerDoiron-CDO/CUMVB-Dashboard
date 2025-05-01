@@ -9,6 +9,8 @@ ROTATION_DATA_DIR = "data/Rotation Data"
 HISTORICAL_FILE = "data/Historical Rotation Data.csv"
 CACHE_FILE = "data/rotation_data_cache.parquet"
 
+TARGET_COLUMN_NAME = "Rotation"
+
 def infer_season_from_date(date_str):
     try:
         match_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -32,6 +34,14 @@ def process_rotation_data_file(file_path, file_name):
                 deduped_cols.append(f"{col}.{seen[col]}")
         df_raw.columns = deduped_cols
         df = df_raw.drop(index=0).reset_index(drop=True)
+
+        # Rename "Matches" column to "Rotation"
+        df.columns = [TARGET_COLUMN_NAME if col == "Matches" else col for col in df.columns]
+
+        # Filter out rows where Rotation == "By Rotation"
+        if TARGET_COLUMN_NAME in df.columns:
+            df = df[df[TARGET_COLUMN_NAME].astype(str).str.strip().str.lower() != "by rotation"]
+
     except Exception:
         return None
 
@@ -79,8 +89,8 @@ def load_preprocessed_rotation_data(force_rebuild=False):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
             hist_df = hist_df.drop(columns=["Unnamed: 0"], errors="ignore")
-            hist_df = hist_df.rename(columns={"Matches": "Rotation"})
-            hist_df = hist_df[hist_df["Rotation"].astype(str).str.strip().str.lower() != "by rotation"]
+            hist_df = hist_df.rename(columns={"Matches": TARGET_COLUMN_NAME})
+            hist_df = hist_df[hist_df[TARGET_COLUMN_NAME].astype(str).str.strip().str.lower() != "by rotation"]
             hist_df["source_file"] = os.path.basename(HISTORICAL_FILE)
 
             if all_dfs:
@@ -110,10 +120,6 @@ def load_preprocessed_rotation_data(force_rebuild=False):
             pass
         if not pd.api.types.is_numeric_dtype(combined[col]) and not pd.api.types.is_bool_dtype(combined[col]):
             combined[col] = combined[col].astype(str)
-
-    # Filter out 'By Rotation' records if present
-    if "Rotation" in combined.columns:
-        combined = combined[combined["Rotation"].astype(str).str.strip().str.lower() != "by rotation"]
 
     try:
         combined.to_parquet(CACHE_FILE, index=False)
