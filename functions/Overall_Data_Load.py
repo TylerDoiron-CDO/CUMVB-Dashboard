@@ -1,10 +1,12 @@
+# functions/Overall_Data_Load.py
+
 import pandas as pd
 import os
 import re
 from datetime import datetime
 
 OVERALL_DATA_DIR = "data/Overall Data"
-HISTORICAL_FILE = "/mnt/data/Historical Overall Data.csv"  # Updated to match uploaded location
+HISTORICAL_FILE = "data/Historical Overall Data.csv"
 CACHE_FILE = "data/overall_data_cache.parquet"
 
 def infer_season_from_date(date_str):
@@ -58,10 +60,6 @@ def process_overall_data_file(file_path, file_name):
     df["source_file"] = file_name
 
     df = df[[col for col in df.columns if not str(col).startswith("0")]]
-    metadata = ["Season", "Date", "Home", "Away", "Team"]
-    other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-    df = df[metadata + other_cols + ["source_file"]]
-
     return df
 
 def load_preprocessed_overall_data(force_rebuild=False):
@@ -76,22 +74,27 @@ def load_preprocessed_overall_data(force_rebuild=False):
             if df is not None:
                 all_dfs.append(df)
 
+    # Load historical
     if os.path.exists(HISTORICAL_FILE):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
-            hist_df.insert(0, "Season", "Unknown")
-            hist_df.insert(1, "Date", "Unknown")
-            hist_df.insert(2, "Home", "Unknown")
-            hist_df.insert(3, "Away", "Unknown")
-            hist_df.insert(4, "Team", "Unknown")
-            hist_df["source_file"] = "historical data"
-            hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
-            metadata = ["Season", "Date", "Home", "Away", "Team"]
-            other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
-            hist_df = hist_df[metadata + other_cols + ["source_file"]]
+            hist_df = hist_df.drop(columns=["Unnamed: 0"], errors="ignore")
+            hist_df = hist_df.rename(columns={"MP": "Matches"})
+            hist_df["source_file"] = os.path.basename(HISTORICAL_FILE)
+
+            if all_dfs:
+                for col in all_dfs[0].columns:
+                    if col not in hist_df.columns:
+                        hist_df[col] = pd.NA
+                for col in hist_df.columns:
+                    if col not in all_dfs[0].columns:
+                        for i in range(len(all_dfs)):
+                            all_dfs[i][col] = pd.NA
+                hist_df = hist_df[all_dfs[0].columns]
+
             all_dfs.append(hist_df)
         except Exception as e:
-            print(f"⚠️ Failed to load Historical Overall Data: {e}")
+            print(f"⚠️ Failed to load historical overall data: {e}")
 
     if not all_dfs:
         return pd.DataFrame()
@@ -105,10 +108,7 @@ def load_preprocessed_overall_data(force_rebuild=False):
         except:
             pass
         if not pd.api.types.is_numeric_dtype(combined[col]) and not pd.api.types.is_bool_dtype(combined[col]):
-            try:
-                combined[col] = combined[col].astype(str)
-            except:
-                combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
+            combined[col] = combined[col].astype(str)
 
     try:
         combined.to_parquet(CACHE_FILE, index=False)
@@ -116,38 +116,4 @@ def load_preprocessed_overall_data(force_rebuild=False):
         print(f"❌ Failed to write cache: {e}")
 
     return combined
-
-def load_historical_overall_data_only():
-    possible_paths = [
-        "data/Historical Overall Data.csv",            # GitHub-tracked source
-        "/mnt/data/Historical Overall Data.csv"        # Manually uploaded to session
-    ]
-
-    for path in possible_paths:
-        if os.path.exists(path):
-            try:
-                df = pd.read_csv(path)
-
-                df.insert(0, "Season", "Unknown")
-                df.insert(1, "Date", "Unknown")
-                df.insert(2, "Home", "Unknown")
-                df.insert(3, "Away", "Unknown")
-                df.insert(4, "Team", "Unknown")
-                df["source_file"] = "historical data"
-
-                df = df[[col for col in df.columns if not str(col).startswith("0")]]
-                metadata = ["Season", "Date", "Home", "Away", "Team"]
-                other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-                df = df[metadata + other_cols + ["source_file"]]
-
-                print(f"✅ Historical data loaded from: {path}")
-                return df
-
-            except Exception as e:
-                print(f"⚠️ Failed to load historical data from {path}: {e}")
-                return pd.DataFrame()
-
-    print("❌ No historical data file found at any expected path.")
-    return pd.DataFrame()
-
 
