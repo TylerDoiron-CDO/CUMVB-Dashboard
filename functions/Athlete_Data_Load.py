@@ -38,33 +38,33 @@ def process_athlete_data_file(file_path, file_name):
     date_str = date_match.group(1) if date_match else "Unknown"
     season = infer_season_from_date(date_str)
 
-# Determine Home, Away, and TEAM based on file name
-if "@" in file_name:
-    parts = file_name.split("@")
-    away_team = parts[0].strip()
-    home_team = parts[1].split("—")[0].strip()
-elif "vs." in file_name:
-    parts = file_name.split("vs.")
-    home_team = parts[0].strip()
-    away_team = parts[1].split("—")[0].strip()
-else:
-    home_team = away_team = "Unknown"
+    # Determine Home, Away, and Team
+    if "@" in file_name:
+        parts = file_name.split("@")
+        away_team = parts[0].strip()
+        home_team = parts[1].split("—")[0].strip()
+    elif "vs." in file_name:
+        parts = file_name.split("vs.")
+        home_team = parts[0].strip()
+        away_team = parts[1].split("—")[0].strip()
+    else:
+        home_team = away_team = "Unknown"
 
-# Determine team based on whether this is an Opponents file
-if "Opponents" in file_name:
-    team = away_team  # i.e. opponent team is the subject
-else:
-    team = "Crandall"
+    team = away_team if "Opponents" in file_name else "Crandall"
 
+    # Insert metadata
     df.insert(0, "Season", season)
     df.insert(1, "Date", date_str)
     df.insert(2, "Home", home_team)
     df.insert(3, "Away", away_team)
-    df.insert(4, "TEAM", team)
+    df.insert(4, "Team", team)
     df["source_file"] = file_name
 
+    # Remove numeric-indexed columns like "0"
     df = df[[col for col in df.columns if not str(col).startswith("0")]]
-    metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+
+    # Reorder columns
+    metadata = ["Season", "Date", "Home", "Away", "Team"]
     other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
     df = df[metadata + other_cols + ["source_file"]]
 
@@ -79,11 +79,11 @@ def load_preprocessed_athlete_data(force_rebuild=False):
             historical_df.insert(1, "Date", "Unknown")
             historical_df.insert(2, "Home", "Unknown")
             historical_df.insert(3, "Away", "Unknown")
-            historical_df.insert(4, "TEAM", "Unknown")
+            historical_df.insert(4, "Team", "Unknown")
             historical_df["source_file"] = "historical data"
 
             historical_df = historical_df[[col for col in historical_df.columns if not str(col).startswith("0")]]
-            metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+            metadata = ["Season", "Date", "Home", "Away", "Team"]
             other_cols = [col for col in historical_df.columns if col not in metadata + ["source_file"]]
             historical_df = historical_df[metadata + other_cols + ["source_file"]]
         except Exception as e:
