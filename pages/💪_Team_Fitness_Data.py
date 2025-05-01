@@ -92,15 +92,44 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 # --- 📈 LINE PLOT ---
 with tab1:
-    col1, col2 = st.columns([3, 2])
-    metric = col1.selectbox("Metric", metric_cols, key="line_metric")
-    selected = col2.multiselect("Athletes", athlete_list, default=athlete_list[:3], key="line_ath")
+    st.markdown("### 📈 Track Athlete Progress Over Time")
 
-    if selected:
-        plot_df = df[df["Athlete"].isin(selected)].dropna(subset=["Testing Date", metric])
-        fig = px.line(plot_df, x="Testing Date", y=metric, color="Athlete", markers=True,
-                      title=f"{metric} Progress Over Time", line_shape="spline")
+    # Define metrics for tracking (clean names already applied)
+    tracking_metrics = [
+        'Height', 'Weight', 'Block Touch', 'Approach Touch',
+        'Broad Jump', 'Block Vertical', 'Approach Vertical',
+        'Reps @ E[X] Bench', 'Agility Test', '10 Down and Backs', 'Yo-Yo Test'
+    ]
+
+    col1, col2, col3 = st.columns([3, 3, 3])
+
+    selected_metric = col1.selectbox("Metric", tracking_metrics, key="line_metric_custom")
+    selected_athletes = col2.multiselect("Athlete", sorted(line_df["Athlete"].dropna().unique()), key="line_athlete_custom")
+    selected_positions = col3.multiselect("Position", sorted(line_df["Primary Position"].dropna().unique()), key="line_position_custom")
+
+    # Filter dataset
+    filtered = line_df.dropna(subset=["Testing Date", selected_metric]).copy()
+    if selected_athletes:
+        filtered = filtered[filtered["Athlete"].isin(selected_athletes)]
+    if selected_positions:
+        filtered = filtered[filtered["Primary Position"].isin(selected_positions)]
+
+    filtered["Testing Date"] = pd.to_datetime(filtered["Testing Date"], errors="coerce")
+
+    if not filtered.empty:
+        fig = px.line(
+            filtered,
+            x="Testing Date",
+            y=selected_metric,
+            color="Athlete",
+            markers=True,
+            line_shape="spline",
+            title=f"{selected_metric} Over Time by Athlete"
+        )
+        fig.update_layout(height=500, legend_title_text="Athlete")
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No data available for the selected filters.")
 
 # --- 📦 BOXPLOT / VIOLIN ---
 with tab2:
