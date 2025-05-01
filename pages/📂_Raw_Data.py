@@ -136,13 +136,33 @@ else:
         st.caption("⚠️ Only use if source rotation data changed.")
 
 # -------------------------------
-# Section 4: Match Data by Set (Placeholder)
+# Section 4: Match Data by Set
 # -------------------------------
 st.header("📘 Match Data by Set")
 
-st.info("📂 This section is reserved for loading and displaying Match Data by Set. Functionality coming soon.")
+force_refresh_match = st.session_state.get("reset_cache_match", False)
 
-st.markdown("---")
+with st.spinner("🔄 Loading Match Data..."):
+    match_df = Match_Data_Load.load_preprocessed_match_data(force_rebuild=force_refresh_match)
+
+if match_df.empty:
+    st.warning("⚠️ No match data found or processed.")
+else:
+    st.success(f"✅ {match_df.shape[0]} match records shown")
+    st.dataframe(match_df)
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.download_button("💾 Download Match CSV", match_df.to_csv(index=False).encode("utf-8"), "match_data.csv", "text/csv")
+    with col2:
+        if st.button("🔁 Reset Match Cache"):
+            if os.path.exists(Match_Data_Load.CACHE_FILE):
+                os.remove(Match_Data_Load.CACHE_FILE)
+                st.session_state["reset_cache_match"] = True
+                st.rerun()
+            else:
+                st.info("ℹ️ No match cache found.")
+        st.caption("⚠️ Only use if source match data changed.")
 
 # -------------------------------
 # Section 5: Setter Distribution Data
