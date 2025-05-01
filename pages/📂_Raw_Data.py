@@ -64,7 +64,7 @@ st.markdown("""
 .nav-container {
     display: flex;
     justify-content: space-around;
-    margin-top: -4em;
+    margin-top: 1em;
     margin-bottom: -6.5em;
 }
 .nav-box {
