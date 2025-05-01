@@ -304,6 +304,7 @@ st.markdown("---")
 st.header("📊 Setter Distribution Data")
 
 setter_file = "data/Setter Distribution Data.csv"
+match_file = "data/Match Data by Set.csv"
 
 if os.path.exists(setter_file):
     try:
@@ -311,6 +312,25 @@ if os.path.exists(setter_file):
 
         # Rename TEAM to Team for consistency
         setter_df.rename(columns={"TEAM": "Team"}, inplace=True)
+
+        # Load match data
+        if os.path.exists(match_file):
+            match_df = pd.read_csv(match_file)
+            match_df["Date"] = pd.to_datetime(match_df["Date"], errors='coerce')
+            setter_df["Date"] = pd.to_datetime(setter_df["Date"], errors='coerce')
+
+            # Map Home and Away based on matching date and team logic
+            home_list, away_list = [], []
+            for _, row in setter_df.iterrows():
+                match_subset = match_df[(match_df["Date"] == row["Date"]) & (match_df["Team"] == row["Team"])]
+                unique_home = match_subset["Home"].unique()
+                unique_away = match_subset["Away"].unique()
+
+                home_list.append("Multiple" if len(unique_home) > 1 else (unique_home[0] if len(unique_home) == 1 else "Unknown"))
+                away_list.append("Multiple" if len(unique_away) > 1 else (unique_away[0] if len(unique_away) == 1 else "Unknown"))
+
+            setter_df["Home"] = home_list
+            setter_df["Away"] = away_list
 
         # Identify opponent per date based on Team grouping
         opponents = []
