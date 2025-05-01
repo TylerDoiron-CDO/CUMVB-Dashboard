@@ -248,6 +248,10 @@ else:
     athlete_df["Away"] = athlete_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
     athlete_df["Team"] = athlete_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
 
+    # Create combined index column
+    if "#" in athlete_df.columns and "Athlete" in athlete_df.columns:
+        athlete_df.insert(0, "# - Athlete", athlete_df["#"].astype(str).str.strip() + " - " + athlete_df["Athlete"].astype(str).str.strip())
+
     with st.expander("🔎 Filter Athlete Data"):
         col1, col2, col3, col4, col5 = st.columns(5)
         seasons = sorted(athlete_df["Season"].dropna().unique())
