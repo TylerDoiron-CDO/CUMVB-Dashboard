@@ -4,23 +4,21 @@ import re
 from datetime import datetime
 
 ATHLETE_DATA_DIR = "data/Athlete Data"
-HISTORICAL_DATA_FILE = os.path.join(os.getcwd(), "data", "Historical Athlete Data.csv")
+HISTORICAL_DATA_FILE = "data/Historical Athlete Data.csv"
 CACHE_FILE = "data/athlete_data_cache.parquet"
 
 def infer_season_from_date(date_str):
     try:
         match_date = datetime.strptime(date_str, "%Y-%m-%d")
         year = match_date.year
-        if match_date.month >= 9:
-            return f"{year}-{year + 1}"
-        else:
-            return f"{year - 1}-{year}"
+        return f"{year}-{year + 1}" if match_date.month >= 9 else f"{year - 1}-{year}"
     except:
         return "Unknown"
 
 def process_athlete_data_file(file_path, file_name):
     try:
         df_raw = pd.read_csv(file_path, header=None, skiprows=1)
+
         raw_cols = list(df_raw.iloc[0])
         seen = {}
         deduped_cols = []
@@ -63,38 +61,42 @@ def process_athlete_data_file(file_path, file_name):
     df = df[[col for col in df.columns if not str(col).startswith("0")]]
     metadata = ["Season", "Date", "Home", "Away", "TEAM"]
     other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-    return df[metadata + other_cols + ["source_file"]]
+    df = df[metadata + other_cols + ["source_file"]]
 
-def load_preprocessed_athlete_data(force_rebuild=False):
-    if os.path.exists(CACHE_FILE) and not force_rebuild:
-        return pd.read_parquet(CACHE_FILE)
+    return df
+
+def load_preprocessed_athlete_data():
+    historical_df = pd.DataFrame()
+    if os.path.exists(HISTORICAL_DATA_FILE):
+        try:
+            historical_df = pd.read_csv(HISTORICAL_DATA_FILE)
+            historical_df.insert(0, "Season", "Unknown")
+            historical_df.insert(1, "Date", "Unknown")
+            historical_df.insert(2, "Home", "Unknown")
+            historical_df.insert(3, "Away", "Unknown")
+            historical_df.insert(4, "TEAM", "Unknown")
+            historical_df["source_file"] = "historical data"
+
+            historical_df = historical_df[[col for col in historical_df.columns if not str(col).startswith("0")]]
+            metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+            other_cols = [col for col in historical_df.columns if col not in metadata + ["source_file"]]
+            historical_df = historical_df[metadata + other_cols + ["source_file"]]
+        except Exception as e:
+            print(f"⚠️ Failed to load Historical Athlete Data: {e}")
 
     all_dfs = []
-
-    # Process Athlete Data files
     for file in os.listdir(ATHLETE_DATA_DIR):
         if file.endswith(".csv"):
-            df = process_athlete_data_file(os.path.join(ATHLETE_DATA_DIR, file), file)
+            file_path = os.path.join(ATHLETE_DATA_DIR, file)
+            df = process_athlete_data_file(file_path, file)
             if df is not None:
                 all_dfs.append(df)
 
-    # Load Historical Data
-    if os.path.exists(HISTORICAL_DATA_FILE):
-        try:
-            df = pd.read_csv(HISTORICAL_DATA_FILE)
-            df.insert(0, "Season", "Unknown")
-            df.insert(1, "Date", "Unknown")
-            df.insert(2, "Home", "Unknown")
-            df.insert(3, "Away", "Unknown")
-            df.insert(4, "TEAM", "Unknown")
-            df["source_file"] = "historical data"
-            df = df[[col for col in df.columns if not str(col).startswith("0")]]
-            metadata = ["Season", "Date", "Home", "Away", "TEAM"]
-            other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
-            df = df[metadata + other_cols + ["source_file"]]
-            all_dfs.append(df)
-        except Exception:
-            pass
+    if historical_df is not None and not historical_df.empty:
+        all_dfs.append(historical_df)
+
+    if os.path.exists(CACHE_FILE) and not all_dfs:
+        return pd.read_parquet(CACHE_FILE)
 
     if not all_dfs:
         return pd.DataFrame()
@@ -115,8 +117,8 @@ def load_preprocessed_athlete_data(force_rebuild=False):
 
     try:
         combined.to_parquet(CACHE_FILE, index=False)
-    except:
-        pass
+    except Exception as e:
+        print(f"❌ Failed to write cache: {e}")
 
     return combined
 
