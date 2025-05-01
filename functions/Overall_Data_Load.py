@@ -155,4 +155,28 @@ def load_historical_overall_data_only():
         print(f"⚠️ Failed to load Historical Overall Data: {e}")
         return pd.DataFrame()
 
+# -------------------------------
+# Section 3: Historical Overall Data (Standalone)
+# -------------------------------
+st.header("📚 Historical Overall Data (Standalone View)")
+
+with st.spinner("Loading historical overall data..."):
+    hist_df = Overall_Data_Load.load_historical_overall_data_only()
+
+if hist_df.empty:
+    st.warning("No historical overall data available.")
+else:
+    st.success(f"✅ {hist_df.shape[0]} historical records loaded")
+    st.dataframe(hist_df)
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.download_button(
+            label="Download Historical Overall CSV",
+            data=hist_df.to_csv(index=False).encode("utf-8"),
+            file_name="historical_overall_data.csv",
+            mime="text/csv"
+        )
+    with col2:
+        st.caption("🕰️ Historical view only — no cache reset required")
 
