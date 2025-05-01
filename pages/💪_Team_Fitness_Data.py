@@ -15,7 +15,7 @@ st.markdown("Explore raw fitness testing results for all athletes. Use the filte
 def load_testing_data():
     try:
         df = pd.read_csv(TESTING_DATA_PATH)
-        df.columns = df.columns.str.strip()  # Remove extra whitespace
+        df.columns = df.columns.str.strip()  # Clean column names
         return df
     except Exception as e:
         st.error(f"Failed to load Testing Data: {e}")
@@ -25,7 +25,7 @@ df = load_testing_data()
 
 # Apply filters
 if not df.empty:
-    # Get filter options
+    # Filter options
     athlete_options = sorted(df["Athlete"].dropna().unique())
     position_options = sorted(df["Primary Position"].dropna().unique())
     date_options = sorted(df["Testing Date"].dropna().unique())
@@ -48,9 +48,7 @@ if not df.empty:
     st.subheader("📋 Raw Fitness Testing Data")
     st.dataframe(filtered_df, use_container_width=True)
 
-    # Utility buttons
-    st.divider()
-    st.subheader("⚙️ Utilities")
+    # 🔘 Utility buttons directly below the table
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -68,7 +66,6 @@ if not df.empty:
             st.rerun()
 
     st.caption("⚠️ Only use 'Reset Fitness Cache' if the source data file has changed.")
-
 else:
     st.warning("No data available.")
 
