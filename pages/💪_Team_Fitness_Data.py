@@ -23,70 +23,48 @@ def load_testing_data():
 
 df = load_testing_data()
 
-# Display filters if data is loaded
 if not df.empty:
+    # Filter values
     athlete_options = sorted(df["Athlete"].dropna().unique())
     position_options = sorted(df["Primary Position"].dropna().unique())
     date_options = sorted(df["Testing Date"].dropna().unique())
 
-    # 🧭 Inline filters — always visible and clean layout
-    st.markdown("### 🔍 Filter Options")
-    filter_cols = st.columns([4, 3, 3])
+    # Filters (clean style)
+    col1, col2, col3 = st.columns(3)
+    f_athlete = col1.multiselect("Athlete", options=athlete_options)
+    f_position = col2.multiselect("Position", options=position_options)
+    f_date = col3.multiselect("Testing Date", options=date_options)
 
-    with filter_cols[0]:
-        selected_athletes = st.multiselect(
-            "Filter by Athlete",
-            options=athlete_options,
-            default=athlete_options,
-            key="filter_athlete"
-        )
+    # Apply filters
+    filtered_df = df.copy()
+    if f_athlete:
+        filtered_df = filtered_df[filtered_df["Athlete"].isin(f_athlete)]
+    if f_position:
+        filtered_df = filtered_df[filtered_df["Primary Position"].isin(f_position)]
+    if f_date:
+        filtered_df = filtered_df[filtered_df["Testing Date"].isin(f_date)]
 
-    with filter_cols[1]:
-        selected_positions = st.multiselect(
-            "Filter by Position",
-            options=position_options,
-            default=position_options,
-            key="filter_position"
-        )
-
-    with filter_cols[2]:
-        selected_dates = st.multiselect(
-            "Filter by Testing Date",
-            options=date_options,
-            default=date_options,
-            key="filter_date"
-        )
-
-    # Filter the data
-    filtered_df = df[
-        df["Athlete"].isin(selected_athletes) &
-        df["Primary Position"].isin(selected_positions) &
-        df["Testing Date"].isin(selected_dates)
-    ]
-
-    # Display the table
+    # Show data
+    st.success(f"✅ {filtered_df.shape[0]} testing records shown")
     st.subheader("📋 Raw Fitness Testing Data")
     st.dataframe(filtered_df, use_container_width=True)
 
-    # Utility buttons directly below the table
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
+    # Utility buttons
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
         st.download_button(
             "💾 Download Fitness CSV",
             filtered_df.to_csv(index=False).encode("utf-8"),
             "team_fitness_data.csv",
             "text/csv"
         )
-
-    with col2:
+    with col_d2:
         if st.button("🔁 Reset Fitness Cache"):
             st.cache_data.clear()
             st.success("✅ Cache cleared. Reloading data...")
             st.rerun()
 
     st.caption("⚠️ Only use 'Reset Fitness Cache' if the source data file has changed.")
-
 else:
     st.warning("No data available.")
 
