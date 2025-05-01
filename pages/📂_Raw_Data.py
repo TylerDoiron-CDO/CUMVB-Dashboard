@@ -117,18 +117,40 @@ force_refresh_overall = st.session_state.get("reset_cache_overall", False)
 
 with st.spinner("🔄 Loading Overall Data..."):
     overall_df = Overall_Data_Load.load_preprocessed_overall_data(force_rebuild=force_refresh_overall)
-    if "Matches" in overall_df.columns:
-        overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.lower() != "by set"]
 
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
 else:
-    st.success(f"✅ {overall_df.shape[0]} overall records shown")
-    st.dataframe(overall_df)
+    if "Matches" in overall_df.columns:
+        overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.isnumeric()]
+        overall_df = overall_df[overall_df["Matches"].astype(int).between(0, 5)]
+
+    col1, col2, col3, col4 = st.columns(4)
+    seasons = sorted(overall_df["Season"].dropna().unique())
+    homes = sorted(overall_df["Home"].dropna().unique())
+    aways = sorted(overall_df["Away"].dropna().unique())
+    teams = sorted(overall_df["Team"].dropna().unique())
+    f_season = col1.multiselect("Season", options=seasons)
+    f_home = col2.multiselect("Home", options=homes)
+    f_away = col3.multiselect("Away", options=aways)
+    f_team = col4.multiselect("Team", options=teams)
+
+    filtered_overall = overall_df.copy()
+    if f_season:
+        filtered_overall = filtered_overall[filtered_overall["Season"].isin(f_season)]
+    if f_home:
+        filtered_overall = filtered_overall[filtered_overall["Home"].isin(f_home)]
+    if f_away:
+        filtered_overall = filtered_overall[filtered_overall["Away"].isin(f_away)]
+    if f_team:
+        filtered_overall = filtered_overall[filtered_overall["Team"].isin(f_team)]
+
+    st.success(f"✅ {filtered_overall.shape[0]} overall records shown")
+    st.dataframe(filtered_overall)
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.download_button("💾 Download Overall CSV", overall_df.to_csv(index=False).encode("utf-8"), "overall_data.csv", "text/csv")
+        st.download_button("💾 Download Overall CSV", filtered_overall.to_csv(index=False).encode("utf-8"), "overall_data.csv", "text/csv")
     with col2:
         if st.button("🔁 Reset Overall Cache"):
             if os.path.exists(Overall_Data_Load.CACHE_FILE):
