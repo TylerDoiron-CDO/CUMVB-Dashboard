@@ -129,3 +129,30 @@ def load_preprocessed_overall_data(force_rebuild=False):
 
     return combined
 
+
+def load_historical_overall_data_only():
+    if not os.path.exists(HISTORICAL_FILE):
+        return pd.DataFrame()
+
+    try:
+        df = pd.read_csv(HISTORICAL_FILE)
+        df.insert(0, "Season", "Unknown")
+        df.insert(1, "Date", "Unknown")
+        df.insert(2, "Home", "Unknown")
+        df.insert(3, "Away", "Unknown")
+        df.insert(4, "TEAM", "Unknown")
+        df["source_file"] = "historical data"
+
+        df = df[[col for col in df.columns if not str(col).startswith("0")]]
+
+        metadata = ["Season", "Date", "Home", "Away", "TEAM"]
+        other_cols = [col for col in df.columns if col not in metadata + ["source_file"]]
+        df = df[metadata + other_cols + ["source_file"]]
+
+        return df
+
+    except Exception as e:
+        print(f"⚠️ Failed to load Historical Overall Data: {e}")
+        return pd.DataFrame()
+
+
