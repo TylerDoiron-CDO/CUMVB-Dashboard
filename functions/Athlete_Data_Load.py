@@ -65,7 +65,7 @@ def process_athlete_data_file(file_path, file_name):
 
     return df
 
-def load_preprocessed_athlete_data():
+def load_preprocessed_athlete_data(force_rebuild=False):
     historical_df = pd.DataFrame()
     if os.path.exists(HISTORICAL_DATA_FILE):
         try:
