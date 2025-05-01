@@ -28,10 +28,10 @@ else:
         aways = sorted(athlete_df["Away"].dropna().unique())
         names = sorted(athlete_df["Athlete"].dropna().unique()) if "Athlete" in athlete_df.columns else []
 
-        s_seasons = col1.multiselect("Season", options=seasons)
-        s_teams = col2.multiselect("Team", options=teams)
-        s_home = col3.multiselect("Home", options=homes)
-        s_away = col4.multiselect("Away", options=aways)
+        s_seasons = col1.multiselect("Athlete Season", options=seasons)
+        s_teams = col2.multiselect("Athlete Team", options=teams)
+        s_home = col3.multiselect("Athlete Home", options=homes)
+        s_away = col4.multiselect("Athlete Away", options=aways)
         s_name = col5.text_input("Search Athlete")
 
     filtered_athlete = athlete_df.copy()
@@ -78,7 +78,7 @@ force_refresh_overall = st.session_state.get("reset_cache_overall", False)
 with st.spinner("🔄 Loading Overall Data..."):
     overall_df = Overall_Data_Load.load_preprocessed_overall_data(force_rebuild=force_refresh_overall)
 
-    # ❌ Filter out 'By Set' entries from Matches column
+    # ❌ Filter out 'By Set' entries
     if "Matches" in overall_df.columns:
         overall_df = overall_df[overall_df["Matches"].astype(str).str.strip().str.lower() != "by set"]
 
@@ -91,44 +91,48 @@ else:
         teams = sorted(overall_df["Team"].dropna().unique())
         homes = sorted(overall_df["Home"].dropna().unique())
         aways = sorted(overall_df["Away"].dropna().unique())
-        search_team = col5.text_input("Search Opponent")
+        opponents = sorted(overall_df["Opponent"].dropna().unique()) if "Opponent" in overall_df.columns else []
 
-        o_seasons = col1.multiselect("Season", options=seasons)
-        o_teams = col2.multiselect("Team", options=teams)
-        o_home = col3.multiselect("Home", options=homes)
-        o_away = col4.multiselect("Away", options=aways)
+        o_seasons = col1.multiselect("Overall Season", options=seasons)
+        o_teams = col2.multiselect("Overall Team", options=teams)
+        o_home = col3.multiselect("Overall Home", options=homes)
+        o_away = col4.multiselect("Overall Away", options=aways)
+        o_search = col5.text_input("Search Opponent")
 
-    filtered_df = overall_df.copy()
+    filtered_overall = overall_df.copy()
     if o_seasons:
-        filtered_df = filtered_df[filtered_df["Season"].isin(o_seasons)]
+        filtered_overall = filtered_overall[filtered_overall["Season"].isin(o_seasons)]
     if o_teams:
-        filtered_df = filtered_df[filtered_df["Team"].isin(o_teams)]
+        filtered_overall = filtered_overall[filtered_overall["Team"].isin(o_teams)]
     if o_home:
-        filtered_df = filtered_df[filtered_df["Home"].isin(o_home)]
+        filtered_overall = filtered_overall[filtered_overall["Home"].isin(o_home)]
     if o_away:
-        filtered_df = filtered_df[filtered_df["Away"].isin(o_away)]
-    if search_team and "Opponent" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["Opponent"].str.contains(search_team, case=False, na=False)]
+        filtered_overall = filtered_overall[filtered_overall["Away"].isin(o_away)]
+    if o_search and "Opponent" in filtered_overall.columns:
+        filtered_overall = filtered_overall[filtered_overall["Opponent"].str.contains(o_search, case=False, na=False)]
 
-    st.success(f"✅ {filtered_df.shape[0]} overall records shown")
-    latest_date = pd.to_datetime(filtered_df["Date"], errors='coerce').dropna().max()
-    if pd.notnull(latest_date):
-        st.markdown(f"**🗓️ Data current as of:** {latest_date.date()}")
+    st.success(f"✅ {filtered_overall.shape[0]} overall records shown")
+    latest_overall_date = pd.to_datetime(filtered_overall["Date"], errors='coerce').dropna().max()
+    if pd.notnull(latest_overall_date):
+        st.markdown(f"**🗓️ Overall data current as of:** {latest_overall_date.date()}")
 
-    st.dataframe(filtered_df)
+    st.dataframe(filtered_overall)
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.download_button("💾 Download CSV", filtered_df.to_csv(index=False).encode("utf-8"), "overall_data.csv", "text/csv")
+        st.download_button("💾 Download Overall CSV", filtered_overall.to_csv(index=False).encode("utf-8"), "overall_data.csv", "text/csv")
     with col2:
-        if st.button("🔁 Reset Cache"):
+        if st.button("🔁 Reset Overall Cache"):
             if os.path.exists(Overall_Data_Load.CACHE_FILE):
                 os.remove(Overall_Data_Load.CACHE_FILE)
                 st.session_state["reset_cache_overall"] = True
                 st.rerun()
             else:
                 st.info("ℹ️ No overall cache found.")
-        st.caption("⚠️ Only use if source data changed.")
+        st.caption("⚠️ Only use if source overall data changed.")
 
+# -------------------------------
+# Footer
+# -------------------------------
 st.markdown("---")
 st.caption("Developed by Astute Innovations — Streamlit analytics platform • Crandall Chargers Volleyball © 2025")
