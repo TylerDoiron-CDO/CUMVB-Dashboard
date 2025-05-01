@@ -176,12 +176,36 @@ with st.spinner("🔄 Loading Rotation Data..."):
 if rotation_df.empty:
     st.warning("⚠️ No rotation data found or processed.")
 else:
-    st.success(f"✅ {rotation_df.shape[0]} rotation records shown")
-    st.dataframe(rotation_df)
+    if "Rotation" in rotation_df.columns:
+        rotation_df = rotation_df[rotation_df["Rotation"].astype(str).str.strip().str.isnumeric()]
+        rotation_df = rotation_df[rotation_df["Rotation"].astype(int).between(0, 5)]
+
+    col1, col2, col3, col4 = st.columns(4)
+    seasons = sorted(rotation_df["Season"].dropna().unique())
+    homes = sorted(rotation_df["Home"].dropna().unique())
+    aways = sorted(rotation_df["Away"].dropna().unique())
+    teams = sorted(rotation_df["Team"].dropna().unique())
+    f_season = col1.multiselect("Season", options=seasons)
+    f_home = col2.multiselect("Home", options=homes)
+    f_away = col3.multiselect("Away", options=aways)
+    f_team = col4.multiselect("Team", options=teams)
+
+    filtered_rotation = rotation_df.copy()
+    if f_season:
+        filtered_rotation = filtered_rotation[filtered_rotation["Season"].isin(f_season)]
+    if f_home:
+        filtered_rotation = filtered_rotation[filtered_rotation["Home"].isin(f_home)]
+    if f_away:
+        filtered_rotation = filtered_rotation[filtered_rotation["Away"].isin(f_away)]
+    if f_team:
+        filtered_rotation = filtered_rotation[filtered_rotation["Team"].isin(f_team)]
+
+    st.success(f"✅ {filtered_rotation.shape[0]} rotation records shown")
+    st.dataframe(filtered_rotation)
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.download_button("💾 Download Rotation CSV", rotation_df.to_csv(index=False).encode("utf-8"), "rotation_data.csv", "text/csv")
+        st.download_button("💾 Download Rotation CSV", filtered_rotation.to_csv(index=False).encode("utf-8"), "rotation_data.csv", "text/csv")
     with col2:
         if st.button("🔁 Reset Rotation Cache"):
             if os.path.exists(Rotation_Data_Load.CACHE_FILE):
