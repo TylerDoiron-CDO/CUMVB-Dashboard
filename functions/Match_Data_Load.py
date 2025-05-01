@@ -31,16 +31,12 @@ def process_match_data_file(file_path, file_name):
         is_opponents_file = "Opponents" in file_name
         df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
-        # Team based solely on file name
-        df["Team"] = df["Opponent"]  # placeholder
-        df.loc[~is_opponents_file, "Team"] = "Crandall"
-        df.loc[is_opponents_file, "Team"] = df.loc[is_opponents_file, "Opponent"]
-            .astype(str)
-            .str.extract(r"[@|vs|VS]\s*(.*)")[0]
-            .fillna("Unknown")
-            .str.strip()
+        # Determine Team
+        df["Team"] = "Crandall"
+        if is_opponents_file:
+            df["Team"] = df["Opponent"].astype(str).str.extract(r"[@|vs|VS]\s*(.*)")[0].fillna("Unknown").str.strip()
 
-        # Home and Away based on Opponent prefix only
+        # Determine Home and Away from Opponent column
         df["Home"] = df["Opponent"].apply(
             lambda val: val.strip()[1:].strip() if val.strip().startswith("@") else (
                 "Crandall" if val.strip().lower().startswith("vs") else "Unknown"
