@@ -34,33 +34,28 @@ def load_normative_data():
 testing_df = load_testing_data()
 norms_df = load_normative_data()
 
-# Filters
+# Check for expected columns
 if not testing_df.empty:
-    with st.expander("🔍 Filter Options"):
-        names = st.multiselect("Filter by Player", sorted(testing_df["name"].unique()))
-        positions = st.multiselect("Filter by Position", sorted(testing_df["position"].dropna().unique()))
-        
-        filtered_df = testing_df.copy()
-        if names:
-            filtered_df = filtered_df[filtered_df["name"].isin(names)]
-        if positions:
-            filtered_df = filtered_df[filtered_df["position"].isin(positions)]
+    all_columns = testing_df.columns.tolist()
+
+    name_col = next((col for col in all_columns if "name" in col), None)
+    position_col = next((col for col in all_columns if "position" in col), None)
+
+    if name_col:
+        with st.expander("🔍 Filter Options"):
+            names = st.multiselect("Filter by Player", sorted(testing_df[name_col].unique()))
+            positions = st.multiselect("Filter by Position", sorted(testing_df[position_col].dropna().unique()) if position_col else [])
+
+            filtered_df = testing_df.copy()
+            if names:
+                filtered_df = filtered_df[filtered_df[name_col].isin(names)]
+            if position_col and positions:
+                filtered_df = filtered_df[filtered_df[position_col].isin(positions)]
+    else:
+        st.error("No 'name' column found in the dataset.")
+        filtered_df = testing_df
 else:
     filtered_df = pd.DataFrame()
-
-# Show Testing Data
-st.subheader("📋 Team Fitness Testing Results")
-if not filtered_df.empty:
-    st.dataframe(filtered_df, use_container_width=True)
-else:
-    st.info("No testing data to display.")
-
-# Show Normative Reference Table (if applicable)
-if not norms_df.empty:
-    st.subheader("📊 Volleyball Canada Normative Reference Values")
-    st.dataframe(norms_df, use_container_width=True)
-else:
-    st.info("Normative values not loaded or missing.")
 
 # Summary Statistics
 if not filtered_df.empty:
