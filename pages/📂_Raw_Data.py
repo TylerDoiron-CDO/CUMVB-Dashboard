@@ -26,12 +26,53 @@ with st.spinner("🔄 Loading Match Data..."):
 if match_df.empty:
     st.warning("⚠️ No match data found or processed.")
 else:
-    st.success(f"✅ {match_df.shape[0]} match records shown")
-    st.dataframe(match_df)
+    # Normalize team names
+    match_df["Home"] = match_df["Home"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    match_df["Away"] = match_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
+    match_df["Team"] = match_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
+
+    # Filters
+    st.markdown("### 🔎 Filter Match Data")
+    col1, col2, col3, col4 = st.columns(4)
+    seasons = sorted(match_df["Season"].dropna().unique())
+    homes = sorted(match_df["Home"].dropna().unique())
+    aways = sorted(match_df["Away"].dropna().unique())
+    teams = sorted(match_df["Team"].dropna().unique())
+
+    f_season = col1.multiselect("Season", options=seasons)
+    f_home = col2.multiselect("Home", options=homes)
+    f_away = col3.multiselect("Away", options=aways)
+    f_team = col4.multiselect("Team", options=teams)
+
+    filtered_match = match_df.copy()
+    if f_season:
+        filtered_match = filtered_match[filtered_match["Season"].isin(f_season)]
+    if f_home:
+        filtered_match = filtered_match[filtered_match["Home"].isin(f_home)]
+    if f_away:
+        filtered_match = filtered_match[filtered_match["Away"].isin(f_away)]
+    if f_team:
+        filtered_match = filtered_match[filtered_match["Team"].isin(f_team)]
+
+    # Summary by season
+    st.markdown("### 📈 Summary")
+    season_summary = filtered_match.groupby("Season").size().reset_index(name="Records")
+    st.dataframe(season_summary)
+
+    # Latest date available
+    latest_date = pd.to_datetime(filtered_match["Date"], errors='coerce').dropna().max()
+    if pd.notnull(latest_date):
+        st.markdown(f"**🗓️ Latest match data date:** {latest_date.date()}")
+
+    # Explanation
+    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons. Use the filters above to inspect specific match contexts or teams.")
+
+    st.success(f"✅ {filtered_match.shape[0]} match records shown")
+    st.dataframe(filtered_match)
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.download_button("💾 Download Match CSV", match_df.to_csv(index=False).encode("utf-8"), "match_data.csv", "text/csv")
+        st.download_button("💾 Download Match CSV", filtered_match.to_csv(index=False).encode("utf-8"), "match_data.csv", "text/csv")
     with col2:
         if st.button("🔁 Reset Match Cache"):
             if os.path.exists(Match_Data_Load.CACHE_FILE):
