@@ -16,21 +16,27 @@ def infer_season_from_date(date_str):
         return "Unknown"
 
 def extract_home_away_team(file_name):
-    # Normalize dashes and spaces
+    # Normalize dashes and whitespace
     cleaned = file_name.replace("—", "-").replace("–", "-")
     cleaned = re.sub(r"\s+", " ", cleaned)  # collapse multiple spaces
 
-    # Extract portion before the first dash
-    match_section = cleaned.split("-")[0].strip()
+    # Isolate portion before "Totals"
+    prefix = cleaned.split("Totals")[0].strip()
 
-    if " vs " in match_section:
-        home, away = match_section.split(" vs ", 1)
-        return home.strip(), away.strip()
-    elif " @ " in match_section:
-        away, home = match_section.split(" @ ", 1)
-        return home.strip(), away.strip()
+    # Match using vs or @, then stop at first dash after opponent
+    vs_match = re.search(r"(.+?)\s+vs\s+([^-^(]+)", prefix, re.IGNORECASE)
+    at_match = re.search(r"(.+?)\s+@\s+([^-^(]+)", prefix, re.IGNORECASE)
 
-    return "Unknown", "Unknown"
+    if vs_match:
+        home = vs_match.group(1).strip()
+        away = vs_match.group(2).strip()
+    elif at_match:
+        away = at_match.group(1).strip()
+        home = at_match.group(2).strip()
+    else:
+        home = away = "Unknown"
+
+    return home, away
 
 def process_athlete_data_file(file_path, file_name):
     try:
