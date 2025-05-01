@@ -29,32 +29,32 @@ def process_match_data_file(file_path, file_name):
 
         season = infer_season_from_filename(file_name)
         is_opponents_file = "Opponents" in file_name
-        df["Is_Opponent_File"] = 1 if is_opponents_file else 0
 
-        # Team is determined only by filename
-        df["Team"] = df["Opponent"]  # temporary assignment to preserve original content
-        df.loc[:, "Team"] = df["Team"] if is_opponents_file else "Crandall"
-        if is_opponents_file:
-            df["Team"] = df["Opponent"].astype(str).apply(lambda val: val[1:].strip() if val.strip().startswith("@")
-                                                            else val[3:].strip() if val.strip().lower().startswith("vs")
-                                                            else "Unknown")
-        else:
-            df["Team"] = "Crandall"
+        # Set Team strictly based on file name
+        df["Team"] = df.apply(lambda row: "Crandall" if not is_opponents_file else (
+            row["Opponent"].strip()[1:].strip() if row["Opponent"].strip().startswith("@")
+            else row["Opponent"].strip()[3:].strip() if row["Opponent"].strip().lower().startswith("vs")
+            else "Unknown"), axis=1)
 
-        # Home/Away determined by opponent prefix
+        # Set Home and Away strictly based on prefix
         df["Home"] = df["Opponent"].apply(
-            lambda val: val[1:].strip() if val.strip().startswith("@")
-            else ("Crandall" if val.strip().lower().startswith("vs") else "Unknown")
+            lambda val: val.strip()[1:].strip() if val.strip().startswith("@")
+            else "Crandall" if val.strip().lower().startswith("vs")
+            else "Unknown"
         )
         df["Away"] = df["Opponent"].apply(
             lambda val: "Crandall" if val.strip().startswith("@")
-            else (val[3:].strip() if val.strip().lower().startswith("vs") else "Unknown")
+            else val.strip()[3:].strip() if val.strip().lower().startswith("vs")
+            else "Unknown"
         )
 
         df["Season"] = season
         df["source_file"] = file_name
 
-        start_cols = ["Season", "Date", "Home", "Away", "Team", "Is_Opponent_File"]
+        # Remove Opponent and Is_Opponent_File columns before reordering
+        df.drop(columns=["Opponent"], inplace=True, errors="ignore")
+
+        start_cols = ["Season", "Date", "Home", "Away", "Team"]
         other_cols = [col for col in df.columns if col not in start_cols + ["source_file"]]
         df = df[start_cols + other_cols + ["source_file"]]
 
