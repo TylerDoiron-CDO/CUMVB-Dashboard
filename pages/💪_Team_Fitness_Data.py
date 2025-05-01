@@ -64,9 +64,12 @@ if not df.empty:
             st.success("✅ Cache cleared. Reloading data...")
             st.rerun()
 
-    st.caption("⚠️ Only use 'Reset Fitness Cache' if the source data file has changed.")
+    st.caption("---")
 else:
     st.warning("No data available.")
+
+st.markdown("Use the filters below to focus your view.")
+
 
 import plotly.express as px
 import plotly.graph_objects as go
