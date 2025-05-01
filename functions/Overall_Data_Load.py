@@ -70,14 +70,14 @@ def load_preprocessed_overall_data(force_rebuild=False):
 
     all_dfs = []
 
-    # Load new season files
+    # Step 1: Load and process all new files first
     for file in os.listdir(OVERALL_DATA_DIR):
         if file.endswith(".csv"):
             df = process_overall_data_file(os.path.join(OVERALL_DATA_DIR, file), file)
             if df is not None:
                 all_dfs.append(df)
 
-    # Try loading historical file
+    # Step 2: Then load and append historical data
     if os.path.exists(HISTORICAL_FILE):
         try:
             hist_df = pd.read_csv(HISTORICAL_FILE)
@@ -86,17 +86,19 @@ def load_preprocessed_overall_data(force_rebuild=False):
             hist_df.insert(2, "Home", "Unknown")
             hist_df.insert(3, "Away", "Unknown")
             hist_df.insert(4, "TEAM", "Unknown")
-            hist_df["source_file"] = "historical data"
+            hist_df["source_file"] = "historical data"  # Append filename column explicitly
 
-            # Drop '0' columns and reorder
+            # Drop columns starting with '0'
             hist_df = hist_df[[col for col in hist_df.columns if not str(col).startswith("0")]]
+
+            # Remove "By Set" if present
+            if "Matches" in hist_df.columns:
+                hist_df = hist_df[hist_df["Matches"] != "By Set"]
+
+            # Reorder columns
             metadata = ["Season", "Date", "Home", "Away", "TEAM"]
             other_cols = [col for col in hist_df.columns if col not in metadata + ["source_file"]]
             hist_df = hist_df[metadata + other_cols + ["source_file"]]
-
-            # Drop 'By Set' if present
-            if "Matches" in hist_df.columns:
-                hist_df = hist_df[hist_df["Matches"] != "By Set"]
 
             all_dfs.append(hist_df)
         except Exception as e:
@@ -105,12 +107,14 @@ def load_preprocessed_overall_data(force_rebuild=False):
     if not all_dfs:
         return pd.DataFrame()
 
+    # Step 3: Combine all datasets
     combined = pd.concat(all_dfs, ignore_index=True)
     combined.columns = [str(col) for col in combined.columns]
 
     if "Matches" in combined.columns:
         combined = combined[combined["Matches"] != "By Set"]
 
+    # Step 4: Ensure all columns are safe types
     for col in combined.columns:
         try:
             combined[col] = pd.to_numeric(combined[col], errors="ignore")
@@ -122,10 +126,12 @@ def load_preprocessed_overall_data(force_rebuild=False):
             except:
                 combined[col] = combined[col].apply(lambda x: str(x) if not isinstance(x, str) else x)
 
+    # Step 5: Save cache
     try:
         combined.to_parquet(CACHE_FILE, index=False)
     except Exception as e:
         print(f"❌ Failed to write cache: {e}")
 
     return combined
+
 
