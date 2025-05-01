@@ -3,65 +3,50 @@ import pandas as pd
 
 # Constants
 TESTING_DATA_PATH = "data/Testing Data.csv"
-NORMATIVE_DATA_PATH = "data/Volleyball Canada Normative.csv"
 
-# Page config
+# Page setup
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 st.title("💪 Team Fitness Data")
-st.markdown("This page displays the team's fitness testing results and compares them to Volleyball Canada's normative values.")
+st.markdown("Explore raw fitness testing results for all athletes. Use the filters below to focus your view.")
 
-# Load team testing data
+# Load data
 @st.cache_data
 def load_testing_data():
     try:
         df = pd.read_csv(TESTING_DATA_PATH)
+        df.columns = df.columns.str.strip()  # Remove extra whitespace
         return df
     except Exception as e:
         st.error(f"Failed to load Testing Data: {e}")
         return pd.DataFrame()
 
-# Load Volleyball Canada normative values
-@st.cache_data
-def load_normative_data():
-    try:
-        df = pd.read_csv(NORMATIVE_DATA_PATH)
-        return df
-    except Exception as e:
-        st.error(f"Failed to load Normative Data: {e}")
-        return pd.DataFrame()
+df = load_testing_data()
 
-# Load data
-testing_df = load_testing_data()
-norms_df = load_normative_data()
+# Apply filters
+if not df.empty:
+    # Get filter options
+    athlete_options = sorted(df["Athlete"].dropna().unique())
+    position_options = sorted(df["Primary Position"].dropna().unique())
+    date_options = sorted(df["Testing Date"].dropna().unique())
 
-# Check for expected columns
-if not testing_df.empty:
-    all_columns = testing_df.columns.tolist()
+    with st.expander("🔍 Filter Options"):
+        selected_athletes = st.multiselect("Filter by Athlete", athlete_options)
+        selected_positions = st.multiselect("Filter by Position", position_options)
+        selected_dates = st.multiselect("Filter by Testing Date", date_options)
 
-    name_col = next((col for col in all_columns if "name" in col), None)
-    position_col = next((col for col in all_columns if "position" in col), None)
+    # Apply filters
+    filtered_df = df.copy()
+    if selected_athletes:
+        filtered_df = filtered_df[filtered_df["Athlete"].isin(selected_athletes)]
+    if selected_positions:
+        filtered_df = filtered_df[filtered_df["Primary Position"].isin(selected_positions)]
+    if selected_dates:
+        filtered_df = filtered_df[filtered_df["Testing Date"].isin(selected_dates)]
 
-    if name_col:
-        with st.expander("🔍 Filter Options"):
-            names = st.multiselect("Filter by Player", sorted(testing_df[name_col].unique()))
-            positions = st.multiselect("Filter by Position", sorted(testing_df[position_col].dropna().unique()) if position_col else [])
+    # Display
+    st.subheader("📋 Raw Fitness Testing Data")
+    st.dataframe(filtered_df, use_container_width=True)
 
-            filtered_df = testing_df.copy()
-            if names:
-                filtered_df = filtered_df[filtered_df[name_col].isin(names)]
-            if position_col and positions:
-                filtered_df = filtered_df[filtered_df[position_col].isin(positions)]
-    else:
-        st.error("No 'name' column found in the dataset.")
-        filtered_df = testing_df
 else:
-    filtered_df = pd.DataFrame()
+    st.warning("No data available.")
 
-# Summary Statistics
-if not filtered_df.empty:
-    st.subheader("📈 Summary Statistics")
-    numeric_cols = filtered_df.select_dtypes(include="number").columns
-    if not numeric_cols.empty:
-        st.dataframe(filtered_df[numeric_cols].describe(), use_container_width=True)
-    else:
-        st.info("No numeric columns available for summary statistics.")
