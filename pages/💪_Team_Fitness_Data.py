@@ -166,41 +166,46 @@ with tab2:
 
 # --- 🕸 RADAR CHART ---
 with tab3:
-    st.markdown("### 🕸 Radar Chart — Compare Key Metrics on One Date")
-    selected_athlete = st.selectbox("Select Athlete", athlete_list, key="radar_ath")
-    selected_date = st.selectbox("Select Testing Date", dates, key="radar_date")
+    st.markdown("### 🕸 Radar Chart — Athlete Profile Over Time")
 
-    # Filter to one athlete + one testing date
-    radar_df = df[(df["Athlete"] == selected_athlete) & (df["Testing Date"] == selected_date)]
+    # Select one athlete, show all testing dates together
+    selected_athlete = st.selectbox("Select Athlete", athlete_list, key="radar_all_dates_athlete")
 
-    # Use the same metrics from line plot
+    # Get only valid test rows for the athlete
+    radar_df = df[df["Athlete"] == selected_athlete].copy()
+    radar_df["Testing Date"] = pd.to_datetime(radar_df["Testing Date"], errors="coerce")
+
+    # Define raw and clean metric names
     radar_metrics_raw = list(metric_map.keys())
     radar_metrics_clean = list(metric_map.values())
 
-    # Check for missing data
-    if radar_df.empty or radar_df[radar_metrics_raw].dropna(axis=1).empty:
-        st.warning("⚠️ No valid data for this athlete on the selected date.")
+    # Drop rows with too much missing data
+    radar_df = radar_df.dropna(subset=["Testing Date"] + radar_metrics_raw, thresh=5)
+
+    if radar_df.empty:
+        st.warning("⚠️ No valid testing records found for this athlete.")
     else:
-        # Extract and reshape values
-        values = radar_df[radar_metrics_raw].iloc[0]
-        values.index = radar_metrics_clean
-
-        radar_data = pd.DataFrame({
-            "Metric": values.index,
-            "Value": values.values
-        })
-
         fig = go.Figure()
-        fig.add_trace(go.Scatterpolar(
-            r=radar_data["Value"],
-            theta=radar_data["Metric"],
-            fill='toself',
-            name=f"{selected_athlete} on {selected_date.date()}"
-        ))
+
+        for _, row in radar_df.iterrows():
+            raw_values = row[radar_metrics_raw]
+            if raw_values.isnull().sum() > 0:
+                continue  # skip incomplete tests
+
+            # Rename index for display
+            raw_values.index = radar_metrics_clean
+            fig.add_trace(go.Scatterpolar(
+                r=raw_values.values,
+                theta=raw_values.index,
+                fill='toself',
+                name=row["Testing Date"].strftime("%Y-%m-%d")
+            ))
+
         fig.update_layout(
             polar=dict(radialaxis=dict(visible=True)),
             showlegend=True,
-            height=600
+            height=600,
+            title=f"{selected_athlete} — Radar Chart Across All Testing Dates"
         )
         st.plotly_chart(fig, use_container_width=True)
 
