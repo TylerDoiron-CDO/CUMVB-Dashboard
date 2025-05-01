@@ -26,7 +26,7 @@ def adjust_result_for_team(row):
     result = row.get("Result", "")
     team = row.get("Team", "")
 
-    match = re.match(r"([WL])\s*(\d)-(\d)", result)
+    match = re.match(r"([WL])\s*(\d+)-(\d+)", result)
     if not match:
         return result
 
@@ -36,10 +36,32 @@ def adjust_result_for_team(row):
         return result
     else:
         if outcome == "W":
-            new_result = f"L {opp_score}-{team_score}"
+            return f"L {opp_score}-{team_score}"
         else:
-            new_result = f"W {opp_score}-{team_score}"
-        return new_result
+            return f"W {opp_score}-{team_score}"
+
+def normalize_set_score(value):
+    try:
+        value = str(value).strip()
+        # Fix formats like '26-Sep' to '26-9'
+        month_map = {
+            'Jan': '1', 'Feb': '2', 'Mar': '3', 'Apr': '4', 'May': '5',
+            'Jun': '6', 'Jul': '7', 'Aug': '8', 'Sep': '9', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+        }
+        for m, n in month_map.items():
+            value = value.replace(m, n)
+        parts = re.findall(r"\d+", value)
+        if len(parts) == 2:
+            return f"{parts[0]}-{parts[1]}"
+    except:
+        pass
+    return value
+
+def flip_set_score(value):
+    parts = re.findall(r"(\d+)-(\d+)", value)
+    if parts:
+        return f"{parts[0][1]}-{parts[0][0]}"
+    return value
 
 def process_match_data_file(file_path, file_name):
     try:
@@ -49,13 +71,11 @@ def process_match_data_file(file_path, file_name):
         season = infer_season_from_filename(file_name)
         is_opponents_file = "Opponents" in file_name
 
-        # Set Team strictly based on file name
         df["Team"] = df.apply(lambda row: "Crandall" if not is_opponents_file else (
             row["Opponent"].strip()[1:].strip() if row["Opponent"].strip().startswith("@")
             else row["Opponent"].strip()[3:].strip() if row["Opponent"].strip().lower().startswith("vs")
             else "Unknown"), axis=1)
 
-        # Set Home and Away strictly based on prefix
         df["Home"] = df["Opponent"].apply(
             lambda val: val.strip()[1:].strip() if val.strip().startswith("@")
             else "Crandall" if val.strip().lower().startswith("vs")
@@ -70,11 +90,14 @@ def process_match_data_file(file_path, file_name):
         df["Season"] = season
         df["source_file"] = file_name
 
-        # Adjust Result column
         if "Result" in df.columns:
             df["Result"] = df.apply(adjust_result_for_team, axis=1)
 
-        # Remove Opponent and Is_Opponent_File columns before reordering
+        set_columns = [col for col in df.columns if col.lower().startswith("score") or re.match(r"set\s*\d", col.lower())]
+        for col in set_columns:
+            df[col] = df[col].apply(normalize_set_score)
+            df[col] = df.apply(lambda row: row[col] if row["Team"] == "Crandall" else flip_set_score(row[col]), axis=1)
+
         df.drop(columns=["Opponent"], inplace=True, errors="ignore")
 
         start_cols = ["Season", "Date", "Home", "Away", "Team"]
