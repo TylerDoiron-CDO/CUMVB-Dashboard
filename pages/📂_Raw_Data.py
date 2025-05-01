@@ -86,13 +86,9 @@ else:
     latest_date_str = latest_date.date() if pd.notnull(latest_date) else "Unknown"
 
     # Title with latest date only
-    st.title(f"📘 Match Data — Latest Match: {latest_date_str}")
+    st.title(f"📘 Match Data}")
 
     # Summary section (inline single line)
-    summary_line = " | ".join([f"{row['Season']}: {row['Records']} records" for _, row in season_summary.iterrows()])
-    st.markdown(f"### 📊 Summary by Season — {summary_line}")
-
-    # Explanation
     st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons. Summary counts reflect only matches played by Crandall.")
 
     # Filters
