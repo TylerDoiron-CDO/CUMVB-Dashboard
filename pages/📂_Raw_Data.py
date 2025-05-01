@@ -83,6 +83,12 @@ with st.spinner("🔄 Loading Overall Data..."):
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
 else:
+    st.markdown("### 🔍 Overall Record Summary")
+    st.write("Total records loaded:", overall_df.shape[0])
+    st.write("Historical records:", (overall_df["source_file"] == "historical data").sum())
+    st.write("Recent records:", overall_df[overall_df["source_file"] != "historical data"].shape[0])
+    st.write("Unique seasons:", sorted(overall_df["Season"].dropna().unique()))
+
     with st.expander("🔎 Filter Overall Data"):
         col1, col2, col3, col4, col5 = st.columns(5)
         seasons = sorted(overall_df["Season"].dropna().unique())
