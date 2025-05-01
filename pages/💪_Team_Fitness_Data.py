@@ -94,37 +94,53 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 with tab1:
     st.markdown("### 📈 Track Athlete Progress Over Time")
 
-    # Define metrics for tracking (clean names already applied)
-    tracking_metrics = [
-        'Height', 'Weight', 'Block Touch', 'Approach Touch',
-        'Broad Jump', 'Block Vertical', 'Approach Vertical',
-        'Reps @ E[X] Bench', 'Agility Test', '10 Down and Backs', 'Yo-Yo Test'
-    ]
+    # Mapping original column names to clean display labels
+    metric_map = {
+        'Height (in.)': 'Height',
+        'Weight (lbs)': 'Weight',
+        'Block Touch (in.)': 'Block Touch',
+        'Approach Touch (in.)': 'Approach Touch',
+        'Broad Jump (in.)': 'Broad Jump',
+        'Block Vertical (in.)': 'Block Vertical',
+        'Approach Vertical (in.)': 'Approach Vertical',
+        'Reps at E[X] Bench': 'Reps @ E[X] Bench',
+        'Agility Test (s)': 'Agility Test',
+        '10 Down and Backs (s)': '10 Down and Backs',
+        'Yo-Yo Cardio Test': 'Yo-Yo Test'
+    }
 
-    col1, col2, col3 = st.columns([3, 3, 3])
+    inverse_map = {v: k for k, v in metric_map.items()}
+    available_metrics = list(inverse_map.keys())
 
-    selected_metric = col1.selectbox("Metric", tracking_metrics, key="line_metric_custom")
-    selected_athletes = col2.multiselect("Athlete", sorted(line_df["Athlete"].dropna().unique()), key="line_athlete_custom")
-    selected_positions = col3.multiselect("Position", sorted(line_df["Primary Position"].dropna().unique()), key="line_position_custom")
+    # Filters
+    col1, col2, col3 = st.columns(3)
+    selected_metric = col1.selectbox("Metric", available_metrics)
+    selected_athletes = col2.multiselect("Athlete", sorted(df["Athlete"].dropna().unique()))
+    selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()))
 
-    # Filter dataset
-    filtered = line_df.dropna(subset=["Testing Date", selected_metric]).copy()
+    # Prepare filtered data
+    filtered_df = df.copy()
+    filtered_df["Testing Date"] = pd.to_datetime(filtered_df["Testing Date"], errors="coerce")
+
     if selected_athletes:
-        filtered = filtered[filtered["Athlete"].isin(selected_athletes)]
+        filtered_df = filtered_df[filtered_df["Athlete"].isin(selected_athletes)]
     if selected_positions:
-        filtered = filtered[filtered["Primary Position"].isin(selected_positions)]
+        filtered_df = filtered_df[filtered_df["Primary Position"].isin(selected_positions)]
 
-    filtered["Testing Date"] = pd.to_datetime(filtered["Testing Date"], errors="coerce")
+    raw_metric = inverse_map[selected_metric]
+    filtered_df = filtered_df.dropna(subset=["Testing Date", raw_metric])
 
-    if not filtered.empty:
+    # Plot
+    if not filtered_df.empty:
+        import plotly.express as px
         fig = px.line(
-            filtered,
+            filtered_df,
             x="Testing Date",
-            y=selected_metric,
+            y=raw_metric,
             color="Athlete",
             markers=True,
             line_shape="spline",
-            title=f"{selected_metric} Over Time by Athlete"
+            title=f"{selected_metric} Over Time"
         )
         fig.update_layout(height=500, legend_title_text="Athlete")
         st.plotly_chart(fig, use_container_width=True)
