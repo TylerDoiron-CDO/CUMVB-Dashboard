@@ -3,3 +3,6 @@ pandas
 Pillow
 plotly>=5.0
 openai>=1.0.0
+seaborn
+matplotlib
+numpy
