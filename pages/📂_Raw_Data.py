@@ -17,6 +17,8 @@ This page provides access to the full underlying match, rotation, overall, athle
 Use this space for filtering, exploration, and validating raw data powering all dashboards.
 """)
 
+st.markdown("---")
+
 # --- Navigation anchor logic ---
 section = st.query_params.get("section", None)
 if isinstance(section, list):
