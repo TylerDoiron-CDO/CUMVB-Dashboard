@@ -59,13 +59,17 @@ with nav5:
 
 st.markdown("---")
 
+# -------------------------------
+# Section 1: Match Data
+# -------------------------------
+st.header("📘 Match Data")
+
 force_refresh_match = st.session_state.get("reset_cache_match", False)
 
 with st.spinner("🔄 Loading Match Data..."):
     match_df = Match_Data_Load.load_preprocessed_match_data(force_rebuild=force_refresh_match)
 
 if match_df.empty:
-    st.title("📘 Match Data — No Records Found")
     st.warning("⚠️ No match data found or processed.")
 else:
     # Normalize team names
@@ -73,18 +77,8 @@ else:
     match_df["Away"] = match_df["Away"].replace({"CU": "Crandall", "Holland College": "Holland"})
     match_df["Team"] = match_df["Team"].replace({"CU": "Crandall", "Holland College": "Holland"})
 
-    # Filter for Crandall team only for summary
-    crandall_matches = match_df[match_df["Team"] == "Crandall"]
-    season_summary = crandall_matches.groupby("Season").size().reset_index(name="Records")
-
-    latest_date = pd.to_datetime(match_df["Date"], errors='coerce').dropna().max()
-    latest_date_str = latest_date.date() if pd.notnull(latest_date) else "Unknown"
-
-    # Title with latest date only
-    st.title(f"📘 Match Data}")
-
-    # Summary section (inline single line)
-    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons. Summary counts reflect only matches played by Crandall.")
+    # Caption summary
+    st.caption("This dataset includes all point-by-point match data for every set played in the tracked seasons.")
 
     # Filters
     col1, col2, col3, col4 = st.columns(4)
