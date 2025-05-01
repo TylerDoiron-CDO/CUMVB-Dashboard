@@ -47,7 +47,7 @@ nav1, nav2, nav3, nav4, nav5 = st.columns(5)
 with nav1:
     st.markdown(f"""
     <div style='text-align: center'>
-        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📘 Match Data</button><br>
+        <a href='#match'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📘 Match Data</button></a><br>
         <strong>{match_total} records</strong><br>
         <small>Latest: {match_latest}</small>
     </div>""", unsafe_allow_html=True)
@@ -55,7 +55,7 @@ with nav1:
 with nav2:
     st.markdown(f"""
     <div style='text-align: center'>
-        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Overall Data</button><br>
+        <a href='#overall'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Overall Data</button></a><br>
         <strong>{overall_total} records</strong><br>
         <small>Latest: {overall_latest}</small>
     </div>""", unsafe_allow_html=True)
@@ -63,7 +63,7 @@ with nav2:
 with nav3:
     st.markdown(f"""
     <div style='text-align: center'>
-        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🔄 Rotation Data</button><br>
+        <a href='#rotation'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🔄 Rotation Data</button></a><br>
         <strong>{rotation_total} records</strong><br>
         <small>Latest: {rotation_latest}</small>
     </div>""", unsafe_allow_html=True)
@@ -71,7 +71,7 @@ with nav3:
 with nav4:
     st.markdown(f"""
     <div style='text-align: center'>
-        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🏐 Athlete Data</button><br>
+        <a href='#athlete'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>🏐 Athlete Data</button></a><br>
         <strong>{athlete_total} records</strong><br>
         <small>Latest: {athlete_latest}</small>
     </div>""", unsafe_allow_html=True)
@@ -79,10 +79,11 @@ with nav4:
 with nav5:
     st.markdown(f"""
     <div style='text-align: center'>
-        <button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Setter Dist. Data</button><br>
+        <a href='#setter'><button style='padding: 0.5em 1em; font-size: 16px; border-radius: 8px;'>📊 Setter Dist. Data</button></a><br>
         <strong>Dynamic load</strong><br>
         <small>Via CSV</small>
     </div>""", unsafe_allow_html=True)
+
 
 st.markdown("---")
 
