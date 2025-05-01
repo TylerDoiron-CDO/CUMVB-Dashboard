@@ -79,9 +79,6 @@ st.header("📊 Overall Data")
 force_refresh_overall = st.session_state.get("reset_cache_overall", False)
 with st.spinner("🔄 Loading Overall Data..."):
     overall_df = Overall_Data_Load.load_preprocessed_overall_data(force_rebuild=force_refresh_overall)
-    st.info(f"🔍 Total Overall Records: {overall_df.shape[0]}")
-    st.info(f"📄 Historical Records Detected: {(overall_df['source_file'] == 'historical data').sum()}")
-    st.info(f"🧾 Unique Seasons: {overall_df['Season'].unique()}")
 
 if overall_df.empty:
     st.warning("⚠️ No overall data found or processed.")
