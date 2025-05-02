@@ -379,8 +379,6 @@ with tabs[5]:
 
         st.warning("⚠️ If no line appears, it likely means:\n- Too few athletes tested on the same date\n- Or selected metric has no variation (e.g. all values are the same)")
 
-    st.caption("Track how each athlete performs relative to the team average on each test date.")
-
     # Metric selection
     z_metric = st.selectbox("Select Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
     z_metric_raw = inverse_map[z_metric]
