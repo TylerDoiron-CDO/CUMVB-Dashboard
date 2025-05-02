@@ -1,6 +1,3 @@
-
-# Cleaned and structured version of the Team Fitness Data Streamlit page
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -240,17 +237,6 @@ with tabs[3]:
 
     # Compute progress per athlete
 
-# Cleaned and structured version of the Team Fitness Data Streamlit page
-
-import streamlit as st
-import pandas as pd
-import numpy as np
-import os
-import plotly.express as px
-import plotly.graph_objects as go
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 # Page setup
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 st.title("💪 Team Fitness Data")
@@ -479,20 +465,27 @@ with tabs[3]:
     delta_df = delta_df.dropna(subset=["Testing Date", delta_metric])
     delta_df.sort_values(by=["Athlete", "Testing Date"], inplace=True)
 
-    # Compute progress per athlete
+    # Compute athlete-specific delta
     results = []
     for athlete, group in delta_df.groupby("Athlete"):
         if group.shape[0] >= 2:
             group_sorted = group.sort_values("Testing Date")
-            first_test = group_sorted.iloc[0][delta_metric]
-            second_last_test = group_sorted.iloc[-2][delta_metric] if group.shape[0] >= 2 else None
-            most_recent_test = group_sorted.iloc[-1][delta_metric]
+            first_test_date = group_sorted.iloc[0]["Testing Date"]
+            first_val = group_sorted.iloc[0][delta_metric]
 
-            # Ensure all values are valid and recent isn't zero
+            most_recent_test_date = group_sorted.iloc[-1]["Testing Date"]
+            most_recent_val = group_sorted.iloc[-1][delta_metric]
+
+            second_last_test_date = None
+            second_last_val = None
+            if group.shape[0] >= 3:
+                second_last_test_date = group_sorted.iloc[-2]["Testing Date"]
+                second_last_val = group_sorted.iloc[-2][delta_metric]
+
             try:
-                recent = float(most_recent_test)
-                first = float(first_test)
-                second = float(second_last_test) if second_last_test is not None else None
+                recent = float(most_recent_val)
+                first = float(first_val)
+                second = float(second_last_val) if second_last_val is not None else None
 
                 if recent != 0:
                     change_from_first = 100 * (recent - first) / recent
@@ -501,13 +494,15 @@ with tabs[3]:
                     results.append({
                         "Athlete": athlete,
                         "Change from First": round(change_from_first, 2),
-                        "Change from Second Last": round(change_from_second, 2) if change_from_second is not None else None
+                        "Change from Second Last": round(change_from_second, 2) if change_from_second is not None else None,
+                        "First Test Date": first_test_date.strftime("%Y-%m-%d"),
+                        "Second Last Test Date": second_last_test_date.strftime("%Y-%m-%d") if second_last_test_date else None,
+                        "Most Recent Test Date": most_recent_test_date.strftime("%Y-%m-%d")
                     })
             except (TypeError, ValueError):
                 continue
 
-    # Create DataFrame
-    delta_summary = pd.DataFrame(results).set_index("Athlete")
+    delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
         col1, col2 = st.columns(2)
@@ -515,8 +510,9 @@ with tabs[3]:
         with col1:
             st.markdown("#### 📈 From First ➜ Most Recent")
             fig1 = px.bar(
-                delta_summary, x=delta_summary.index, y="Change from First", color="Change from First",
-                title=f"{delta_metric_clean}: First ➜ Most Recent", labels={"x": "Athlete"}
+                delta_summary, x="Athlete", y="Change from First", color="Change from First",
+                hover_data=["First Test Date", "Most Recent Test Date"],
+                title=f"{delta_metric_clean}: First ➜ Most Recent"
             )
             st.plotly_chart(fig1, use_container_width=True)
 
@@ -525,8 +521,9 @@ with tabs[3]:
             filtered = delta_summary.dropna(subset=["Change from Second Last"])
             if not filtered.empty:
                 fig2 = px.bar(
-                    filtered, x=filtered.index, y="Change from Second Last", color="Change from Second Last",
-                    title=f"{delta_metric_clean}: 2nd ➜ Most Recent", labels={"x": "Athlete"}
+                    filtered, x="Athlete", y="Change from Second Last", color="Change from Second Last",
+                    hover_data=["Second Last Test Date", "Most Recent Test Date"],
+                    title=f"{delta_metric_clean}: 2nd ➜ Most Recent"
                 )
                 st.plotly_chart(fig2, use_container_width=True)
             else:
