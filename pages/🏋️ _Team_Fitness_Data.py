@@ -138,48 +138,77 @@ with tabs[1]:
     else:
         st.info("No data available for the selected filters.")
 
-# Tab 3: Radar Chart
+# Tab 3: Dual Radar Charts
 with tabs[2]:
-    st.markdown("### 🕸 Radar Chart – Athlete Profile Over Time")
-    
-    radar_athlete = st.selectbox("Athlete", athlete_list, key="radar_ath")
+    st.markdown("### 🕸 Radar Charts – Touch vs. Performance Profiles")
+
+    radar_athlete = st.selectbox("Select Athlete", athlete_list, key="dual_radar_athlete")
     radar_df = df[df["Athlete"] == radar_athlete].copy()
     radar_df["Testing Date"] = pd.to_datetime(radar_df["Testing Date"], errors="coerce")
-
-    metric_labels = list(metric_map.values())
-    metric_keys = list(metric_map.keys())
 
     if radar_df.empty:
         st.warning("⚠️ No records available for this athlete.")
     else:
-        fig = go.Figure()
+        # Group 1: Touches & Physical Attributes
+        group1_keys = ['Height (in.)', 'Weight (lbs)', 'Block Touch (in.)', 'Approach Touch (in.)', 'Broad Jump (in.)']
+        group1_labels = ['Height', 'Weight', 'Block Touch', 'Approach Touch', 'Broad Jump']
 
-        for _, row in radar_df.iterrows():
-            raw_values = row[metric_keys]
-            if raw_values.isnull().all():
-                continue  # skip rows with no radar metrics at all
+        # Group 2: Performance & Capacity
+        group2_keys = ['Block Vertical (in.)', 'Approach Vertical (in.)', 'Reps at E[X] Bench',
+                       'Agility Test (s)', '10 Down and Backs (s)', 'Yo-Yo Cardio Test']
+        group2_labels = ['Block Vertical', 'Approach Vertical', 'Reps @ Bench',
+                         'Agility Test', '10 Down/Backs', 'Yo-Yo Test']
 
-            # Fill missing values with NaN to keep radar shape intact
-            raw_values.index = metric_labels
-            radar_data = raw_values.reindex(metric_labels)
+        # Layout
+        col1, col2 = st.columns(2)
 
-            fig.add_trace(go.Scatterpolar(
-                r=radar_data.values,
-                theta=radar_data.index,
-                fill='toself',
-                name=row["Testing Date"].strftime("%Y-%m-%d")
-            ))
+        with col1:
+            st.markdown("#### 📊 Physical Attributes + Touches")
+            fig1 = go.Figure()
 
-        if fig.data:
-            fig.update_layout(
-                polar=dict(radialaxis=dict(visible=True)),
-                height=600,
-                showlegend=True,
-                title=f"{radar_athlete} – Radar Chart Across Testing Dates"
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("⚠️ No metrics found for this athlete across any test date.")
+            for _, row in radar_df.iterrows():
+                values = row[group1_keys]
+                if values.isnull().all():
+                    continue
+                values.index = group1_labels
+                plot_data = values.reindex(group1_labels)
+
+                fig1.add_trace(go.Scatterpolar(
+                    r=plot_data.values,
+                    theta=plot_data.index,
+                    fill='toself',
+                    name=row["Testing Date"].strftime("%Y-%m-%d")
+                ))
+
+            if fig1.data:
+                fig1.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
+                st.plotly_chart(fig1, use_container_width=True)
+            else:
+                st.info("No data available for chart 1.")
+
+        with col2:
+            st.markdown("#### 🧪 Performance Metrics")
+            fig2 = go.Figure()
+
+            for _, row in radar_df.iterrows():
+                values = row[group2_keys]
+                if values.isnull().all():
+                    continue
+                values.index = group2_labels
+                plot_data = values.reindex(group2_labels)
+
+                fig2.add_trace(go.Scatterpolar(
+                    r=plot_data.values,
+                    theta=plot_data.index,
+                    fill='toself',
+                    name=row["Testing Date"].strftime("%Y-%m-%d")
+                ))
+
+            if fig2.data:
+                fig2.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
+                st.plotly_chart(fig2, use_container_width=True)
+            else:
+                st.info("No data available for chart 2.")
 
 # Tab 4: Progress Delta
 with tabs[3]:
