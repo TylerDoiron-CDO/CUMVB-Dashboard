@@ -75,6 +75,8 @@ tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 D
 # Tab 1: Line Plot
 with tabs[0]:
     st.markdown("### 📈 Track Athlete Progress")
+
+    # Metric label mapping
     metric_map = {
         'Height (in.)': 'Height', 'Weight (lbs)': 'Weight',
         'Block Touch (in.)': 'Block Touch', 'Approach Touch (in.)': 'Approach Touch',
@@ -86,10 +88,11 @@ with tabs[0]:
     inverse_map = {v: k for k, v in metric_map.items()}
     tracked_metrics = list(inverse_map.keys())
 
+    # Filters with unique keys
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("Metric", tracked_metrics)
-    selected_athletes = col2.multiselect("Athletes", athlete_list)
-    selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()))
+    selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric_unique")
+    selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes_unique")
+    selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="lineplot_position_unique")
 
     chart_df = df.copy()
     if selected_athletes:
@@ -100,6 +103,7 @@ with tabs[0]:
     if not chart_df.empty:
         raw_metric = inverse_map[selected_metric]
         fig = px.line(chart_df, x="Testing Date", y=raw_metric, color="Athlete", markers=True, line_shape="spline")
+        fig.update_layout(height=500, title=f"{selected_metric} Over Time")
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No data available for this combination.")
