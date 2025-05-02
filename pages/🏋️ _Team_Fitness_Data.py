@@ -1,20 +1,17 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os
 import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Page setup
+# ✅ This must come FIRST before any st.markdown, st.columns, etc.
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
-st.title("💪 Team Fitness Data")
-st.markdown("""
-Explore physical performance metrics and longitudinal testing for all athletes.
 
-Use the filters below to refine the dataset and navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
-""")
+# Now you can continue with:
+st.title("💪 Team Fitness Data")
+st.markdown("Explore raw testing results and visualizations for each athlete...")
 
 # Load and prepare data
 @st.cache_data
