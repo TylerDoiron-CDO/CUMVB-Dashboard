@@ -168,6 +168,7 @@ with tabs[2]:
         st.plotly_chart(fig2, use_container_width=True)
 
 # 🔁 Tab 4: Progress Delta
+# 🔁 Tab 4: Progress Delta
 with tabs[3]:
     st.markdown("### 🔁 Athlete-Specific Change Over Time")
 
@@ -216,10 +217,10 @@ with tabs[3]:
 
                 results.append({
                     "Athlete": athlete,
-                    "Δ from First": round(diff_first, 2),
-                    "% from First": round(pct_first, 2) if pct_first is not None else None,
-                    "Δ from Second Last": round(diff_second, 2) if diff_second is not None else None,
-                    "% from Second Last": round(pct_second, 2) if pct_second is not None else None,
+                    "Change from 1st Testing Date": round(diff_first, 2),
+                    "% Change from 1st Testing Date": round(pct_first, 2) if pct_first is not None else None,
+                    "Change from 2nd Most Recent Testing Date": round(diff_second, 2) if diff_second is not None else None,
+                    "% Change from 2nd Most Recent Testing Date": round(pct_second, 2) if pct_second is not None else None,
                     "First Test Date": first_date.strftime("%Y-%m-%d"),
                     "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
                     "Most Recent Test Date": last_date.strftime("%Y-%m-%d")
@@ -230,8 +231,9 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        y1 = "% from First" if display_mode == "% Change" else "Δ from First"
-        y2 = "% from Second Last" if display_mode == "% Change" else "Δ from Second Last"
+        # Label mapping
+        y1 = "% Change from 1st Testing Date" if display_mode == "% Change" else "Change from 1st Testing Date"
+        y2 = "% Change from 2nd Most Recent Testing Date" if display_mode == "% Change" else "Change from 2nd Most Recent Testing Date"
 
         delta_summary_sorted1 = delta_summary.sort_values(by=y1, ascending=False)
         delta_summary_sorted2 = delta_summary.sort_values(by=y2, ascending=False)
@@ -239,7 +241,7 @@ with tabs[3]:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown(f"#### 📈 First ➜ Most Recent ({display_mode})")
+            st.markdown(f"#### 📈 {y1}")
             fig1 = px.bar(
                 delta_summary_sorted1, x="Athlete", y=y1, color=y1,
                 hover_data=["First Test Date", "Most Recent Test Date"]
@@ -247,7 +249,7 @@ with tabs[3]:
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            st.markdown(f"#### 📈 Second Last ➜ Most Recent ({display_mode})")
+            st.markdown(f"#### 📈 {y2}")
             filtered = delta_summary_sorted2.dropna(subset=[y2])
             if not filtered.empty:
                 fig2 = px.bar(
