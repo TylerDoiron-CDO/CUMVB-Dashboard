@@ -230,32 +230,36 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        # Internal logic mapped to display
+        # Display mode mapping
         y1_col = "Δ_val_1st" if display_mode == "Δ in value" else "Δ_pct_1st"
         y2_col = "Δ_val_2nd" if display_mode == "Δ in value" else "Δ_pct_2nd"
-        y_axis_title = display_mode  # Use label directly for Y axis
+        y_axis_title = display_mode
 
         delta_summary_sorted1 = delta_summary.sort_values(by=y1_col, ascending=False)
         delta_summary_sorted2 = delta_summary.sort_values(by=y2_col, ascending=False)
 
         col1, col2 = st.columns(2)
 
+        # --- Chart 1: Change from First Test ---
         with col1:
             st.markdown("#### 📈 Change Since 1st Testing Date")
             fig1 = px.bar(
                 delta_summary_sorted1,
                 x="Athlete", y=y1_col, color=y1_col,
                 text=y1_col,
-                hover_data=["First Test Date", "Most Recent Test Date"]
+                hover_data=["First Test Date", "Most Recent Test Date"],
+                labels={y1_col: y_axis_title}
             )
             fig1.update_layout(
                 title="Change Since 1st Testing Date",
                 yaxis_title=y_axis_title,
-                xaxis_title="Athlete"
+                xaxis_title="Athlete",
+                legend_title_text=y_axis_title
             )
             fig1.update_traces(texttemplate='%{text}', textposition='outside')
             st.plotly_chart(fig1, use_container_width=True)
 
+        # --- Chart 2: Change from 2nd Most Recent Test ---
         with col2:
             st.markdown("#### 📈 Change Since Most Recent Testing Date")
             filtered = delta_summary_sorted2.dropna(subset=[y2_col])
@@ -264,12 +268,14 @@ with tabs[3]:
                     filtered,
                     x="Athlete", y=y2_col, color=y2_col,
                     text=y2_col,
-                    hover_data=["Second Last Test Date", "Most Recent Test Date"]
+                    hover_data=["Second Last Test Date", "Most Recent Test Date"],
+                    labels={y2_col: y_axis_title}
                 )
                 fig2.update_layout(
                     title="Change Since Most Recent Testing Date",
                     yaxis_title=y_axis_title,
-                    xaxis_title="Athlete"
+                    xaxis_title="Athlete",
+                    legend_title_text=y_axis_title
                 )
                 fig2.update_traces(texttemplate='%{text}', textposition='outside')
                 st.plotly_chart(fig2, use_container_width=True)
