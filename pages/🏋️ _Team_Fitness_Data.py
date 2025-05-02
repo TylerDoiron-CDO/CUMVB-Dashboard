@@ -111,14 +111,37 @@ with tabs[0]:
 # Tab 2: Box + Violin Plot
 with tabs[1]:
     st.markdown("### 📦 Distribution by Testing Date")
-    col1, col2 = st.columns(2)
-    selected = col1.selectbox("Metric", metric_cols)
-    mode = col2.radio("Chart Type", ["Box", "Violin"], horizontal=True)
-    ddf = df.dropna(subset=["Testing Date", selected])
-    ddf["Testing Date"] = ddf["Testing Date"].dt.strftime("%Y-%m-%d")
 
-    fig = px.box(ddf, x="Testing Date", y=selected, points="all") if mode == "Box" else px.violin(ddf, x="Testing Date", y=selected, box=True, points="all")
-    st.plotly_chart(fig, use_container_width=True)
+    # Use same mapping as in line plot for a consistent experience
+    col1, col2, col3 = st.columns(3)
+    selected_box_metric = col1.selectbox("Metric", tracked_metrics, key="box_metric")
+    selected_box_athletes = col2.multiselect("Athletes", athlete_list, key="box_athletes")
+    selected_box_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="box_positions")
+
+    # Apply filters
+    filtered_box_df = df.copy()
+    if selected_box_athletes:
+        filtered_box_df = filtered_box_df[filtered_box_df["Athlete"].isin(selected_box_athletes)]
+    if selected_box_positions:
+        filtered_box_df = filtered_box_df[filtered_box_df["Primary Position"].isin(selected_box_positions)]
+
+    # Drop NA for metric
+    raw_metric = inverse_map[selected_box_metric]
+    filtered_box_df = filtered_box_df.dropna(subset=["Testing Date", raw_metric])
+    filtered_box_df["Testing Date"] = pd.to_datetime(filtered_box_df["Testing Date"]).dt.strftime("%Y-%m-%d")
+
+    # Chart mode toggle
+    chart_mode = st.radio("Chart Type", ["Box", "Violin"], horizontal=True, key="box_violin_mode")
+
+    # Plot
+    if not filtered_box_df.empty:
+        if chart_mode == "Box":
+            fig = px.box(filtered_box_df, x="Testing Date", y=raw_metric, points="all", title=f"{selected_box_metric} Distribution")
+        else:
+            fig = px.violin(filtered_box_df, x="Testing Date", y=raw_metric, box=True, points="all", title=f"{selected_box_metric} Distribution")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No data available for the selected filters.")
 
 # Tab 3: Radar Chart
 with tabs[2]:
