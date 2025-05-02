@@ -38,6 +38,7 @@ if not df.empty:
     f_position = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()))
     f_date = col3.multiselect("Testing Date", sorted(df["Testing Date"].dropna().unique()))
 
+
     filtered_df = df.copy()
     if f_athlete:
         filtered_df = filtered_df[filtered_df["Athlete"].isin(f_athlete)]
@@ -87,8 +88,9 @@ with tabs[0]:
     st.markdown("### 📈 Track Athlete Progress")
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
-    selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
+    selected_athletes = col2.multiselect("Athletes", sorted(athlete_list), key="lineplot_athletes")
     selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="lineplot_positions")
+
 
     chart_df = df.copy()
     if selected_athletes:
@@ -247,7 +249,7 @@ with tabs[4]:
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
     z_metric = st.selectbox("Metric", metric_cols, key="zscore_metric")
-    z_athletes = st.multiselect("Athletes", athlete_list, default=athlete_list[:3], key="zscore_ath")
+    z_athletes = st.multiselect("Athletes", sorted(athlete_list), default=sorted(athlete_list)[:3], key="zscore_ath")
     z_df = df[df["Athlete"].isin(z_athletes)][["Athlete", "Testing Date", z_metric]].dropna()
     z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric].transform(lambda x: (x - x.mean()) / x.std(ddof=0))
 
