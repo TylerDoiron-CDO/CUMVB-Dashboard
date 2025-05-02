@@ -244,22 +244,19 @@ with tabs[3]:
     for athlete, group in delta_df.groupby("Athlete"):
         group_sorted = group.sort_values("Testing Date")
         if group_sorted.shape[0] >= 2:
-            latest = group_sorted.iloc[-1]
-            second_last = group_sorted.iloc[-2]
-            first = group_sorted.iloc[0]
-
-            latest_val = latest[delta_metric]
-            first_val = first[delta_metric]
-            second_val = second_last[delta_metric]
-
-            if latest_val != 0:
-                from_first = 100 * (latest_val - first_val) / latest_val
-                from_second = 100 * (latest_val - second_val) / latest_val
+            latest_val = pd.to_numeric(group_sorted.iloc[-1][delta_metric], errors="coerce")
+            second_val = pd.to_numeric(group_sorted.iloc[-2][delta_metric], errors="coerce")
+            first_val = pd.to_numeric(group_sorted.iloc[0][delta_metric], errors="coerce")
+    
+            if pd.notnull(latest_val) and latest_val != 0:
+                from_first = 100 * (latest_val - first_val) / latest_val if pd.notnull(first_val) else None
+                from_second = 100 * (latest_val - second_val) / latest_val if pd.notnull(second_val) else None
                 results.append({
                     "Athlete": athlete,
                     "Change from First": from_first,
                     "Change from Second Last": from_second
                 })
+    
 
     # Create DataFrame
     delta_summary = pd.DataFrame(results).set_index("Athlete")
