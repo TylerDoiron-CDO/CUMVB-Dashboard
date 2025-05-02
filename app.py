@@ -9,7 +9,7 @@ st.set_page_config(page_title="🏐 Volleyball Team Analytics", layout="wide")
 # Header
 st.title("🏐 Crandall Chargers Volleyball Analytics Platform")
 st.markdown("""
-Welcome to the **official analytics platform for the Crandall Chargers Men's Volleyball program (2024–25 season)**.  
+Welcome to the **official analytics platform for the Crandall Chargers Men's Volleyball program (2025–26 season)**.  
 This tool is designed to empower coaches, athletes, and staff with actionable insights across all aspects of performance.
 
 ---
