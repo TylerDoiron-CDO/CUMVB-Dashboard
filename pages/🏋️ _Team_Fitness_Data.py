@@ -348,43 +348,32 @@ with tabs[4]:
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
 
+    # Expandable instruction panel
     with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
         st.markdown("""
-<div style="border-left: 5px solid #4C8BF5; padding: 1rem; background-color: #F5F9FF; font-size: 0.95rem;">
+        **What is a Z-Score?**
 
-<h5>📏 What is a Z-Score?</h5>
-<p>A Z-score represents how far an athlete's test result is from the <strong>group average</strong> on a specific testing date — in units of standard deviation.</p>
+        A Z-score represents how far an athlete's score for a given test is from the group average on that **specific testing date** — in units of standard deviation.
 
-<h5>🧠 Why Use It?</h5>
-<ul>
-  <li>📊 Standardizes all metrics regardless of unit (inches, kg, seconds)</li>
-  <li>🔄 Enables comparison across testing dates and metrics</li>
-  <li>🧭 Identifies standout or underperforming test scores quickly</li>
-</ul>
+        \n**Why use it?**
+        - 📊 Standardizes all metrics regardless of unit (e.g. inches, kg, seconds)
+        - 🧠 Makes performance comparison fair across different testing dates or groups
+        - 🧭 Helps identify standout or underperforming tests
 
-<h5>🎯 What to Select</h5>
-<ul>
-  <li>Choose a <strong>test metric</strong> (e.g. "Block Touch")</li>
-  <li>Select <strong>2–3 athletes</strong> to compare</li>
-  <li>The chart only includes testing dates where at least 2 scores are available</li>
-</ul>
+        \n**What to select:**
+        - Choose a **metric** (e.g. "Block Touch", "Agility Test")
+        - Select **2–3 athletes** to compare
+        - Optionally filter by **position group** to reduce noise
 
-<h5>📊 How to Interpret the Chart</h5>
-<ul>
-  <li><strong>Z = 0</strong> → exactly average for that date</li>
-  <li><strong>Z > 0</strong> → above average (e.g., Z = 2 means top performer)</li>
-  <li><strong>Z < 0</strong> → below average</li>
-  <li>Dotted line shows the baseline (Z = 0)</li>
-</ul>
+        \n**How to interpret the graph:**
+        - A Z-score of **0** = exactly average that day
+        - A Z-score of **+2** = 2 standard deviations above the mean (top performer)
+        - A Z-score of **-1** = 1 standard deviation below the mean (under average)
 
-⚠️ If the chart appears empty, it’s likely due to:
-<ul>
-  <li>Too few valid athlete scores on the same date</li>
-  <li>No variation in selected metric (e.g. all values are the same)</li>
-</ul>
-
-</div>
-""", unsafe_allow_html=True)
+        ⚠️ If no line appears, it likely means:
+        - Too few athletes tested on the same date
+        - Or selected metric has no variation (e.g. all values are the same)
+        """)
 
     st.caption("Track each athlete’s performance relative to the team on each testing date.")
 
@@ -392,28 +381,30 @@ with tabs[5]:
     z_metric = st.selectbox("Select Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
     z_metric_raw = inverse_map[z_metric]
 
-    # 3-athlete comparison
+    # 3-athlete comparison inputs
     col1, col2, col3 = st.columns(3)
     athlete_1 = col1.selectbox("Athlete 1", sorted(athlete_list), key="zscore_a1")
     athlete_2 = col2.selectbox("Athlete 2", sorted(athlete_list), key="zscore_a2")
     athlete_3 = col3.selectbox("Athlete 3", sorted(athlete_list), key="zscore_a3")
 
-    # Collect valid selections
+    # Create athlete list and clean
     selected_athletes = list({a for a in [athlete_1, athlete_2, athlete_3] if a})
 
-    # Filter and prepare
+    # Filter data
     z_df = df[df["Athlete"].isin(selected_athletes)][["Athlete", "Testing Date", z_metric_raw]].dropna()
     z_df["Testing Date"] = pd.to_datetime(z_df["Testing Date"], errors="coerce")
     z_df[z_metric_raw] = pd.to_numeric(z_df[z_metric_raw], errors="coerce")
 
+    # Filter to valid test dates (≥2 scores)
     valid_dates = z_df.groupby("Testing Date")[z_metric_raw].count()
     valid_dates = valid_dates[valid_dates >= 2].index
     z_df = z_df[z_df["Testing Date"].isin(valid_dates)]
 
+    # Warnings and chart logic
     if len(selected_athletes) < 2:
         st.warning("⚠️ Please select at least two different athletes.")
     elif z_df.empty:
-        st.warning("⚠️ No valid testing dates found with enough scores to calculate Z-scores.")
+        st.warning("⚠️ No valid testing dates found with enough data to calculate Z-scores.")
     else:
         z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric_raw].transform(
             lambda x: (x - x.mean()) / x.std(ddof=0)
