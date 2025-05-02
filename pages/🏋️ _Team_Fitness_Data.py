@@ -347,7 +347,34 @@ with tabs[4]:
 # ⚖️ Tab 6 – Z-Score Tracker with Athlete 1–3 Filters
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
-    st.caption("Track each athlete's performance relative to the group average on each test date.")
+
+    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+        st.markdown("""
+        **What is a Z-Score?**
+
+        A Z-score represents how far an athlete's score for a given test is from the group average on that **specific testing date** — in units of standard deviation.
+
+        **Why use it?**
+        - 📊 Standardizes all metrics regardless of unit (e.g., inches, kg, seconds)
+        - 🧠 Allows fair comparison across different test dates
+        - 🧭 Highlights standout or below-average performances
+
+        **What to select:**
+        - Choose a **metric** (e.g., "Block Touch", "Agility Test")
+        - Select **2–3 athletes** to compare
+        - Optional: filter by **position** to focus the comparison
+
+        **How to interpret the chart:**
+        - **0** = average score for that test date
+        - **Positive** = above average (higher = better)
+        - **Negative** = below average (lower = worse)
+
+        ⚠️ If nothing appears:
+        - The athletes may not have tested on the same date
+        - The metric may have no variation (everyone had the same score)
+        """)
+
+    st.caption("Track how each athlete performs relative to the group average on every test date.")
 
     # Metric dropdown
     z_metric = st.selectbox("Select Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
@@ -365,6 +392,7 @@ with tabs[5]:
     # Filter and prep data
     z_df = df[df["Athlete"].isin(selected_athletes)][["Athlete", "Testing Date", z_metric_raw]].dropna()
     z_df["Testing Date"] = pd.to_datetime(z_df["Testing Date"], errors="coerce")
+    z_df[z_metric_raw] = pd.to_numeric(z_df[z_metric_raw], errors="coerce")
 
     # Only use dates where ≥2 valid athlete scores exist
     valid_dates = z_df.groupby("Testing Date")[z_metric_raw].count()
@@ -374,14 +402,11 @@ with tabs[5]:
     if len(selected_athletes) < 2:
         st.warning("⚠️ Please select at least two different athletes.")
     elif z_df.empty:
-        st.warning("⚠️ No testing dates have enough data to calculate Z-scores for the selected athletes.")
+        st.warning("⚠️ No valid test dates found with enough data to calculate Z-scores.")
     else:
-        z_df[z_metric_raw] = pd.to_numeric(z_df[z_metric_raw], errors="coerce")
         z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric_raw].transform(
             lambda x: (x - x.mean()) / x.std(ddof=0)
         )
-
-
 
         fig = px.line(
             z_df,
@@ -395,35 +420,9 @@ with tabs[5]:
         fig.update_layout(
             yaxis_title="Z-Score (standardized)",
             xaxis_title="Testing Date",
-            shapes=[dict(type="line", y0=0, y1=0, xref="paper", x0=0, x1=1, line=dict(color="gray", dash="dash"))]
+            shapes=[
+                dict(type="line", y0=0, y1=0, xref="paper", x0=0, x1=1, line=dict(color="gray", dash="dash"))
+            ]
         )
         st.plotly_chart(fig, use_container_width=True)
-
-st.markdown("### ⚖️ Z-Score Normalization")
-
-with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
-    st.markdown("""
-    **What is a Z-Score?**
-
-    A Z-score represents how far an athlete's score for a given test is from the group average on that **specific testing date** — in units of standard deviation.
-
-    \n**Why use it?**
-    - 📊 Standardizes all metrics regardless of unit (e.g. inches, kg, seconds)
-    - 🧠 Makes performance comparison fair across different testing dates or groups
-    - 🧭 Helps identify standout or underperforming tests
-
-    \n**What to select:**
-    - Choose a **metric** (e.g. "Block Touch", "Agility Test")
-    - Select **2–3 athletes** to compare
-    - Optionally filter by **position group** to reduce noise
-
-    \n**How to interpret the graph:**
-    - A Z-score of **0** = exactly average that day
-    - A Z-score of **+2** = 2 standard deviations above the mean (top performer)
-    - A Z-score of **-1** = 1 standard deviation below the mean (under average)
-
-    ⚠️ If no line appears, it likely means:
-    - Too few athletes tested on the same date
-    - Or selected metric has no variation (e.g. all values are the same)
-    """)
 
