@@ -344,27 +344,50 @@ with tabs[4]:
         else:
             st.warning("⚠️ No valid data to generate grouped correlation matrices.")
 
-# ⚖️ Tab 6 – Z-Score Tracker
+# ⚖️ Tab 6 – Improved Z-Score Tracker
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
-    st.caption("Standardized comparison of individual athlete performance relative to others on each testing date.")
 
-    # Only allow selection from tracked metrics
-    z_metric = st.selectbox("Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
-    z_metric_raw = inverse_map[z_metric]  # map back to original column name
+    st.caption("Track how an athlete performs relative to others on each testing date using standard scores.")
 
-    z_athletes = st.multiselect("Athletes", sorted(athlete_list), default=sorted(athlete_list)[:3], key="zscore_ath")
+    # Step 1: Select metric (from tracked list)
+    z_metric = st.selectbox("Select Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
+    z_metric_raw = inverse_map[z_metric]
 
-    z_df = df[df["Athlete"].isin(z_athletes)][["Athlete", "Testing Date", z_metric_raw]].dropna()
+    # Step 2: Athlete filter
+    z_athletes = st.multiselect("Select Athletes", sorted(athlete_list), default=sorted(athlete_list)[:3], key="zscore_ath")
+
+    # Step 3: Optional: Position filter
+    available_positions = sorted(df["Primary Position"].dropna().unique())
+    z_positions = st.multiselect("Filter by Position", available_positions, key="zscore_pos")
+
+    # Step 4: Filter base dataframe
+    z_df = df.copy()
     z_df["Testing Date"] = pd.to_datetime(z_df["Testing Date"], errors="coerce")
 
+    if z_positions:
+        z_df = z_df[z_df["Primary Position"].isin(z_positions)]
+    if z_athletes:
+        z_df = z_df[z_df["Athlete"].isin(z_athletes)]
+
+    # Drop rows without that metric
+    z_df = z_df[["Athlete", "Testing Date", z_metric_raw]].dropna()
+
+    # Step 5: Validate
+    test_counts = z_df.groupby("Testing Date")[z_metric_raw].count()
+    valid_dates = test_counts[test_counts >= 2].index
+
+    z_df = z_df[z_df["Testing Date"].isin(valid_dates)]
+
     if z_df.empty:
-        st.warning("⚠️ Not enough data for selected athletes or metric.")
+        st.warning("⚠️ Not enough valid data to calculate Z-scores.\n\nTry selecting a different metric, position group, or more athletes.")
     else:
+        # Step 6: Calculate Z-scores
         z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric_raw].transform(
             lambda x: (x - x.mean()) / x.std(ddof=0)
         )
 
+        # Step 7: Plot
         fig = px.line(
             z_df,
             x="Testing Date",
@@ -374,5 +397,12 @@ with tabs[5]:
             title=f"⚖️ Z-Score Trend – {z_metric}",
             labels={"Z-Score": "Standard Score", "Testing Date": "Date"}
         )
-        fig.update_layout(yaxis_title="Z-Score (standardized)", xaxis_title="Testing Date")
+        fig.update_layout(
+            yaxis_title="Z-Score (standardized)",
+            xaxis_title="Testing Date",
+            shapes=[
+                # Reference line at Z = 0
+                dict(type="line", y0=0, y1=0, xref="paper", x0=0, x1=1, line=dict(color="gray", dash="dash"))
+            ]
+        )
         st.plotly_chart(fig, use_container_width=True)
