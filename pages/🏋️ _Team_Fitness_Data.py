@@ -167,20 +167,31 @@ with tabs[2]:
         fig2.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
         st.plotly_chart(fig2, use_container_width=True)
 
-#  Tab 4 -🔁 Progress Delta
+# 🔁 Tab 4: Progress Delta
 with tabs[3]:
     st.markdown("### 🔁 Athlete-Specific Change Over Time")
-    delta_metric_clean = st.selectbox("Metric", tracked_metrics, key="delta_metric")
+
+    # Inline filters
+    col1, col2, col3 = st.columns([4, 3, 3])
+    delta_metric_clean = col1.selectbox("Metric", tracked_metrics, key="delta_metric")
+    delta_position_filter = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="delta_positions")
+    display_mode = col3.radio("Display As", ["% Change", "Raw Change"], horizontal=True)
+
     delta_metric = inverse_map[delta_metric_clean]
 
-    delta_df = df[["Athlete", "Testing Date", delta_metric]].dropna()
+    delta_df = df[["Athlete", "Primary Position", "Testing Date", delta_metric]].dropna()
     delta_df["Testing Date"] = pd.to_datetime(delta_df["Testing Date"], errors="coerce")
+
+    if delta_position_filter:
+        delta_df = delta_df[delta_df["Primary Position"].isin(delta_position_filter)]
+
     delta_df.sort_values(by=["Athlete", "Testing Date"], inplace=True)
 
     results = []
     for athlete, group in delta_df.groupby("Athlete"):
         if group.shape[0] >= 2:
             group_sorted = group.sort_values("Testing Date")
+
             first_val = group_sorted.iloc[0][delta_metric]
             first_date = group_sorted.iloc[0]["Testing Date"]
             last_val = group_sorted.iloc[-1][delta_metric]
@@ -193,44 +204,54 @@ with tabs[3]:
                 second_last_val, second_last_date = None, None
 
             try:
-                last_val = float(last_val)
                 first_val = float(first_val)
+                last_val = float(last_val)
                 second_last_val = float(second_last_val) if second_last_val is not None else None
 
-                if last_val != 0:
-                    change_first = 100 * (last_val - first_val) / last_val
-                    change_second = 100 * (last_val - second_last_val) / last_val if second_last_val is not None else None
+                diff_first = last_val - first_val
+                diff_second = last_val - second_last_val if second_last_val is not None else None
 
-                    results.append({
-                        "Athlete": athlete,
-                        "Change from First": round(change_first, 2),
-                        "Change from Second Last": round(change_second, 2) if change_second is not None else None,
-                        "First Test Date": first_date.strftime("%Y-%m-%d"),
-                        "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
-                        "Most Recent Test Date": last_date.strftime("%Y-%m-%d")
-                    })
+                pct_first = 100 * diff_first / last_val if last_val != 0 else None
+                pct_second = 100 * diff_second / last_val if last_val != 0 and diff_second is not None else None
+
+                results.append({
+                    "Athlete": athlete,
+                    "Δ from First": round(diff_first, 2),
+                    "% from First": round(pct_first, 2) if pct_first is not None else None,
+                    "Δ from Second Last": round(diff_second, 2) if diff_second is not None else None,
+                    "% from Second Last": round(pct_second, 2) if pct_second is not None else None,
+                    "First Test Date": first_date.strftime("%Y-%m-%d"),
+                    "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
+                    "Most Recent Test Date": last_date.strftime("%Y-%m-%d")
+                })
             except Exception:
                 continue
 
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
+        y1 = "% from First" if display_mode == "% Change" else "Δ from First"
+        y2 = "% from Second Last" if display_mode == "% Change" else "Δ from Second Last"
+
+        delta_summary_sorted1 = delta_summary.sort_values(by=y1, ascending=False)
+        delta_summary_sorted2 = delta_summary.sort_values(by=y2, ascending=False)
+
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("#### 📈 From First ➜ Most Recent")
+            st.markdown(f"#### 📈 First ➜ Most Recent ({display_mode})")
             fig1 = px.bar(
-                delta_summary, x="Athlete", y="Change from First", color="Change from First",
+                delta_summary_sorted1, x="Athlete", y=y1, color=y1,
                 hover_data=["First Test Date", "Most Recent Test Date"]
             )
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            st.markdown("#### 📈 From Second Last ➜ Most Recent")
-            filtered = delta_summary.dropna(subset=["Change from Second Last"])
+            st.markdown(f"#### 📈 Second Last ➜ Most Recent ({display_mode})")
+            filtered = delta_summary_sorted2.dropna(subset=[y2])
             if not filtered.empty:
                 fig2 = px.bar(
-                    filtered, x="Athlete", y="Change from Second Last", color="Change from Second Last",
+                    filtered, x="Athlete", y=y2, color=y2,
                     hover_data=["Second Last Test Date", "Most Recent Test Date"]
                 )
                 st.plotly_chart(fig2, use_container_width=True)
