@@ -284,41 +284,66 @@ with tabs[3]:
     else:
         st.info("Not enough valid data to generate progression charts.")
 
-# 📉 Tab 5 – Correlation Heatmap
+# 📉 Tab 5 – Correlation Heatmap by Position Group
 with tabs[4]:
-    st.markdown("### 📉 Fitness Metric Correlations (≥75% Complete Data Only)")
+    st.markdown("### 📉 Position-Specific Fitness Metric Correlations")
 
-    # Use only tracked metrics (raw column names)
+    # Define group mapping
+    position_groups = {
+        "Outside Hitters": ["LS", "RS"],
+        "Middle Hitters": ["MB", "M", "MH"],
+        "Setters & Liberos": ["S", "LIB"]
+    }
+
+    # Use only tracked metrics and filter columns by ≥75% non-null data
     selected_cols = list(metric_map.keys())
     total_rows = len(df)
 
-    # Filter to columns with ≥75% non-null values
-    valid_cols = [
-        col for col in selected_cols
-        if df[col].notna().sum() / total_rows >= 0.75
-    ]
+    fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
 
-    if len(valid_cols) >= 2:
-        corr_df = df[valid_cols].dropna()
-        if not corr_df.empty:
-            corr = corr_df.corr()
+    plotted = False
+    for idx, (group_label, roles) in enumerate(position_groups.items()):
+        group_df = df[df["Primary Position"].isin(roles)].copy()
+        if group_df.empty:
+            axes[idx].axis("off")
+            axes[idx].set_title(f"{group_label}\n(No data)")
+            continue
 
-            fig, ax = plt.subplots(figsize=(12, 8))
-            sns.heatmap(
-                corr,
-                annot=True,
-                fmt=".2f",
-                cmap="coolwarm",
-                xticklabels=[metric_map.get(col, col) for col in corr.columns],
-                yticklabels=[metric_map.get(col, col) for col in corr.index],
-                ax=ax
-            )
-            ax.set_title("Correlation Between Fitness Metrics (Filtered)")
-            st.pyplot(fig)
-        else:
-            st.warning("⚠️ No complete rows found after filtering. Not enough data for correlation.")
+        # Keep metrics with ≥75% non-null in this group
+        valid_cols = [
+            col for col in selected_cols
+            if group_df[col].notna().sum() / len(group_df) >= 0.75
+        ]
+
+        if len(valid_cols) < 2:
+            axes[idx].axis("off")
+            axes[idx].set_title(f"{group_label}\n(Not enough valid metrics)")
+            continue
+
+        corr_df = group_df[valid_cols].dropna()
+        if corr_df.empty:
+            axes[idx].axis("off")
+            axes[idx].set_title(f"{group_label}\n(Too many missing rows)")
+            continue
+
+        corr = corr_df.corr()
+
+        sns.heatmap(
+            corr,
+            annot=True,
+            fmt=".2f",
+            cmap="coolwarm",
+            ax=axes[idx],
+            xticklabels=[metric_map.get(c, c) for c in corr.columns],
+            yticklabels=[metric_map.get(c, c) for c in corr.index]
+        )
+        axes[idx].set_title(group_label)
+        plotted = True
+
+    if plotted:
+        st.pyplot(fig)
     else:
-        st.warning("⚠️ Not enough valid metrics with ≥75% data coverage.")
+        st.warning("⚠️ No valid data available to compute correlations by position.")
 
 # Tab 6 -⚖️ Z-Score Tracker
 with tabs[5]:
