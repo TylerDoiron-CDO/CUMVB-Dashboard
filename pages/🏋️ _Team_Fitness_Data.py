@@ -230,7 +230,6 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        # Dynamic labels
         y1 = "% Δ Since 1st Test Date" if display_mode == "% Change" else "Δ Since 1st Test Date"
         y2 = "% Δ Since 2nd Most Recent Test Date" if display_mode == "% Change" else "Δ Since 2nd Most Recent Test Date"
 
@@ -244,10 +243,13 @@ with tabs[3]:
             fig1 = px.bar(
                 delta_summary_sorted1,
                 x="Athlete", y=y1, color=y1,
-                hover_data=["First Test Date", "Most Recent Test Date"],
-                labels={y1: y1}
+                hover_data=["First Test Date", "Most Recent Test Date"]
             )
-            fig1.update_layout(yaxis_title=y1)
+            fig1.update_layout(
+                yaxis_title=y1,
+                xaxis_title="Athlete",
+                title=f"{delta_metric_clean} — {y1}"
+            )
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
@@ -257,10 +259,13 @@ with tabs[3]:
                 fig2 = px.bar(
                     filtered,
                     x="Athlete", y=y2, color=y2,
-                    hover_data=["Second Last Test Date", "Most Recent Test Date"],
-                    labels={y2: y2}
+                    hover_data=["Second Last Test Date", "Most Recent Test Date"]
                 )
-                fig2.update_layout(yaxis_title=y2)
+                fig2.update_layout(
+                    yaxis_title=y2,
+                    xaxis_title="Athlete",
+                    title=f"{delta_metric_clean} — {y2}"
+                )
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info("Not enough data for second-most-recent comparison.")
