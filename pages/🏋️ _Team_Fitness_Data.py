@@ -462,43 +462,46 @@ with tabs[3]:
     delta_df = delta_df.dropna(subset=["Testing Date", delta_metric])
     delta_df.sort_values(by=["Athlete", "Testing Date"], inplace=True)
 
-    # Compute athlete-specific delta
+    # Compute progress per athlete
     results = []
     for athlete, group in delta_df.groupby("Athlete"):
         if group.shape[0] >= 2:
             group_sorted = group.sort_values("Testing Date")
-            first_test_date = group_sorted.iloc[0]["Testing Date"]
+
             first_val = group_sorted.iloc[0][delta_metric]
+            first_date = group_sorted.iloc[0]["Testing Date"]
 
-            most_recent_test_date = group_sorted.iloc[-1]["Testing Date"]
-            most_recent_val = group_sorted.iloc[-1][delta_metric]
+            last_val = group_sorted.iloc[-1][delta_metric]
+            last_date = group_sorted.iloc[-1]["Testing Date"]
 
-            second_last_test_date = None
-            second_last_val = None
             if group.shape[0] >= 3:
-                second_last_test_date = group_sorted.iloc[-2]["Testing Date"]
                 second_last_val = group_sorted.iloc[-2][delta_metric]
+                second_last_date = group_sorted.iloc[-2]["Testing Date"]
+            else:
+                second_last_val = None
+                second_last_date = None
 
             try:
-                recent = float(most_recent_val)
-                first = float(first_val)
-                second = float(second_last_val) if second_last_val is not None else None
+                last_val = float(last_val)
+                first_val = float(first_val)
+                second_last_val = float(second_last_val) if second_last_val is not None else None
 
-                if recent != 0:
-                    change_from_first = 100 * (recent - first) / recent
-                    change_from_second = 100 * (recent - second) / recent if second is not None else None
+                if last_val != 0:
+                    change_first = 100 * (last_val - first_val) / last_val
+                    change_second = 100 * (last_val - second_last_val) / last_val if second_last_val is not None else None
 
                     results.append({
                         "Athlete": athlete,
-                        "Change from First": round(change_from_first, 2),
-                        "Change from Second Last": round(change_from_second, 2) if change_from_second is not None else None,
-                        "First Test Date": first_test_date.strftime("%Y-%m-%d"),
-                        "Second Last Test Date": second_last_test_date.strftime("%Y-%m-%d") if second_last_test_date else None,
-                        "Most Recent Test Date": most_recent_test_date.strftime("%Y-%m-%d")
+                        "Change from First": round(change_first, 2),
+                        "Change from Second Last": round(change_second, 2) if change_second is not None else None,
+                        "First Test Date": first_date.strftime("%Y-%m-%d"),
+                        "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
+                        "Most Recent Test Date": last_date.strftime("%Y-%m-%d"),
                     })
             except (TypeError, ValueError):
                 continue
 
+    # Create DataFrame
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
