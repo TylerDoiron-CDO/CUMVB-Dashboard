@@ -150,20 +150,27 @@ with tabs[2]:
         st.warning("⚠️ No records available for this athlete.")
     else:
         # Group 1: Touches & Physical Attributes
-        group1_keys = ['Height (in.)', 'Weight (lbs)', 'Block Touch (in.)', 'Approach Touch (in.)', 'Broad Jump (in.)']
-        group1_labels = ['Height', 'Weight', 'Block Touch', 'Approach Touch', 'Broad Jump']
+        group1_keys = [
+            "Height (in.)", "Weight (lbs)", "Block Touch (in.)",
+            "Approach Touch (in.)", "Broad Jump (in.)"
+        ]
+        group1_labels = ["Height", "Weight", "Block Touch", "Approach Touch", "Broad Jump"]
 
         # Group 2: Performance & Capacity
-        group2_keys = ['Block Vertical (in.)', 'Approach Vertical (in.)', 'Reps at E[X] Bench',
-                       'Agility Test (s)', '10 Down and Backs (s)', 'Yo-Yo Cardio Test']
-        group2_labels = ['Block Vertical', 'Approach Vertical', 'Reps @ Bench',
-                         'Agility Test', '10 Down/Backs', 'Yo-Yo Test']
+        group2_keys = [
+            "Block Vertical (in.)", "Approach Vertical (in.)", "Reps at E[X] Bench",
+            "Agility Test (s)", "10 Down and Backs (s)", "Yo-Yo Cardio Test"
+        ]
+        group2_labels = [
+            "Block Vertical", "Approach Vertical", "Reps at E[X] Bench",
+            "Agility Test", "10 Down/Backs", "Yo-Yo Test"
+        ]
 
-        # Layout
         col1, col2 = st.columns(2)
 
+        # --- Radar Chart 1 ---
         with col1:
-            st.markdown("#### 📊 Physical Attributes + Touches")
+            st.markdown("#### 📊 Touches & Physical Attributes")
             fig1 = go.Figure()
 
             for _, row in radar_df.iterrows():
@@ -181,13 +188,18 @@ with tabs[2]:
                 ))
 
             if fig1.data:
-                fig1.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
+                fig1.update_layout(
+                    polar=dict(radialaxis=dict(visible=True)),
+                    showlegend=True,
+                    height=600
+                )
                 st.plotly_chart(fig1, use_container_width=True)
             else:
                 st.info("No data available for chart 1.")
 
+        # --- Radar Chart 2 ---
         with col2:
-            st.markdown("#### 🧪 Performance Metrics")
+            st.markdown("#### 🧪 Performance & Capacity Metrics")
             fig2 = go.Figure()
 
             for _, row in radar_df.iterrows():
@@ -205,7 +217,11 @@ with tabs[2]:
                 ))
 
             if fig2.data:
-                fig2.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
+                fig2.update_layout(
+                    polar=dict(radialaxis=dict(visible=True)),
+                    showlegend=True,
+                    height=600
+                )
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info("No data available for chart 2.")
