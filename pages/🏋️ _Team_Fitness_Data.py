@@ -376,10 +376,12 @@ with tabs[5]:
     elif z_df.empty:
         st.warning("⚠️ No testing dates have enough data to calculate Z-scores for the selected athletes.")
     else:
-        # Calculate Z-scores
+        z_df[z_metric_raw] = pd.to_numeric(z_df[z_metric_raw], errors="coerce")
         z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric_raw].transform(
             lambda x: (x - x.mean()) / x.std(ddof=0)
         )
+
+
 
         fig = px.line(
             z_df,
