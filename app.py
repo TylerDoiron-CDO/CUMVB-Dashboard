@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
 from pathlib import Path
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="🏐 Volleyball Team Analytics", layout="wide")
 
@@ -14,20 +16,19 @@ Use the sidebar to:
 - Track fitness progress and more
 """)
 
-# Load preview of the roster
-csv_path = Path("roster 24-25/team info.csv")
+st.markdown("---")
 
-@st.cache_data
-def load_roster(path):
-    try:
-        return pd.read_csv(path, encoding='utf-8')
-    except UnicodeDecodeError:
-        return pd.read_csv(path, encoding='ISO-8859-1')
+st.subheader("🌐 Crandall Chargers – Men's Volleyball Web Portal")
 
-if csv_path.exists():
-    st.subheader("📋 Team Preview")
-    df = load_roster(csv_path)
-    st.dataframe(df)
-else:
-    st.warning("Roster CSV not found at: roster 24-25/team info.csv")
+st.markdown("Stay connected with the official [Crandall Chargers Men's Volleyball site](https://www.crandallchargers.ca/sports/mvball/index) for schedules, rosters, and news.")
+
+# Embed webpage (iframe)
+components.html(
+    """
+    <iframe src="https://www.crandallchargers.ca/sports/mvball/index"
+            width="100%" height="800px" frameborder="0">
+    </iframe>
+    """,
+    height=800,
+)
 
