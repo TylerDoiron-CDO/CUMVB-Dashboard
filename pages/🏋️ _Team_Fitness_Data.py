@@ -175,7 +175,7 @@ with tabs[3]:
     col1, col2, col3 = st.columns([4, 3, 3])
     delta_metric_clean = col1.selectbox("Metric", tracked_metrics, key="delta_metric")
     delta_position_filter = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="delta_positions")
-    display_mode = col3.radio("Display As", ["% Change", "Raw Change"], horizontal=True)
+    display_mode = col3.radio("Display As", ["Δ in value", "Δ (%)"], horizontal=True)
 
     delta_metric = inverse_map[delta_metric_clean]
 
@@ -229,17 +229,15 @@ with tabs[3]:
 
     delta_summary = pd.DataFrame(results)
 
-        # Display toggle with proper Δ symbol in UI
-        display_mode = st.radio("Display As", ["Δ in value", "Δ (%)"], horizontal=True)
-        
-        # Internal logic mapped to user-friendly labels
+    if not delta_summary.empty:
+        # Internal logic mapped to display
         y1_col = "Δ_val_1st" if display_mode == "Δ in value" else "Δ_pct_1st"
         y2_col = "Δ_val_2nd" if display_mode == "Δ in value" else "Δ_pct_2nd"
-        y_axis_title = display_mode  # Use selected label as axis title directly
-        
+        y_axis_title = display_mode  # Use label directly for Y axis
+
         delta_summary_sorted1 = delta_summary.sort_values(by=y1_col, ascending=False)
         delta_summary_sorted2 = delta_summary.sort_values(by=y2_col, ascending=False)
-        
+
         col1, col2 = st.columns(2)
 
         with col1:
