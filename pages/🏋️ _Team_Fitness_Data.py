@@ -216,10 +216,10 @@ with tabs[3]:
 
                 results.append({
                     "Athlete": athlete,
-                    "Change from 1st Testing Date": round(diff_first, 2),
-                    "% Change from 1st Testing Date": round(pct_first, 2) if pct_first is not None else None,
-                    "Change from 2nd Most Recent Testing Date": round(diff_second, 2) if diff_second is not None else None,
-                    "% Change from 2nd Most Recent Testing Date": round(pct_second, 2) if pct_second is not None else None,
+                    "Δ Since 1st Test Date": round(diff_first, 2),
+                    "% Δ Since 1st Test Date": round(pct_first, 2) if pct_first is not None else None,
+                    "Δ Since 2nd Most Recent Test Date": round(diff_second, 2) if diff_second is not None else None,
+                    "% Δ Since 2nd Most Recent Test Date": round(pct_second, 2) if pct_second is not None else None,
                     "First Test Date": first_date.strftime("%Y-%m-%d"),
                     "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
                     "Most Recent Test Date": last_date.strftime("%Y-%m-%d")
@@ -230,9 +230,9 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        # Y-axis field selection and label
-        y1 = "% Change from 1st Testing Date" if display_mode == "% Change" else "Change from 1st Testing Date"
-        y2 = "% Change from 2nd Most Recent Testing Date" if display_mode == "% Change" else "Change from 2nd Most Recent Testing Date"
+        # Dynamic labels
+        y1 = "% Δ Since 1st Test Date" if display_mode == "% Change" else "Δ Since 1st Test Date"
+        y2 = "% Δ Since 2nd Most Recent Test Date" if display_mode == "% Change" else "Δ Since 2nd Most Recent Test Date"
 
         delta_summary_sorted1 = delta_summary.sort_values(by=y1, ascending=False)
         delta_summary_sorted2 = delta_summary.sort_values(by=y2, ascending=False)
