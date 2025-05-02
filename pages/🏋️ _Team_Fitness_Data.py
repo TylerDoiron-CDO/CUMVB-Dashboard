@@ -347,46 +347,51 @@ with tabs[4]:
 # ⚖️ Tab 6 – Z-Score Tracker with Athlete 1–3 Filters
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
+    st.caption("Track each athlete’s performance relative to the team on each testing date.")
 
-    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+    # 🧠 Styled explanation section
+    with st.container():
         st.markdown("""
-        **What is a Z-Score?**
+            <div style="border-left: 5px solid #999; padding: 1rem; background-color: #f9f9f9;">
+                <h5>What is a Z-Score?</h5>
+                <p>A Z-score tells you how far an athlete’s test result is from the group average on that <strong>specific testing date</strong>, in units of standard deviation.</p>
+                
+                <h5>Why use it?</h5>
+                <ul>
+                    <li>📊 Makes all test metrics comparable (regardless of unit)</li>
+                    <li>🧠 Normalizes performance to the group</li>
+                    <li>🧭 Helps spot trends and standout scores over time</li>
+                </ul>
 
-        A Z-score represents how far an athlete's score for a given test is from the group average on that **specific testing date** — in units of standard deviation.
+                <h5>What to Select</h5>
+                <ul>
+                    <li>Choose a <strong>metric</strong> (e.g., “Block Touch”)</li>
+                    <li>Select <strong>2–3 athletes</strong> to compare</li>
+                    <li>The chart only includes test dates with 2+ valid scores</li>
+                </ul>
 
-        **Why use it?**
-        - 📊 Standardizes all metrics regardless of unit (e.g., inches, kg, seconds)
-        - 🧠 Allows fair comparison across different test dates
-        - 🧭 Highlights standout or below-average performances
+                <h5>How to Read the Chart</h5>
+                <ul>
+                    <li>0 = average for that date</li>
+                    <li>+2 = two standard deviations above average</li>
+                    <li>-1 = below average</li>
+                </ul>
 
-        **What to select:**
-        - Choose a **metric** (e.g., "Block Touch", "Agility Test")
-        - Select **2–3 athletes** to compare
-        - Optional: filter by **position** to focus the comparison
-
-        **How to interpret the chart:**
-        - **0** = average score for that test date
-        - **Positive** = above average (higher = better)
-        - **Negative** = below average (lower = worse)
-
-        ⚠️ If nothing appears:
-        - The athletes may not have tested on the same date
-        - The metric may have no variation (everyone had the same score)
-        """)
-
-    st.caption("Track how each athlete performs relative to the group average on every test date.")
+                <strong>Note:</strong> If no data appears, try selecting athletes who tested on the same day, or pick a metric with more variation.
+            </div>
+        """, unsafe_allow_html=True)
 
     # Metric dropdown
     z_metric = st.selectbox("Select Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
     z_metric_raw = inverse_map[z_metric]
 
-    # Three side-by-side athlete filters
+    # Inline 3-athlete comparison
     col1, col2, col3 = st.columns(3)
     athlete_1 = col1.selectbox("Athlete 1", sorted(athlete_list), key="zscore_a1")
     athlete_2 = col2.selectbox("Athlete 2", sorted(athlete_list), key="zscore_a2")
     athlete_3 = col3.selectbox("Athlete 3", sorted(athlete_list), key="zscore_a3")
 
-    # Collect selected athletes (remove duplicates or blanks)
+    # Build clean selection list
     selected_athletes = list({a for a in [athlete_1, athlete_2, athlete_3] if a})
 
     # Filter and prep data
@@ -394,7 +399,7 @@ with tabs[5]:
     z_df["Testing Date"] = pd.to_datetime(z_df["Testing Date"], errors="coerce")
     z_df[z_metric_raw] = pd.to_numeric(z_df[z_metric_raw], errors="coerce")
 
-    # Only use dates where ≥2 valid athlete scores exist
+    # Only include dates with ≥2 valid scores
     valid_dates = z_df.groupby("Testing Date")[z_metric_raw].count()
     valid_dates = valid_dates[valid_dates >= 2].index
     z_df = z_df[z_df["Testing Date"].isin(valid_dates)]
@@ -402,12 +407,14 @@ with tabs[5]:
     if len(selected_athletes) < 2:
         st.warning("⚠️ Please select at least two different athletes.")
     elif z_df.empty:
-        st.warning("⚠️ No valid test dates found with enough data to calculate Z-scores.")
+        st.warning("⚠️ No valid testing dates found for the selected metric and athletes.")
     else:
+        # Calculate Z-scores
         z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric_raw].transform(
             lambda x: (x - x.mean()) / x.std(ddof=0)
         )
 
+        # Build plot
         fig = px.line(
             z_df,
             x="Testing Date",
@@ -420,9 +427,10 @@ with tabs[5]:
         fig.update_layout(
             yaxis_title="Z-Score (standardized)",
             xaxis_title="Testing Date",
-            shapes=[
-                dict(type="line", y0=0, y1=0, xref="paper", x0=0, x1=1, line=dict(color="gray", dash="dash"))
-            ]
+            shapes=[dict(
+                type="line", xref="paper", x0=0, x1=1, y0=0, y1=0,
+                line=dict(color="gray", dash="dash")
+            )]
         )
         st.plotly_chart(fig, use_container_width=True)
 
