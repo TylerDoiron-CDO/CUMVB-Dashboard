@@ -168,7 +168,6 @@ with tabs[2]:
         st.plotly_chart(fig2, use_container_width=True)
 
 # 🔁 Tab 4: Progress Delta
-# 🔁 Tab 4: Progress Delta
 with tabs[3]:
     st.markdown("### 🔁 Athlete-Specific Change Over Time")
 
