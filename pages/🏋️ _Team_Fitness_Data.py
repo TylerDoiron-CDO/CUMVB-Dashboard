@@ -284,7 +284,7 @@ with tabs[3]:
     else:
         st.info("Not enough valid data to generate progression charts.")
 
-# 📉 Tab 5 – Correlation Heatmap by Position Group
+# 📉 Tab 5 – Correlation Heatmap by Position Group (Clean Layout)
 with tabs[4]:
     st.markdown("### 📉 Position-Specific Fitness Metric Correlations")
 
@@ -297,8 +297,6 @@ with tabs[4]:
 
     # Use only tracked metrics and filter columns by ≥75% non-null data
     selected_cols = list(metric_map.keys())
-    total_rows = len(df)
-
     fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
 
     plotted = False
@@ -334,8 +332,9 @@ with tabs[4]:
             fmt=".2f",
             cmap="coolwarm",
             ax=axes[idx],
+            cbar=(idx == 2),  # only show colorbar on the last subplot
             xticklabels=[metric_map.get(c, c) for c in corr.columns],
-            yticklabels=[metric_map.get(c, c) for c in corr.index]
+            yticklabels=[metric_map.get(c, c) for c in corr.index] if idx == 0 else False
         )
         axes[idx].set_title(group_label)
         plotted = True
