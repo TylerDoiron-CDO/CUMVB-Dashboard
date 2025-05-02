@@ -398,3 +398,32 @@ with tabs[5]:
             shapes=[dict(type="line", y0=0, y1=0, xref="paper", x0=0, x1=1, line=dict(color="gray", dash="dash"))]
         )
         st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("### ⚖️ Z-Score Normalization")
+
+with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+    st.markdown("""
+    **What is a Z-Score?**
+
+    A Z-score represents how far an athlete's score for a given test is from the group average on that **specific testing date** — in units of standard deviation.
+
+    \n**Why use it?**
+    - 📊 Standardizes all metrics regardless of unit (e.g. inches, kg, seconds)
+    - 🧠 Makes performance comparison fair across different testing dates or groups
+    - 🧭 Helps identify standout or underperforming tests
+
+    \n**What to select:**
+    - Choose a **metric** (e.g. "Block Touch", "Agility Test")
+    - Select **2–3 athletes** to compare
+    - Optionally filter by **position group** to reduce noise
+
+    \n**How to interpret the graph:**
+    - A Z-score of **0** = exactly average that day
+    - A Z-score of **+2** = 2 standard deviations above the mean (top performer)
+    - A Z-score of **-1** = 1 standard deviation below the mean (under average)
+
+    ⚠️ If no line appears, it likely means:
+    - Too few athletes tested on the same date
+    - Or selected metric has no variation (e.g. all values are the same)
+    """)
+
