@@ -228,22 +228,58 @@ with tabs[2]:
 
 # Tab 4: Progress Delta
 with tabs[3]:
-    st.markdown("### 🔁 Change Over Time – First vs Last Test")
-    delta_metric = st.selectbox("Metric", metric_cols, key="delta_metric")
+    st.markdown("### 🔁 Change Over Time – Progress to Most Recent Test")
+
+    # Use consistent tracked metrics
+    delta_metric_clean = st.selectbox("Metric", tracked_metrics, key="delta_metric")
+    delta_metric = inverse_map[delta_metric_clean]
+
+    # Filter valid rows
     delta_df = df[["Athlete", "Testing Date", delta_metric]].dropna()
+    delta_df["Testing Date"] = pd.to_datetime(delta_df["Testing Date"], errors="coerce")
     delta_df.sort_values(by=["Athlete", "Testing Date"], inplace=True)
 
-    summary = (
-        delta_df.groupby("Athlete")
-        .agg(first=("Testing Date", "first"), last=("Testing Date", "last"))
-        .join(delta_df.groupby("Athlete")[delta_metric].agg(first_val="first", last_val="last"))
-    )
-    summary["% Change"] = 100 * (summary["last_val"] - summary["first_val"]) / summary["first_val"]
-    summary = summary.sort_values(by="% Change", ascending=False).dropna()
+    # Build athlete-specific progression tables
+    results = []
+    for athlete, group in delta_df.groupby("Athlete"):
+        group_sorted = group.sort_values("Testing Date")
+        if group_sorted.shape[0] >= 2:
+            latest = group_sorted.iloc[-1]
+            second_last = group_sorted.iloc[-2]
+            first = group_sorted.iloc[0]
 
-    fig = px.bar(summary, x=summary.index, y="% Change", color="% Change",
-                 title=f"Improvement in {delta_metric}")
-    st.plotly_chart(fig, use_container_width=True)
+            latest_val = latest[delta_metric]
+            first_val = first[delta_metric]
+            second_val = second_last[delta_metric]
+
+            if latest_val != 0:
+                from_first = 100 * (latest_val - first_val) / latest_val
+                from_second = 100 * (latest_val - second_val) / latest_val
+                results.append({
+                    "Athlete": athlete,
+                    "Change from First": from_first,
+                    "Change from Second Last": from_second
+                })
+
+    # Create DataFrame
+    delta_summary = pd.DataFrame(results).set_index("Athlete")
+
+    if not delta_summary.empty:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("#### 📈 Progress from First Test")
+            fig1 = px.bar(delta_summary, x=delta_summary.index, y="Change from First", color="Change from First",
+                          title=f"Progress in {delta_metric_clean} (First ➜ Most Recent)")
+            st.plotly_chart(fig1, use_container_width=True)
+
+        with col2:
+            st.markdown("#### 📈 Progress from Second Most Recent")
+            fig2 = px.bar(delta_summary, x=delta_summary.index, y="Change from Second Last", color="Change from Second Last",
+                          title=f"Progress in {delta_metric_clean} (2nd ➜ Most Recent)")
+            st.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.info("Not enough data to compute progression charts.")
 
 # Tab 5: Correlation Heatmap
 with tabs[4]:
