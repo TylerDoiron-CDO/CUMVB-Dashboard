@@ -230,7 +230,7 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        # Label mapping
+        # Y-axis field selection and label
         y1 = "% Change from 1st Testing Date" if display_mode == "% Change" else "Change from 1st Testing Date"
         y2 = "% Change from 2nd Most Recent Testing Date" if display_mode == "% Change" else "Change from 2nd Most Recent Testing Date"
 
@@ -242,9 +242,12 @@ with tabs[3]:
         with col1:
             st.markdown(f"#### 📈 {y1}")
             fig1 = px.bar(
-                delta_summary_sorted1, x="Athlete", y=y1, color=y1,
-                hover_data=["First Test Date", "Most Recent Test Date"]
+                delta_summary_sorted1,
+                x="Athlete", y=y1, color=y1,
+                hover_data=["First Test Date", "Most Recent Test Date"],
+                labels={y1: y1}
             )
+            fig1.update_layout(yaxis_title=y1)
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
@@ -252,9 +255,12 @@ with tabs[3]:
             filtered = delta_summary_sorted2.dropna(subset=[y2])
             if not filtered.empty:
                 fig2 = px.bar(
-                    filtered, x="Athlete", y=y2, color=y2,
-                    hover_data=["Second Last Test Date", "Most Recent Test Date"]
+                    filtered,
+                    x="Athlete", y=y2, color=y2,
+                    hover_data=["Second Last Test Date", "Most Recent Test Date"],
+                    labels={y2: y2}
                 )
+                fig2.update_layout(yaxis_title=y2)
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info("Not enough data for second-most-recent comparison.")
