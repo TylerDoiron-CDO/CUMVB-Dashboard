@@ -286,30 +286,39 @@ with tabs[3]:
 
 # 📉 Tab 5 – Correlation Heatmap
 with tabs[4]:
-    st.markdown("### 📉 Fitness Metric Correlations")
+    st.markdown("### 📉 Fitness Metric Correlations (≥75% Complete Data Only)")
 
-    # Limit to previously defined tracked metrics
-    selected_cols = list(metric_map.keys())  # raw column names from the data
-    corr_df = df[selected_cols].dropna()
+    # Use only tracked metrics (raw column names)
+    selected_cols = list(metric_map.keys())
+    total_rows = len(df)
 
-    if not corr_df.empty:
-        corr = corr_df.corr()
+    # Filter to columns with ≥75% non-null values
+    valid_cols = [
+        col for col in selected_cols
+        if df[col].notna().sum() / total_rows >= 0.75
+    ]
 
-        fig, ax = plt.subplots(figsize=(12, 8))
-        sns.heatmap(
-            corr,
-            annot=True,
-            fmt=".2f",
-            cmap="coolwarm",
-            xticklabels=[metric_map[col] for col in corr.columns],
-            yticklabels=[metric_map[col] for col in corr.index],
-            ax=ax
-        )
-        ax.set_title("Correlation Between Key Fitness Metrics")
-        st.pyplot(fig)
+    if len(valid_cols) >= 2:
+        corr_df = df[valid_cols].dropna()
+        if not corr_df.empty:
+            corr = corr_df.corr()
+
+            fig, ax = plt.subplots(figsize=(12, 8))
+            sns.heatmap(
+                corr,
+                annot=True,
+                fmt=".2f",
+                cmap="coolwarm",
+                xticklabels=[metric_map.get(col, col) for col in corr.columns],
+                yticklabels=[metric_map.get(col, col) for col in corr.index],
+                ax=ax
+            )
+            ax.set_title("Correlation Between Fitness Metrics (Filtered)")
+            st.pyplot(fig)
+        else:
+            st.warning("⚠️ No complete rows found after filtering. Not enough data for correlation.")
     else:
-        st.warning("⚠️ Not enough data to compute correlations for tracked metrics.")
-
+        st.warning("⚠️ Not enough valid metrics with ≥75% data coverage.")
 
 # Tab 6 -⚖️ Z-Score Tracker
 with tabs[5]:
