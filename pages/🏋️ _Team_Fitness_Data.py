@@ -141,22 +141,45 @@ with tabs[1]:
 # Tab 3: Radar Chart
 with tabs[2]:
     st.markdown("### 🕸 Radar Chart – Athlete Profile Over Time")
+    
     radar_athlete = st.selectbox("Athlete", athlete_list, key="radar_ath")
-    radar_data = df[df["Athlete"] == radar_athlete].copy().dropna(subset=list(metric_map.keys()), how="any")
+    radar_df = df[df["Athlete"] == radar_athlete].copy()
+    radar_df["Testing Date"] = pd.to_datetime(radar_df["Testing Date"], errors="coerce")
 
-    if radar_data.empty:
-        st.warning("⚠️ No complete test sets available for this athlete.")
+    metric_labels = list(metric_map.values())
+    metric_keys = list(metric_map.keys())
+
+    if radar_df.empty:
+        st.warning("⚠️ No records available for this athlete.")
     else:
         fig = go.Figure()
-        for _, row in radar_data.iterrows():
-            values = row[list(metric_map.keys())]
-            values.index = list(metric_map.values())
+
+        for _, row in radar_df.iterrows():
+            raw_values = row[metric_keys]
+            if raw_values.isnull().all():
+                continue  # skip rows with no radar metrics at all
+
+            # Fill missing values with NaN to keep radar shape intact
+            raw_values.index = metric_labels
+            radar_data = raw_values.reindex(metric_labels)
+
             fig.add_trace(go.Scatterpolar(
-                r=values.values, theta=values.index, fill='toself',
+                r=radar_data.values,
+                theta=radar_data.index,
+                fill='toself',
                 name=row["Testing Date"].strftime("%Y-%m-%d")
             ))
-        fig.update_layout(polar=dict(radialaxis=dict(visible=True)), height=600, showlegend=True)
-        st.plotly_chart(fig, use_container_width=True)
+
+        if fig.data:
+            fig.update_layout(
+                polar=dict(radialaxis=dict(visible=True)),
+                height=600,
+                showlegend=True,
+                title=f"{radar_athlete} – Radar Chart Across Testing Dates"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("⚠️ No metrics found for this athlete across any test date.")
 
 # Tab 4: Progress Delta
 with tabs[3]:
