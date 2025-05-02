@@ -86,6 +86,8 @@ tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 D
 # Tab 1 - 📈 Line Plot
 with tabs[0]:
     st.markdown("### 📈 Track Athlete Progress")
+
+    # --- Metric and Filter Selection ---
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
     selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
@@ -97,13 +99,37 @@ with tabs[0]:
     if selected_positions:
         chart_df = chart_df[chart_df["Primary Position"].isin(selected_positions)]
 
+    raw_metric = inverse_map[selected_metric]
+    chart_df = chart_df.dropna(subset=["Testing Date", raw_metric])
+    chart_df["Testing Date"] = pd.to_datetime(chart_df["Testing Date"], errors="coerce")
+
+    # --- Line Chart Display ---
     if not chart_df.empty:
-        raw_metric = inverse_map[selected_metric]
-        fig = px.line(chart_df, x="Testing Date", y=raw_metric, color="Athlete", markers=True, line_shape="spline")
-        fig.update_layout(height=500, title=f"{selected_metric} Over Time")
+        fig = px.line(
+            chart_df,
+            x="Testing Date",
+            y=raw_metric,
+            color="Athlete",
+            markers=True,
+            line_shape="spline",
+            title=f"{selected_metric} Over Time"
+        )
+        fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- Raw Table Display ---
+        st.markdown("#### 📋 Detailed Athlete Records")
+        display_table = chart_df[["Athlete", "Primary Position", "Testing Date", raw_metric]].copy()
+        display_table = display_table.rename(columns={
+            "Athlete": "Name",
+            "Primary Position": "Position",
+            "Testing Date": "Date",
+            raw_metric: selected_metric
+        })
+        display_table = display_table.sort_values(by="Date", ascending=False)
+        st.dataframe(display_table, use_container_width=True, hide_index=True)
     else:
-        st.info("No data available for this combination.")
+        st.info("No data available for the selected filters.")
 
 # Tab 2 - 📦 Box/Violin Plot
 with tabs[1]:
