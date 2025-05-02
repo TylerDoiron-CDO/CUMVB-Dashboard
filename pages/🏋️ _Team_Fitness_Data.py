@@ -119,8 +119,6 @@ with tabs[1]:
 
     # Apply filters
     filtered_box_df = df.copy()
-    if selected_box_athletes:
-        filtered_box_df = filtered_box_df[filtered_box_df["Athlete"].isin(selected_box_athletes)]
     if selected_box_positions:
         filtered_box_df = filtered_box_df[filtered_box_df["Primary Position"].isin(selected_box_positions)]
 
