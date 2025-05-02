@@ -216,10 +216,10 @@ with tabs[3]:
 
                 results.append({
                     "Athlete": athlete,
-                    "Δ Since 1st Test Date": round(diff_first, 2),
-                    "% Δ Since 1st Test Date": round(pct_first, 2) if pct_first is not None else None,
-                    "Δ Since 2nd Most Recent Test Date": round(diff_second, 2) if diff_second is not None else None,
-                    "% Δ Since 2nd Most Recent Test Date": round(pct_second, 2) if pct_second is not None else None,
+                    "Δ_val_1st": round(diff_first, 2),
+                    "Δ_pct_1st": round(pct_first, 2) if pct_first is not None else None,
+                    "Δ_val_2nd": round(diff_second, 2) if diff_second is not None else None,
+                    "Δ_pct_2nd": round(pct_second, 2) if pct_second is not None else None,
                     "First Test Date": first_date.strftime("%Y-%m-%d"),
                     "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
                     "Most Recent Test Date": last_date.strftime("%Y-%m-%d")
@@ -230,41 +230,43 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        y1 = "% Δ Since 1st Test Date" if display_mode == "% Change" else "Δ Since 1st Test Date"
-        y2 = "% Δ Since 2nd Most Recent Test Date" if display_mode == "% Change" else "Δ Since 2nd Most Recent Test Date"
+        # Select correct column based on display mode
+        y1_col = "Δ_pct_1st" if display_mode == "% Change" else "Δ_val_1st"
+        y2_col = "Δ_pct_2nd" if display_mode == "% Change" else "Δ_val_2nd"
+        y_axis_title = "Δ (%)" if display_mode == "% Change" else "Δ (Raw Value)"
 
-        delta_summary_sorted1 = delta_summary.sort_values(by=y1, ascending=False)
-        delta_summary_sorted2 = delta_summary.sort_values(by=y2, ascending=False)
+        delta_summary_sorted1 = delta_summary.sort_values(by=y1_col, ascending=False)
+        delta_summary_sorted2 = delta_summary.sort_values(by=y2_col, ascending=False)
 
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown(f"#### 📈 {y1}")
+            st.markdown("#### 📈 Change Since 1st Testing Date")
             fig1 = px.bar(
                 delta_summary_sorted1,
-                x="Athlete", y=y1, color=y1,
+                x="Athlete", y=y1_col, color=y1_col,
                 hover_data=["First Test Date", "Most Recent Test Date"]
             )
             fig1.update_layout(
-                yaxis_title=y1,
-                xaxis_title="Athlete",
-                title=f"{delta_metric_clean} — {y1}"
+                title="Change Since 1st Testing Date",
+                yaxis_title=y_axis_title,
+                xaxis_title="Athlete"
             )
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            st.markdown(f"#### 📈 {y2}")
-            filtered = delta_summary_sorted2.dropna(subset=[y2])
+            st.markdown("#### 📈 Change Since Most Recent Testing Date")
+            filtered = delta_summary_sorted2.dropna(subset=[y2_col])
             if not filtered.empty:
                 fig2 = px.bar(
                     filtered,
-                    x="Athlete", y=y2, color=y2,
+                    x="Athlete", y=y2_col, color=y2_col,
                     hover_data=["Second Last Test Date", "Most Recent Test Date"]
                 )
                 fig2.update_layout(
-                    yaxis_title=y2,
-                    xaxis_title="Athlete",
-                    title=f"{delta_metric_clean} — {y2}"
+                    title="Change Since Most Recent Testing Date",
+                    yaxis_title=y_axis_title,
+                    xaxis_title="Athlete"
                 )
                 st.plotly_chart(fig2, use_container_width=True)
             else:
