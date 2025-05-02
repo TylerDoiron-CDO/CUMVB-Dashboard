@@ -167,7 +167,6 @@ with tabs[2]:
         fig2.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
         st.plotly_chart(fig2, use_container_width=True)
 
-# 🔁 Tab 4: Progress Delta
 with tabs[3]:
     st.markdown("### 🔁 Athlete-Specific Change Over Time")
 
@@ -230,7 +229,7 @@ with tabs[3]:
     delta_summary = pd.DataFrame(results)
 
     if not delta_summary.empty:
-        # Select correct column based on display mode
+        # Select y-axis fields
         y1_col = "Δ_pct_1st" if display_mode == "% Change" else "Δ_val_1st"
         y2_col = "Δ_pct_2nd" if display_mode == "% Change" else "Δ_val_2nd"
         y_axis_title = "Δ (%)" if display_mode == "% Change" else "Δ (Raw Value)"
@@ -245,6 +244,7 @@ with tabs[3]:
             fig1 = px.bar(
                 delta_summary_sorted1,
                 x="Athlete", y=y1_col, color=y1_col,
+                text=y1_col,
                 hover_data=["First Test Date", "Most Recent Test Date"]
             )
             fig1.update_layout(
@@ -252,6 +252,7 @@ with tabs[3]:
                 yaxis_title=y_axis_title,
                 xaxis_title="Athlete"
             )
+            fig1.update_traces(texttemplate='%{text}', textposition='outside')
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
@@ -261,6 +262,7 @@ with tabs[3]:
                 fig2 = px.bar(
                     filtered,
                     x="Athlete", y=y2_col, color=y2_col,
+                    text=y2_col,
                     hover_data=["Second Last Test Date", "Most Recent Test Date"]
                 )
                 fig2.update_layout(
@@ -268,6 +270,7 @@ with tabs[3]:
                     yaxis_title=y_axis_title,
                     xaxis_title="Athlete"
                 )
+                fig2.update_traces(texttemplate='%{text}', textposition='outside')
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info("Not enough data for second-most-recent comparison.")
