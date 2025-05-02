@@ -36,16 +36,16 @@ if not df.empty:
     col1, col2, col3 = st.columns(3)
     f_athlete = col1.multiselect("Athlete", sorted(df["Athlete"].dropna().unique()))
     f_position = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()))
-    f_date = col3.multiselect("Testing Date", sorted(df["Testing Date"].dropna().unique()))
-
+    f_date = col3.multiselect("Testing Date", sorted(pd.to_datetime(df["Testing Date"].dropna()).dt.strftime("%Y-%m-%d")))
 
     filtered_df = df.copy()
+    filtered_df["Testing Date"] = pd.to_datetime(filtered_df["Testing Date"])
     if f_athlete:
         filtered_df = filtered_df[filtered_df["Athlete"].isin(f_athlete)]
     if f_position:
         filtered_df = filtered_df[filtered_df["Primary Position"].isin(f_position)]
     if f_date:
-        filtered_df = filtered_df[filtered_df["Testing Date"].isin(f_date)]
+        filtered_df = filtered_df[filtered_df["Testing Date"].dt.strftime("%Y-%m-%d").isin(f_date)]
 
     st.success(f"✅ {filtered_df.shape[0]} testing records shown")
     st.subheader("📋 Raw Fitness Testing Data")
@@ -63,7 +63,7 @@ else:
     st.warning("No data available.")
     st.stop()
 
-# Preprocess
+# Preprocess for visualizations
 df["Testing Date"] = pd.to_datetime(df["Testing Date"], errors="coerce")
 metric_cols = df.select_dtypes(include="number").columns.tolist()
 athlete_list = sorted(df["Athlete"].dropna().unique())
@@ -78,19 +78,18 @@ metric_map = {
     'Yo-Yo Cardio Test': 'Yo-Yo Test'
 }
 inverse_map = {v: k for k, v in metric_map.items()}
-tracked_metrics = list(inverse_map.keys())
+tracked_metrics = sorted(list(inverse_map.keys()))
 
 # Tabs
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
-# Tab 1: Line Plot
+# Tab 1 - 📈 Line Plot
 with tabs[0]:
     st.markdown("### 📈 Track Athlete Progress")
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
-    selected_athletes = col2.multiselect("Athletes", sorted(athlete_list), key="lineplot_athletes")
+    selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
     selected_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="lineplot_positions")
-
 
     chart_df = df.copy()
     if selected_athletes:
@@ -106,7 +105,7 @@ with tabs[0]:
     else:
         st.info("No data available for this combination.")
 
-# Tab 2: Box/Violin
+# Tab 2 - 📦 Box/Violin Plot
 with tabs[1]:
     st.markdown("### 📦 Distribution by Testing Date")
     col1, col2, col3 = st.columns([3, 3, 2])
@@ -131,7 +130,7 @@ with tabs[1]:
     else:
         st.info("No data available for the selected filters.")
 
-# Tab 3: Radar Charts
+# Tab 3 - 🕸 Radar Chart
 with tabs[2]:
     st.markdown("### 🕸 Radar Charts – Touch vs. Performance Profiles")
     radar_athlete = st.selectbox("Select Athlete", athlete_list, key="dual_radar_athlete")
@@ -141,10 +140,9 @@ with tabs[2]:
     group1_keys = ["Height (in.)", "Weight (lbs)", "Block Touch (in.)", "Approach Touch (in.)", "Broad Jump (in.)"]
     group1_labels = ["Height", "Weight", "Block Touch", "Approach Touch", "Broad Jump"]
     group2_keys = ["Block Vertical (in.)", "Approach Vertical (in.)", "Reps at E[X] Bench", "Agility Test (s)", "10 Down and Backs (s)", "Yo-Yo Cardio Test"]
-    group2_labels = ["Block Vertical", "Approach Vertical", "Reps at E[X] Bench", "Agility Test", "10 Down/Backs", "Yo-Yo Test"]
+    group2_labels = ["Block Vertical", "Approach Vertical", "Reps @ E[X] Bench", "Agility Test", "10 Down/Backs", "Yo-Yo Test"]
 
     col1, col2 = st.columns(2)
-
     with col1:
         st.markdown("#### 📊 Touches & Physical Attributes")
         fig1 = go.Figure()
@@ -169,7 +167,7 @@ with tabs[2]:
         fig2.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
         st.plotly_chart(fig2, use_container_width=True)
 
-# Tab 4: Progress Delta
+#  Tab 4 -🔁 Progress Delta
 with tabs[3]:
     st.markdown("### 🔁 Athlete-Specific Change Over Time")
     delta_metric_clean = st.selectbox("Metric", tracked_metrics, key="delta_metric")
@@ -221,23 +219,27 @@ with tabs[3]:
 
         with col1:
             st.markdown("#### 📈 From First ➜ Most Recent")
-            fig1 = px.bar(delta_summary, x="Athlete", y="Change from First", color="Change from First",
-                          hover_data=["First Test Date", "Most Recent Test Date"])
+            fig1 = px.bar(
+                delta_summary, x="Athlete", y="Change from First", color="Change from First",
+                hover_data=["First Test Date", "Most Recent Test Date"]
+            )
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
             st.markdown("#### 📈 From Second Last ➜ Most Recent")
             filtered = delta_summary.dropna(subset=["Change from Second Last"])
             if not filtered.empty:
-                fig2 = px.bar(filtered, x="Athlete", y="Change from Second Last", color="Change from Second Last",
-                              hover_data=["Second Last Test Date", "Most Recent Test Date"])
+                fig2 = px.bar(
+                    filtered, x="Athlete", y="Change from Second Last", color="Change from Second Last",
+                    hover_data=["Second Last Test Date", "Most Recent Test Date"]
+                )
                 st.plotly_chart(fig2, use_container_width=True)
             else:
                 st.info("Not enough data for second-most-recent comparison.")
     else:
         st.info("Not enough valid data to generate progression charts.")
 
-# Tab 5: Correlation Heatmap
+# Tab 5 - 📉 Correlation Heatmap
 with tabs[4]:
     st.markdown("### 📉 Fitness Metric Correlations")
     corr = df[metric_cols].dropna().corr()
@@ -245,11 +247,12 @@ with tabs[4]:
     sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
     st.pyplot(fig)
 
-# Tab 6: Z-Score Tracker
+# Tab 6 -⚖️ Z-Score Tracker
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
-    z_metric = st.selectbox("Metric", metric_cols, key="zscore_metric")
+    z_metric = st.selectbox("Metric", sorted(metric_cols), key="zscore_metric")
     z_athletes = st.multiselect("Athletes", sorted(athlete_list), default=sorted(athlete_list)[:3], key="zscore_ath")
+
     z_df = df[df["Athlete"].isin(z_athletes)][["Athlete", "Testing Date", z_metric]].dropna()
     z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric].transform(lambda x: (x - x.mean()) / x.std(ddof=0))
 
