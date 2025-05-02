@@ -113,10 +113,9 @@ with tabs[1]:
     st.markdown("### 📦 Distribution by Testing Date")
 
     # Use same mapping as in line plot for a consistent experience
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     selected_box_metric = col1.selectbox("Metric", tracked_metrics, key="box_metric")
-    selected_box_athletes = col2.multiselect("Athletes", athlete_list, key="box_athletes")
-    selected_box_positions = col3.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="box_positions")
+    selected_box_positions = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="box_positions")
 
     # Apply filters
     filtered_box_df = df.copy()
