@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 
-# ✅ Must be first
+# ✅ Must be the first Streamlit command
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
-# Title and description
+# Title and intro
 st.title("💪 Team Fitness Data")
 st.markdown("""
 Explore physical performance metrics and longitudinal testing for all athletes.
@@ -51,7 +51,26 @@ metric_map = {
 inverse_map = {v: k for k, v in metric_map.items()}
 tracked_metrics = sorted(list(inverse_map.keys()))
 
+# Utility: download buttons
+
+def export_buttons(dataframe, filename_base="export"):
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.download_button(
+            "💾 Download CSV",
+            dataframe.to_csv(index=False).encode("utf-8"),
+            file_name=f"{filename_base}.csv",
+            mime="text/csv"
+        )
+
+    with col2:
+        if st.button("🔁 Clear Cache", key=f"clear_{filename_base}"):
+            st.cache_data.clear()
+            st.experimental_rerun()
+
 # Tabs
+st.markdown("---")
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
 # Tab 1 - 📈 Line Plot
@@ -429,35 +448,4 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Raw Fitness Testing Data (moved to bottom)
-st.markdown("## 📋 Raw Fitness Testing Data")
-st.caption("Browse or export the full historical test records.")
-
-st.dataframe(df, use_container_width=True)
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.download_button(
-        "💾 Download CSV",
-        df.to_csv(index=False).encode("utf-8"),
-        file_name="team_fitness_data.csv",
-        mime="text/csv"
-    )
-
-with col2:
-    try:
-        import dataframe_image as dfi
-        img_buf = BytesIO()
-        dfi.export(df.head(15), "temp.png", table_conversion="matplotlib")
-        with open("temp.png", "rb") as f:
-            img_bytes = f.read()
-        b64_img = base64.b64encode(img_bytes).decode()
-        st.markdown(f'<a href="data:image/png;base64,{b64_img}" download="fitness_snapshot.png">📸 Download Visual Snapshot</a>', unsafe_allow_html=True)
-    except Exception as e:
-        st.error("⚠️ Could not generate visual snapshot. Install `dataframe_image` and `kaleido` or `wkhtmltoimage`.")
-
-with col3:
-    if st.button("🔁 Clear Cache"):
-        st.cache_data.clear()
-        st.success("✅ Cache cleared. Please refresh the page.")
 
