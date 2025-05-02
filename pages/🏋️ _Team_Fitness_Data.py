@@ -112,10 +112,11 @@ with tabs[0]:
 with tabs[1]:
     st.markdown("### 📦 Distribution by Testing Date")
 
-    # Use same mapping as in line plot for a consistent experience
-    col1, col2 = st.columns(2)
+    # Inline filters with chart type toggle
+    col1, col2, col3 = st.columns([3, 3, 2])
     selected_box_metric = col1.selectbox("Metric", tracked_metrics, key="box_metric")
     selected_box_positions = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="box_positions")
+    chart_mode = col3.radio("Chart Type", ["Box", "Violin"], horizontal=True, key="box_violin_mode")
 
     # Apply filters
     filtered_box_df = df.copy()
@@ -126,9 +127,6 @@ with tabs[1]:
     raw_metric = inverse_map[selected_box_metric]
     filtered_box_df = filtered_box_df.dropna(subset=["Testing Date", raw_metric])
     filtered_box_df["Testing Date"] = pd.to_datetime(filtered_box_df["Testing Date"]).dt.strftime("%Y-%m-%d")
-
-    # Chart mode toggle
-    chart_mode = st.radio("Chart Type", ["Box", "Violin"], horizontal=True, key="box_violin_mode")
 
     # Plot
     if not filtered_box_df.empty:
