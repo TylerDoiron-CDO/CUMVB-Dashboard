@@ -284,13 +284,32 @@ with tabs[3]:
     else:
         st.info("Not enough valid data to generate progression charts.")
 
-# Tab 5 - 📉 Correlation Heatmap
+# 📉 Tab 5 – Correlation Heatmap
 with tabs[4]:
     st.markdown("### 📉 Fitness Metric Correlations")
-    corr = df[metric_cols].dropna().corr()
-    fig, ax = plt.subplots(figsize=(12, 8))
-    sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
+
+    # Limit to previously defined tracked metrics
+    selected_cols = list(metric_map.keys())  # raw column names from the data
+    corr_df = df[selected_cols].dropna()
+
+    if not corr_df.empty:
+        corr = corr_df.corr()
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+        sns.heatmap(
+            corr,
+            annot=True,
+            fmt=".2f",
+            cmap="coolwarm",
+            xticklabels=[metric_map[col] for col in corr.columns],
+            yticklabels=[metric_map[col] for col in corr.index],
+            ax=ax
+        )
+        ax.set_title("Correlation Between Key Fitness Metrics")
+        st.pyplot(fig)
+    else:
+        st.warning("⚠️ Not enough data to compute correlations for tracked metrics.")
+
 
 # Tab 6 -⚖️ Z-Score Tracker
 with tabs[5]:
