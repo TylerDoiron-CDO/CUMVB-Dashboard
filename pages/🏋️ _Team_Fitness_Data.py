@@ -231,8 +231,8 @@ with tabs[3]:
 
     if not delta_summary.empty:
         # Select y-axis fields
-        y1_col = "Δ_pct_1st" if display_mode == "% Change" else "Δ_val_1st"
-        y2_col = "Δ_pct_2nd" if display_mode == "% Change" else "Δ_val_2nd"
+        y1_col = "Δ_pct_1st" if display_mode == "% Change" else "Δ in value"
+        y2_col = "Δ_pct_2nd" if display_mode == "% Change" else "Δ in value"
         y_axis_title = "Δ (%)" if display_mode == "% Change" else "Δ (Raw Value)"
 
         delta_summary_sorted1 = delta_summary.sort_values(by=y1_col, ascending=False)
