@@ -355,7 +355,7 @@ with tabs[5]:
     z_metric_raw = inverse_map[z_metric]
 
     # Step 2: Athlete filter
-    z_athletes = st.multiselect("Select Athletes", sorted(athlete_list), default=sorted(athlete_list)[:3], key="zscore_ath")
+    z_athletes = st.multiselect("Select Athletes", sorted(athlete_list), default=sorted(athlete_list), key="zscore_ath")
 
     # Step 3: Optional: Position filter
     available_positions = sorted(df["Primary Position"].dropna().unique())
