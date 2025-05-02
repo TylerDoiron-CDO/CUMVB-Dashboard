@@ -344,15 +344,35 @@ with tabs[4]:
         else:
             st.warning("⚠️ No valid data to generate grouped correlation matrices.")
 
-# Tab 6 -⚖️ Z-Score Tracker
+# ⚖️ Tab 6 – Z-Score Tracker
 with tabs[5]:
     st.markdown("### ⚖️ Z-Score Normalization")
-    z_metric = st.selectbox("Metric", sorted(metric_cols), key="zscore_metric")
+    st.caption("Standardized comparison of individual athlete performance relative to others on each testing date.")
+
+    # Only allow selection from tracked metrics
+    z_metric = st.selectbox("Metric", sorted([metric_map.get(col, col) for col in metric_map.values()]), key="zscore_metric")
+    z_metric_raw = inverse_map[z_metric]  # map back to original column name
+
     z_athletes = st.multiselect("Athletes", sorted(athlete_list), default=sorted(athlete_list)[:3], key="zscore_ath")
 
-    z_df = df[df["Athlete"].isin(z_athletes)][["Athlete", "Testing Date", z_metric]].dropna()
-    z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric].transform(lambda x: (x - x.mean()) / x.std(ddof=0))
+    z_df = df[df["Athlete"].isin(z_athletes)][["Athlete", "Testing Date", z_metric_raw]].dropna()
+    z_df["Testing Date"] = pd.to_datetime(z_df["Testing Date"], errors="coerce")
 
-    fig = px.line(z_df, x="Testing Date", y="Z-Score", color="Athlete", markers=True,
-                  title=f"Z-Score Progress of {z_metric}")
-    st.plotly_chart(fig, use_container_width=True)
+    if z_df.empty:
+        st.warning("⚠️ Not enough data for selected athletes or metric.")
+    else:
+        z_df["Z-Score"] = z_df.groupby("Testing Date")[z_metric_raw].transform(
+            lambda x: (x - x.mean()) / x.std(ddof=0)
+        )
+
+        fig = px.line(
+            z_df,
+            x="Testing Date",
+            y="Z-Score",
+            color="Athlete",
+            markers=True,
+            title=f"⚖️ Z-Score Trend – {z_metric}",
+            labels={"Z-Score": "Standard Score", "Testing Date": "Date"}
+        )
+        fig.update_layout(yaxis_title="Z-Score (standardized)", xaxis_title="Testing Date")
+        st.plotly_chart(fig, use_container_width=True)
