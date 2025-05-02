@@ -164,7 +164,7 @@ with tabs[2]:
 
         # --- Radar Chart 1 ---
         with col1:
-            st.markdown("#### 📊 Touches & Physical Attributes")
+            st.markdown("#### 📊 Jumping & Physical Attributes")
             fig1 = go.Figure()
 
             for _, row in radar_df.iterrows():
