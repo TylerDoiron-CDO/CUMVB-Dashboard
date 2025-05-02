@@ -48,12 +48,14 @@ if not df.empty:
         filtered_df = filtered_df[filtered_df["Testing Date"].dt.strftime("%Y-%m-%d").isin(f_date)]
 
     st.success(f"✅ {filtered_df.shape[0]} testing records shown")
-    st.subheader("📋 Raw Fitness Testing Data")
-    st.dataframe(filtered_df, use_container_width=True)
+    
+    # Optional: Move raw data to bottom if needed in future
+    # st.subheader("📋 Raw Fitness Testing Data")
+    # st.dataframe(filtered_df, use_container_width=True)
 
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        st.download_button("💾 Download Fitness CSV", filtered_df.to_csv(index=False).encode("utf-8"), "team_fitness_data.csv", "text/csv")
+        st.download_button("📎 Download Fitness CSV", filtered_df.to_csv(index=False).encode("utf-8"), "team_fitness_data.csv", "text/csv")
     with col_d2:
         if st.button("🔁 Reset Fitness Cache"):
             st.cache_data.clear()
@@ -80,7 +82,7 @@ metric_map = {
 inverse_map = {v: k for k, v in metric_map.items()}
 tracked_metrics = sorted(list(inverse_map.keys()))
 
-# Tabs
+# Tabs for the dashboard
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
 # Tab 1 - 📈 Line Plot
