@@ -229,15 +229,17 @@ with tabs[3]:
 
     delta_summary = pd.DataFrame(results)
 
-    if not delta_summary.empty:
-        # Select y-axis fields
-        y1_col = "Δ_pct_1st" if display_mode == "% Change" else "Δ in value"
-        y2_col = "Δ_pct_2nd" if display_mode == "% Change" else "Δ in value"
-        y_axis_title = "Δ (%)" if display_mode == "% Change" else "Δ (Raw Value)"
-
+        # Display toggle with proper Δ symbol in UI
+        display_mode = st.radio("Display As", ["Δ in value", "Δ (%)"], horizontal=True)
+        
+        # Internal logic mapped to user-friendly labels
+        y1_col = "Δ_val_1st" if display_mode == "Δ in value" else "Δ_pct_1st"
+        y2_col = "Δ_val_2nd" if display_mode == "Δ in value" else "Δ_pct_2nd"
+        y_axis_title = display_mode  # Use selected label as axis title directly
+        
         delta_summary_sorted1 = delta_summary.sort_values(by=y1_col, ascending=False)
         delta_summary_sorted2 = delta_summary.sort_values(by=y2_col, ascending=False)
-
+        
         col1, col2 = st.columns(2)
 
         with col1:
