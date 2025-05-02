@@ -5,16 +5,18 @@ import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
 
-# ✅ Must be the first Streamlit command
+# ✅ Must be first
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
-# Title and intro
+# Title and description
 st.title("💪 Team Fitness Data")
 st.markdown("""
 Explore physical performance metrics and longitudinal testing for all athletes.
 
-Use the filters below to refine the dataset and navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
+Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
 """)
 
 # Load data
@@ -29,48 +31,15 @@ def load_testing_data():
         return pd.DataFrame()
 
 df = load_testing_data()
-
-# Main Filters
-if not df.empty:
-    st.markdown("### 🔍 Filter Options")
-    col1, col2, col3 = st.columns(3)
-    f_athlete = col1.multiselect("Athlete", sorted(df["Athlete"].dropna().unique()))
-    f_position = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()))
-    f_date = col3.multiselect("Testing Date", sorted(pd.to_datetime(df["Testing Date"].dropna()).dt.strftime("%Y-%m-%d")))
-
-    filtered_df = df.copy()
-    filtered_df["Testing Date"] = pd.to_datetime(filtered_df["Testing Date"])
-    if f_athlete:
-        filtered_df = filtered_df[filtered_df["Athlete"].isin(f_athlete)]
-    if f_position:
-        filtered_df = filtered_df[filtered_df["Primary Position"].isin(f_position)]
-    if f_date:
-        filtered_df = filtered_df[filtered_df["Testing Date"].dt.strftime("%Y-%m-%d").isin(f_date)]
-
-    st.success(f"✅ {filtered_df.shape[0]} testing records shown")
-    
-    # Optional: Move raw data to bottom if needed in future
-    # st.subheader("📋 Raw Fitness Testing Data")
-    # st.dataframe(filtered_df, use_container_width=True)
-
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.download_button("📎 Download Fitness CSV", filtered_df.to_csv(index=False).encode("utf-8"), "team_fitness_data.csv", "text/csv")
-    with col_d2:
-        if st.button("🔁 Reset Fitness Cache"):
-            st.cache_data.clear()
-            st.success("✅ Cache cleared. Reloading data...")
-            st.rerun()
-else:
-    st.warning("No data available.")
+if df.empty:
+    st.warning("⚠️ No data available.")
     st.stop()
 
-# Preprocess for visualizations
+# Preprocess
 df["Testing Date"] = pd.to_datetime(df["Testing Date"], errors="coerce")
 metric_cols = df.select_dtypes(include="number").columns.tolist()
 athlete_list = sorted(df["Athlete"].dropna().unique())
 
-# Metric mapping
 metric_map = {
     'Height (in.)': 'Height', 'Weight (lbs)': 'Weight',
     'Block Touch (in.)': 'Block Touch', 'Approach Touch (in.)': 'Approach Touch',
@@ -82,7 +51,7 @@ metric_map = {
 inverse_map = {v: k for k, v in metric_map.items()}
 tracked_metrics = sorted(list(inverse_map.keys()))
 
-# Tabs for the dashboard
+# Tabs
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
 # Tab 1 - 📈 Line Plot
@@ -460,4 +429,35 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
+# Raw Fitness Testing Data (moved to bottom)
+st.markdown("## 📋 Raw Fitness Testing Data")
+st.caption("Browse or export the full historical test records.")
+
+st.dataframe(df, use_container_width=True)
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.download_button(
+        "💾 Download CSV",
+        df.to_csv(index=False).encode("utf-8"),
+        file_name="team_fitness_data.csv",
+        mime="text/csv"
+    )
+
+with col2:
+    try:
+        import dataframe_image as dfi
+        img_buf = BytesIO()
+        dfi.export(df.head(15), "temp.png", table_conversion="matplotlib")
+        with open("temp.png", "rb") as f:
+            img_bytes = f.read()
+        b64_img = base64.b64encode(img_bytes).decode()
+        st.markdown(f'<a href="data:image/png;base64,{b64_img}" download="fitness_snapshot.png">📸 Download Visual Snapshot</a>', unsafe_allow_html=True)
+    except Exception as e:
+        st.error("⚠️ Could not generate visual snapshot. Install `dataframe_image` and `kaleido` or `wkhtmltoimage`.")
+
+with col3:
+    if st.button("🔁 Clear Cache"):
+        st.cache_data.clear()
+        st.success("✅ Cache cleared. Please refresh the page.")
 
