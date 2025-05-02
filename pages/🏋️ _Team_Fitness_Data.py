@@ -284,65 +284,65 @@ with tabs[3]:
     else:
         st.info("Not enough valid data to generate progression charts.")
 
-# 📉 Tab 5 – Correlation Heatmap by Position Group (Clean Layout)
+# 📉 Tab 5 – Correlation Heatmap by Position Group (based on most recent test date)
 with tabs[4]:
     st.markdown("### 📉 Position-Specific Fitness Metric Correlations")
 
-    # Define group mapping
+    # Define position groupings
     position_groups = {
         "Outside Hitters": ["LS", "RS"],
         "Middle Hitters": ["MB", "M", "MH"],
         "Setters & Liberos": ["S", "LIB"]
     }
 
-    # Use only tracked metrics and filter columns by ≥75% non-null data
+    # Track only the clean metric columns
     selected_cols = list(metric_map.keys())
-    fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
+    most_recent_date = df["Testing Date"].dropna().max()
 
-    plotted = False
-    for idx, (group_label, roles) in enumerate(position_groups.items()):
-        group_df = df[df["Primary Position"].isin(roles)].copy()
-        if group_df.empty:
-            axes[idx].axis("off")
-            axes[idx].set_title(f"{group_label}\n(No data)")
-            continue
+    # 1. Filter to columns with ≥75% non-null values at most recent testing date
+    recent_df = df[df["Testing Date"] == most_recent_date]
+    recent_total = len(recent_df)
 
-        # Keep metrics with ≥75% non-null in this group
-        valid_cols = [
-            col for col in selected_cols
-            if group_df[col].notna().sum() / len(group_df) >= 0.75
-        ]
+    eligible_cols = [
+        col for col in selected_cols
+        if recent_df[col].notna().sum() / recent_total >= 0.75
+    ]
 
-        if len(valid_cols) < 2:
-            axes[idx].axis("off")
-            axes[idx].set_title(f"{group_label}\n(Not enough valid metrics)")
-            continue
-
-        corr_df = group_df[valid_cols].dropna()
-        if corr_df.empty:
-            axes[idx].axis("off")
-            axes[idx].set_title(f"{group_label}\n(Too many missing rows)")
-            continue
-
-        corr = corr_df.corr()
-
-        sns.heatmap(
-            corr,
-            annot=True,
-            fmt=".2f",
-            cmap="coolwarm",
-            ax=axes[idx],
-            cbar=(idx == 2),  # only show colorbar on the last subplot
-            xticklabels=[metric_map.get(c, c) for c in corr.columns],
-            yticklabels=[metric_map.get(c, c) for c in corr.index] if idx == 0 else False
-        )
-        axes[idx].set_title(group_label)
-        plotted = True
-
-    if plotted:
-        st.pyplot(fig)
+    if len(eligible_cols) < 2:
+        st.warning("⚠️ Not enough metrics meet the 75% completeness threshold on the most recent test date.")
     else:
-        st.warning("⚠️ No valid data available to compute correlations by position.")
+        st.caption(f"ℹ️ Metrics shown are based on data completeness (≥75%) from {most_recent_date.date()}.")
+
+        fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
+        plotted = False
+
+        for idx, (label, roles) in enumerate(position_groups.items()):
+            group_df = df[df["Primary Position"].isin(roles)][eligible_cols].replace(0, np.nan).dropna()
+
+            if group_df.shape[0] < 2:
+                axes[idx].axis("off")
+                axes[idx].set_title(f"{label}\n(Not enough valid rows)")
+                continue
+
+            corr = group_df.corr()
+
+            sns.heatmap(
+                corr,
+                annot=True,
+                fmt=".2f",
+                cmap="coolwarm",
+                ax=axes[idx],
+                cbar=(idx == 2),
+                xticklabels=[metric_map.get(c, c) for c in corr.columns],
+                yticklabels=[metric_map.get(c, c) for c in corr.index] if idx == 0 else False
+            )
+            axes[idx].set_title(label)
+            plotted = True
+
+        if plotted:
+            st.pyplot(fig)
+        else:
+            st.warning("⚠️ No valid data to generate grouped correlation matrices.")
 
 # Tab 6 -⚖️ Z-Score Tracker
 with tabs[5]:
