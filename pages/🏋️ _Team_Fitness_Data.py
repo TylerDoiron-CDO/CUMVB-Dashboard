@@ -9,6 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import base64
+import os
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.table import Table
 from io import BytesIO
