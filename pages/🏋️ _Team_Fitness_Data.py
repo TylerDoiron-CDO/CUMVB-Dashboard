@@ -27,6 +27,8 @@ st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 import streamlit.components.v1 as components
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
+    from datetime import datetime
+
     col1, col2, col3 = st.columns([1, 1, 1])
 
     # 📂 CSV Export
@@ -39,56 +41,65 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    # 🖼️ Chart Image Export
-    if fig:
+    # 📄 Full HTML Export with Chart + Table
+    if fig is not None:
         with col2:
             try:
-                image_bytes = fig.to_image(format="png", scale=3)
-                st.download_button(
-                    label="🖼️ Download Chart PNG",
-                    data=image_bytes,
-                    file_name=f"{filename}.png",
-                    mime="image/png"
-                )
-
-                # 📄 Printable HTML View (Chart + Table)
-                img_base64 = base64.b64encode(image_bytes).decode("utf-8")
+                chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
                 table_html = df.to_html(index=False, border=0)
-                date_stamp = datetime.now().strftime("%B %d, %Y")
+                timestamp = datetime.now().strftime("%B %d, %Y")
 
-                html = f"""
+                full_html = f"""
                 <html>
                 <head>
-                    <title>{filename} – Export</title>
+                    <meta charset="utf-8">
+                    <title>{filename}</title>
                     <style>
-                        body {{ font-family: Arial; padding: 20px; }}
-                        img {{ max-width: 100%; height: auto; }}
-                        h2 {{ margin-top: 0; }}
-                        table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
-                        th, td {{ border: 1px solid #ccc; padding: 6px; text-align: center; }}
-                        .stamp {{ text-align: right; font-size: 12px; color: #888; }}
+                        body {{
+                            font-family: Arial, sans-serif;
+                            padding: 20px;
+                        }}
+                        .timestamp {{
+                            text-align: right;
+                            font-size: 12px;
+                            color: #666;
+                        }}
+                        table {{
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin-top: 20px;
+                        }}
+                        th, td {{
+                            border: 1px solid #ccc;
+                            padding: 8px;
+                            text-align: center;
+                        }}
                     </style>
                 </head>
                 <body>
-                    <div class="stamp">Saved on {date_stamp}</div>
-                    <h2>{filename.replace("_", " ").title()} – Athlete Chart & Table</h2>
-                    <img src="data:image/png;base64,{img_base64}" />
+                    <div class="timestamp">Exported on {timestamp}</div>
+                    <h2>{filename.replace('_', ' ').title()}</h2>
+                    {chart_html}
+                    <h3>Data Table</h3>
                     {table_html}
                 </body>
                 </html>
                 """
 
-                with col3:
-                    if st.button("🖨️ Print View"):
-                        components.html(html, height=1000, scrolling=True)
-
+                st.download_button(
+                    label="🌐 Download Chart + Table (HTML)",
+                    data=full_html.encode("utf-8"),
+                    file_name=f"{filename}.html",
+                    mime="text/html"
+                )
             except Exception as e:
-                st.warning(f"⚠️ PNG export failed. Ensure Kaleido is installed. ({e})")
+                st.error(f"Failed to generate exportable HTML. ({e})")
 
     # 🔁 Clear Cache
-    if st.button(f"🔁 Clear Cache for {filename}"):
-        st.cache_data.clear()
-        st.experimental_rerun()
+    with col3:
+        if st.button(f"🔁 Clear Cache for {filename}"):
+            st.cache_data.clear()
+            st.experimental_rerun()
 
 # --- Load Data ---
 @st.cache_data
