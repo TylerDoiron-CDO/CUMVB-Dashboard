@@ -84,7 +84,6 @@ st.markdown("---")
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🔸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
 # --- Tab 1: Line Plot ---
-# --- Tab 1: Line Plot ---
 with tabs[0]:
     st.markdown("### 📈 Track Athlete Progress")
     col1, col2, col3 = st.columns(3)
@@ -99,8 +98,9 @@ with tabs[0]:
         chart_df = chart_df[chart_df["Primary Position"].isin(selected_positions)]
 
     raw_metric = inverse_map[selected_metric]
-    chart_df = chart_df.dropna(subset=["Testing Date", raw_metric])
     chart_df["Testing Date"] = pd.to_datetime(chart_df["Testing Date"], errors="coerce")
+    chart_df[raw_metric] = pd.to_numeric(chart_df[raw_metric], errors="coerce")
+    chart_df = chart_df.dropna(subset=["Testing Date", raw_metric])
 
     if not chart_df.empty:
         # --- Line Chart ---
@@ -118,17 +118,20 @@ with tabs[0]:
 
         # --- Pivot Table: Name | Position | <Date cols> | Δ Last | Δ Net
         st.markdown("#### 📋 Detailed Athlete Records")
-        pivot = chart_df.pivot_table(
+
+        # Safe prep for pivot
+        pivot_ready = chart_df.dropna(subset=[raw_metric, "Testing Date"])
+
+        pivot = pivot_ready.pivot_table(
             index=["Athlete", "Primary Position"],
             columns="Testing Date",
             values=raw_metric,
-            aggfunc="mean"  # fallback for multiple same-day tests
+            aggfunc="mean"
         ).reset_index()
 
         # Format date columns and sort them chronologically
         date_map = {col: col.strftime("%B %Y") for col in pivot.columns if isinstance(col, pd.Timestamp)}
         pivot.rename(columns=date_map, inplace=True)
-
         date_cols = sorted(date_map.values(), key=lambda d: pd.to_datetime(d))
         pivot = pivot.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
 
