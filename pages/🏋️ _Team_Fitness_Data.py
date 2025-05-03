@@ -105,37 +105,48 @@ with tabs[0]:
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("#### 📋 Detailed Athlete Records")
-        pivot = chart_df.pivot_table(index=["Athlete", "Primary Position"], columns="Testing Date", values=raw_metric).reset_index()
+        valid_df = chart_df.dropna(subset=["Testing Date", raw_metric]).copy()
+        valid_df["Testing Date"] = pd.to_datetime(valid_df["Testing Date"], errors="coerce")
 
-        # Format column names to Month Year
-        pivot.columns = [
-            "Name" if col == "Athlete" else
-            "Position" if col == "Primary Position" else
-            pd.to_datetime(col).strftime("%B %Y") if isinstance(col, pd.Timestamp) else col
-            for col in pivot.columns
-        ]
+        try:
+            pivot = valid_df.pivot_table(
+                index=["Athlete", "Primary Position"],
+                columns="Testing Date",
+                values=raw_metric,
+                aggfunc="mean"
+            ).reset_index()
+        except Exception as e:
+            st.error(f"Error creating pivot table: {e}")
+            st.stop()
 
-        # Ensure all testing date columns are numeric
-        date_cols = pivot.columns[2:]
-        pivot[date_cols] = pivot[date_cols].apply(pd.to_numeric, errors='coerce')
+        # Convert datetime columns and sort chronologically
+        date_cols = [col for col in pivot.columns if isinstance(col, pd.Timestamp)]
+        sorted_dates = sorted(date_cols)
 
-        # Compute deltas
-        if len(date_cols) >= 2:
-            pivot["Δ Last"] = pivot[date_cols[-1]] - pivot[date_cols[-2]]
-            pivot["Δ Net"] = pivot[date_cols[-1]] - pivot[date_cols[0]]
+        renamed = {
+            date: pd.to_datetime(date).strftime("%B %Y")
+            for date in sorted_dates
+        }
+        pivot = pivot.rename(columns=renamed)
+
+        new_date_cols = [renamed[date] for date in sorted_dates]
+        pivot[new_date_cols] = pivot[new_date_cols].apply(pd.to_numeric, errors="coerce")
+
+        if len(new_date_cols) >= 2:
+            pivot["Δ Last"] = pivot[new_date_cols[-1]] - pivot[new_date_cols[-2]]
+            pivot["Δ Net"] = pivot[new_date_cols[-1]] - pivot[new_date_cols[0]]
             pivot["Δ Last"] = pivot["Δ Last"].round(2)
             pivot["Δ Net"] = pivot["Δ Net"].round(2)
         else:
             pivot["Δ Last"] = np.nan
             pivot["Δ Net"] = np.nan
 
-        # Reorder: Name, Position, Oldest -> Newest Dates, then Δs
-        date_cols_sorted = sorted(date_cols, key=lambda x: pd.to_datetime(x, errors="coerce"))
-        ordered_cols = ["Name", "Position"] + date_cols_sorted + ["Δ Last", "Δ Net"]
-        display_table = pivot[ordered_cols]
+        # Final column ordering
+        pivot = pivot.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
+        final_cols = ["Name", "Position"] + new_date_cols + ["Δ Last", "Δ Net"]
+        st.dataframe(pivot[final_cols], use_container_width=True, hide_index=True)
 
-        st.dataframe(display_table, use_container_width=True, hide_index=True)
-        render_utilities(display_table, fig, filename="line_plot")
+        render_utilities(pivot[final_cols], fig, filename="line_plot")
     else:
         st.info("No data available for the selected filters.")
 
