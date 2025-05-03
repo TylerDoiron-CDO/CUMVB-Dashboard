@@ -7,6 +7,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.table import Table
 from io import BytesIO
 import base64
 
@@ -17,6 +19,7 @@ st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
+    # Download CSV
     if include_csv:
         with col1:
             st.download_button(
@@ -26,17 +29,43 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    if fig:
-        with col2:
+    # Export Combined Chart + Table as PDF
+    with col2:
+        if st.button("📄 Export PDF (Chart + Table)", key=f"pdf_{filename}"):
             try:
                 buffer = BytesIO()
-                fig.write_image(buffer, format="pdf")
-                b64 = base64.b64encode(buffer.getvalue()).decode()
-                href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📄 Download Chart PDF</a>'
-                st.markdown(href, unsafe_allow_html=True)
-            except Exception as e:
-                st.warning("⚠️ PDF export failed. Kaleido might not be installed or supported in this environment.")
+                with PdfPages(buffer) as pdf:
+                    # Create figure
+                    fig_pdf, ax = plt.subplots(figsize=(8.5, 11))  # Letter size
 
+                    # Plot placeholder (optional)
+                    if fig:
+                        fig.write_image("temp_plot.png")
+                        img = plt.imread("temp_plot.png")
+                        ax.imshow(img)
+                        ax.axis('off')
+                        pdf.savefig(fig_pdf)
+                        plt.close(fig_pdf)
+
+                    # Add Data Table
+                    fig_table, ax_table = plt.subplots(figsize=(8.5, 11))
+                    ax_table.axis("off")
+                    table_data = [df.columns.tolist()] + df.values.tolist()
+                    table = ax_table.table(cellText=table_data, colLabels=None, loc="center", cellLoc='center')
+                    table.scale(1, 1.5)
+                    pdf.savefig(fig_table)
+                    plt.close(fig_table)
+
+                st.download_button(
+                    label="⬇️ Download Combined PDF",
+                    data=buffer.getvalue(),
+                    file_name=f"{filename}.pdf",
+                    mime="application/pdf"
+                )
+            except Exception as e:
+                st.warning("⚠️ PDF export failed. Ensure required dependencies like `matplotlib` are installed.")
+
+    # Clear Cache Button
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
