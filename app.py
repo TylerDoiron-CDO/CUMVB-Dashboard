@@ -71,21 +71,3 @@ components.html(
 
 st.markdown("---")
 
-# Optional: Team preview if roster file exists
-csv_path = Path("roster 24-25/team info.csv")
-
-@st.cache_data
-def load_roster(path):
-    try:
-        return pd.read_csv(path, encoding='utf-8')
-    except UnicodeDecodeError:
-        return pd.read_csv(path, encoding='ISO-8859-1')
-
-if csv_path.exists():
-    st.subheader("📋 Team Preview")
-    df = load_roster(csv_path)
-    st.dataframe(df)
-else:
-    st.warning("Roster CSV not found at: roster 24-25/team info.csv")
-
-
