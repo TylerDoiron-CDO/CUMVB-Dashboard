@@ -300,6 +300,38 @@ with tabs[1]:
 # Tab 3 - 🕸 Radar Chart
 with tabs[2]:
     st.markdown("### 🕸 Radar Charts – Touch vs. Performance Profiles")
+
+    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+    st.markdown("#### 🕸 What is a Radar Chart?")
+    st.code(
+        "Radar charts show how an athlete scores across multiple test dimensions at once.\n"
+        "Each axis represents a different physical or performance attribute."
+    )
+
+    st.markdown("#### 🧠 Why Use It?")
+    st.code(
+        "• Compare testing sessions over time\n"
+        "• Quickly visualize strengths and weaknesses\n"
+        "• Analyze balance across performance areas"
+    )
+
+    st.markdown("#### 🎯 What to Select")
+    st.code(
+        "• Choose an athlete from the dropdown\n"
+        "• Two radar plots will be generated:\n"
+        "   - Physical Attributes (height, jump, etc.)\n"
+        "   - Performance & Capacity (agility, endurance, etc.)"
+    )
+
+    st.markdown("#### 📊 How to Interpret the Graph")
+    st.code(
+        "• Larger surface area = stronger performance\n"
+        "• Each shape = 1 testing date (e.g. 'September 2024')\n"
+        "• Smaller segments indicate weaker metrics on that date"
+    )
+
+    st.warning("⚠️ If nothing shows up, the athlete may have missing data for the selected tests.")
+
     radar_athlete = st.selectbox("Select Athlete", athlete_list, key="dual_radar_athlete")
     radar_df = df[df["Athlete"] == radar_athlete].copy()
     radar_df["Testing Date"] = pd.to_datetime(radar_df["Testing Date"], errors="coerce")
