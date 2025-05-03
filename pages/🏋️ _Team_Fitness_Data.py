@@ -145,15 +145,35 @@ with tabs[0]:
     st.markdown("### 📈 Line Plot – Track Athlete Progress")
 
     with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
-        st.markdown("""
-        This section displays how each athlete progresses across testing dates for any selected fitness metric.
+        st.markdown("#### 📏 What Is This Graph Showing?")
+        st.code(
+            "This line plot tracks the absolute (raw) scores for a chosen metric across testing dates."
+        )
+    
+        st.markdown("#### 🧠 Why Use It?")
+        st.code(
+            "• Understand trends in an athlete’s performance over time\n"
+            "• Compare improvements or regressions across testing sessions\n"
+            "• Spot consistency or volatility in results"
+        )
+    
+        st.markdown("#### 🎯 What to Select")
+        st.code(
+            "• Choose a metric like 'Yo-Yo Test' or 'Block Vertical'\n"
+            "• Filter by athlete or position to narrow your focus\n"
+            "• Data table will show score changes across test dates with automatic deltas"
+        )
+    
+        st.markdown("#### 📊 How to Interpret the Graph")
+        st.code(
+            "• Each line represents one athlete’s performance trend\n"
+            "• Δ Last: change between most recent 2 tests\n"
+            "• Δ Net: overall improvement from first to last test\n"
+            "• Missing points may mean no test data for that athlete on that date"
+        )
 
-        - Select one or more athletes and/or positions to compare individuals or groups.
-        - The chart uses **spline smoothing** with markers to make trends clear.
-        - The table below the graph provides the **raw scores** by testing date along with:
-            - **Δ Last**: The difference between the most recent two testing results.
-            - **Δ Net**: The change from the athlete’s first to most recent recorded test.
-        """)
+    st.info("ℹ️ Use this plot for visualizing raw performance growth over time.\nZ-Score standardization is available on the '⚖️ Z-Score' tab.")
+
 
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
