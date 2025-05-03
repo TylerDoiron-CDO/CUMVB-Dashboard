@@ -129,7 +129,7 @@ tracked_metrics = sorted(list(inverse_map.keys()))
 
 # --- Tabs ---
 st.markdown("---")
-tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🔸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
+tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
 # --- Tab 1: Line Plot ---
 with tabs[0]:
