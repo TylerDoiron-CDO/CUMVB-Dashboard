@@ -370,8 +370,40 @@ with tabs[2]:
         st.plotly_chart(fig2, use_container_width=True)
 
 # 🔁 Tab 4: Progress Delta
+# 🔁 Tab 4: Progress Delta
 with tabs[3]:
     st.markdown("### 🔁 Athlete-Specific Change Over Time")
+
+    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+        st.markdown("#### 📉 What is Delta Analysis?")
+        st.code(
+            "Delta (Δ) tracks how much an athlete has changed since:\n"
+            "• Their first recorded test\n"
+            "• Their most recent previous test"
+        )
+
+        st.markdown("#### 🧠 Why Use It?")
+        st.code(
+            "• Easily monitor trends over time\n"
+            "• Identify improvement or regression\n"
+            "• Useful for progress tracking and goal evaluation"
+        )
+
+        st.markdown("#### 🎯 What to Select")
+        st.code(
+            "• Choose a performance metric\n"
+            "• Filter by position if desired\n"
+            "• Choose to display raw value change or percent change"
+        )
+
+        st.markdown("#### 📊 How to Interpret the Graphs")
+        st.code(
+            "Left Chart ➜ Change from first to most recent test\n"
+            "Right Chart ➜ Change from second-last to most recent\n"
+            "Positive = Improvement | Negative = Regression"
+        )
+
+        st.warning("⚠️ Athletes need at least two test results to be included. No chart = not enough data.")
 
     # Inline filters
     col1, col2, col3 = st.columns([4, 3, 3])
@@ -422,9 +454,9 @@ with tabs[3]:
                     "Δ_pct_1st": round(pct_first, 2) if pct_first is not None else None,
                     "Δ_val_2nd": round(diff_second, 2) if diff_second is not None else None,
                     "Δ_pct_2nd": round(pct_second, 2) if pct_second is not None else None,
-                    "First Test Date": first_date.strftime("%Y-%m-%d"),
-                    "Second Last Test Date": second_last_date.strftime("%Y-%m-%d") if second_last_date else None,
-                    "Most Recent Test Date": last_date.strftime("%Y-%m-%d")
+                    "First Test Date": first_date.strftime("%B %Y"),
+                    "Second Last Test Date": second_last_date.strftime("%B %Y") if second_last_date else None,
+                    "Most Recent Test Date": last_date.strftime("%B %Y")
                 })
             except Exception:
                 continue
