@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import base64
 import os
+from datetime import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.table import Table
 from io import BytesIO
-from datetime import datetime
 
 
 # ✅ Must be first
@@ -36,12 +36,17 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
         if st.button(f"📄 Export to PDF ({filename})"):
             try:
                 buffer = BytesIO()
+                image_path = f"temp_{filename}.png"
+
                 with PdfPages(buffer) as pdf:
-                    # --- First Page: Full-color plot image ---
+                    # --- Page 1: Plotly Graph ---
                     if fig:
-                        image_path = "temp_plot.png"
-                        fig.write_image(image_path, scale=3, width=1100, height=700)  # Higher resolution, colored
+                        fig.write_image(image_path, width=1200, height=800, scale=2)
                         img = mpimg.imread(image_path)
+
+                        # Strip alpha if present (RGBA ➝ RGB)
+                        if img.shape[-1] == 4:
+                            img = img[:, :, :3]
 
                         fig1, ax1 = plt.subplots(figsize=(11, 8.5))  # Landscape
                         ax1.imshow(img)
@@ -53,19 +58,26 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
 
                         pdf.savefig(fig1, bbox_inches="tight")
                         plt.close(fig1)
+
+                        # Clean up temp file
                         os.remove(image_path)
 
-                    # --- Second Page: Table Output ---
-                    fig2, ax2 = plt.subplots(figsize=(11, 8.5))
+                    # --- Page 2: Data Table ---
+                    fig2, ax2 = plt.subplots(figsize=(8.5, 11))
                     ax2.axis("off")
-                    table_data = df.head(20).values.tolist()
+                    table_data = df.head(25).values.tolist()
                     col_labels = df.columns.tolist()
-                    table = ax2.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='center')
-                    table.scale(1.2, 1.5)
+
+                    table = ax2.table(
+                        cellText=table_data,
+                        colLabels=col_labels,
+                        loc='center',
+                        cellLoc='center'
+                    )
+                    table.scale(1.0, 1.5)
                     pdf.savefig(fig2, bbox_inches="tight")
                     plt.close(fig2)
 
-                # Serve PDF for download
                 b64 = base64.b64encode(buffer.getvalue()).decode()
                 href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
