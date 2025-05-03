@@ -104,16 +104,16 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        # Pivoted Table Format: Athlete x Testing Dates
-        st.markdown("#### 📋 Athlete Metric by Testing Date")
+        # 📋 Pivoted Table: Rows = Athletes, Columns = "Month Year"
+        chart_df["Month Year"] = chart_df["Testing Date"].dt.strftime("%B %Y")
         pivot_table = chart_df.pivot_table(
             index=["Athlete", "Primary Position"],
-            columns="Testing Date",
+            columns="Month Year",
             values=raw_metric
         ).reset_index()
 
         pivot_table = pivot_table.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
-        pivot_table.columns.name = None  # Remove pandas MultiIndex name
+        pivot_table.columns.name = None
         st.dataframe(pivot_table, use_container_width=True, hide_index=True)
 
         render_utilities(pivot_table, fig, filename="line_plot")
