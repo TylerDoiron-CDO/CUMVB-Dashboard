@@ -17,9 +17,11 @@ st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
 def render_utilities(df, fig=None, filename="export", include_csv=True):
+    from matplotlib.backends.backend_pdf import PdfPages
+
     col1, col2, col3 = st.columns([1, 1, 1])
 
-    # Download CSV
+    # --- CSV Button ---
     if include_csv:
         with col1:
             st.download_button(
@@ -29,32 +31,41 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    # Export Combined Chart + Table as PDF
+    # --- PDF Export Button ---
     with col2:
         if st.button("📄 Export PDF (Chart + Table)", key=f"pdf_{filename}"):
             try:
                 buffer = BytesIO()
                 with PdfPages(buffer) as pdf:
-                    # Create figure
-                    fig_pdf, ax = plt.subplots(figsize=(8.5, 11))  # Letter size
+                    # 1. Plot Table
+                    fig_table, ax_table = plt.subplots(figsize=(11, 8.5))  # landscape
+                    ax_table.axis('off')
 
-                    # Plot placeholder (optional)
-                    if fig:
-                        fig.write_image("temp_plot.png")
-                        img = plt.imread("temp_plot.png")
-                        ax.imshow(img)
-                        ax.axis('off')
-                        pdf.savefig(fig_pdf)
-                        plt.close(fig_pdf)
+                    # Limit to 30 rows and 10 columns max for layout
+                    display_df = df.copy().head(30).iloc[:, :10]
 
-                    # Add Data Table
-                    fig_table, ax_table = plt.subplots(figsize=(8.5, 11))
-                    ax_table.axis("off")
-                    table_data = [df.columns.tolist()] + df.values.tolist()
-                    table = ax_table.table(cellText=table_data, colLabels=None, loc="center", cellLoc='center')
-                    table.scale(1, 1.5)
+                    # Create table
+                    table = ax_table.table(
+                        cellText=display_df.values,
+                        colLabels=display_df.columns,
+                        loc='center',
+                        cellLoc='center'
+                    )
+                    table.scale(1.2, 1.5)
                     pdf.savefig(fig_table)
                     plt.close(fig_table)
+
+                    # 2. Plot Chart (if provided)
+                    if fig:
+                        img_buf = BytesIO()
+                        fig.write_image(img_buf, format="png")
+                        img_buf.seek(0)
+                        img = plt.imread(img_buf)
+                        fig_chart, ax_chart = plt.subplots(figsize=(11, 8.5))
+                        ax_chart.imshow(img)
+                        ax_chart.axis("off")
+                        pdf.savefig(fig_chart)
+                        plt.close(fig_chart)
 
                 st.download_button(
                     label="⬇️ Download Combined PDF",
@@ -63,9 +74,9 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                     mime="application/pdf"
                 )
             except Exception as e:
-                st.warning("⚠️ PDF export failed. Ensure required dependencies like `matplotlib` are installed.")
+                st.warning("⚠️ PDF export failed. Ensure `matplotlib` is installed and try again.")
 
-    # Clear Cache Button
+    # --- Clear Cache Button ---
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
