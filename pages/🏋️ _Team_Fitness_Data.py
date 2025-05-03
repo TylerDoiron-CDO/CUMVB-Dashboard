@@ -19,19 +19,12 @@ from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib.utils import ImageReader
 from io import BytesIO
 
-
 # ✅ Must be first
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
-import plotly.io as pio
-
 def render_utilities(df, fig=None, filename="export", include_csv=True):
-    from datetime import datetime
-
     col1, col2, col3 = st.columns([1, 1, 1])
-
-    # CSV
     if include_csv:
         with col1:
             st.download_button(
@@ -40,13 +33,10 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 file_name=f"{filename}.csv",
                 mime="text/csv"
             )
-
-    # Chart Export
     if fig is not None:
         with col2:
             try:
-                # This preserves color if kaleido is working correctly
-                png_bytes = fig.to_image(format="png", scale=3)  # scale=3 for high-res
+                png_bytes = fig.to_image(format="png", scale=3)
                 st.download_button(
                     label="🖼️ Download Chart (PNG – Full Color)",
                     data=png_bytes,
@@ -55,14 +45,52 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 )
             except Exception as e:
                 st.warning(f"⚠️ Chart PNG export failed. Ensure Kaleido is installed. ({e})")
-
-    # Cache Clear
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
             st.experimental_rerun()
 
-# --- Load Data ---
+# --- Get Most Recent Roster (Active Athletes) ---
+def get_active_athletes(roster_base_dir="rosters", csv_name="team_info.csv"):
+    if not os.path.exists(roster_base_dir):
+        return set(), None
+    seasons = sorted(
+        [d for d in os.listdir(roster_base_dir) if os.path.isdir(os.path.join(roster_base_dir, d))],
+        reverse=True
+    )
+    if not seasons:
+        return set(), None
+    latest_season = seasons[0]
+    roster_path = os.path.join(roster_base_dir, latest_season, csv_name)
+    if not os.path.exists(roster_path):
+        return set(), latest_season
+    try:
+        roster_df = pd.read_csv(roster_path)
+        roster_df.columns = roster_df.columns.str.strip().str.lower()
+        if "name" in roster_df.columns:
+            active_names = set(roster_df["name"].dropna().str.strip())
+            return active_names, latest_season
+    except Exception:
+        pass
+    return set(), latest_season
+
+# Load active athlete list
+active_athlete_names, latest_loaded_season = get_active_athletes()
+
+# --- Header and Filter UI ---
+st.title("💪 Team Fitness Data")
+st.markdown("""
+Explore physical performance metrics and longitudinal testing for all athletes.
+
+Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
+""")
+
+# 🧠 Athlete Scope Filter (top of page)
+col1, col2 = st.columns([6, 2])
+with col2:
+    athlete_filter_mode = st.radio("Showing:", ["Active Athletes", "Historical"], horizontal=True)
+
+# --- Load & Filter Data ---
 @st.cache_data
 def load_testing_data():
     try:
@@ -78,8 +106,15 @@ if df.empty:
     st.warning("⚠️ No data available.")
     st.stop()
 
-# --- Preprocess ---
 df["Testing Date"] = pd.to_datetime(df["Testing Date"], errors="coerce")
+df["Athlete"] = df["Athlete"].astype(str).str.strip()
+
+if athlete_filter_mode == "Active Athletes":
+    df = df[df["Athlete"].isin(active_athlete_names)]
+elif athlete_filter_mode == "Historical":
+    df = df[~df["Athlete"].isin(active_athlete_names)]
+
+# --- Preprocessing Metadata ---
 metric_cols = df.select_dtypes(include="number").columns.tolist()
 athlete_list = sorted(df["Athlete"].dropna().unique())
 
@@ -93,55 +128,6 @@ metric_map = {
 }
 inverse_map = {v: k for k, v in metric_map.items()}
 tracked_metrics = sorted(list(inverse_map.keys()))
-
-# --- Header ---
-st.title("💪 Team Fitness Data")
-st.markdown("""
-Explore physical performance metrics and longitudinal testing for all athletes.
-
-Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
-""")
-
-# --- Filter: Active vs Historical Athletes ---
-def get_active_athletes(roster_base_dir="rosters", csv_name="team_info.csv"):
-    if not os.path.exists(roster_base_dir):
-        return set(), None
-
-    seasons = sorted(
-        [d for d in os.listdir(roster_base_dir) if os.path.isdir(os.path.join(roster_base_dir, d))],
-        reverse=True
-    )
-    if not seasons:
-        return set(), None
-
-    latest_season = seasons[0]
-    roster_path = os.path.join(roster_base_dir, latest_season, csv_name)
-    if not os.path.exists(roster_path):
-        return set(), latest_season
-
-    try:
-        roster_df = pd.read_csv(roster_path)
-        roster_df.columns = roster_df.columns.str.strip().str.lower()
-        if "name" in roster_df.columns:
-            active_names = set(roster_df["name"].dropna().str.strip())
-            return active_names, latest_season
-    except Exception:
-        pass
-
-    return set(), latest_season
-
-# Load active athletes
-active_athlete_names, latest_loaded_season = get_active_athletes()
-
-# Sidebar toggle for Active vs Historical
-st.sidebar.markdown("### 👥 Athlete Filter")
-athlete_filter_mode = st.sidebar.radio("Select Athlete Group", ["Active Athletes", "Historical"], horizontal=True)
-
-# Apply filter to main dataframe
-if athlete_filter_mode == "Active Athletes":
-    df = df[df["Athlete"].isin(active_athlete_names)]
-elif athlete_filter_mode == "Historical":
-    df = df[~df["Athlete"].isin(active_athlete_names)]
 
 # --- Tabs ---
 st.markdown("---")
