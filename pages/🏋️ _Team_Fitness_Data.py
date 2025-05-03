@@ -251,7 +251,8 @@ with tabs[2]:
             if values.isnull().all():
                 continue
             values.index = group1_labels
-            fig1.add_trace(go.Scatterpolar(r=values.values, theta=values.index, fill='toself', name=row["Testing Date"].strftime("%Y-%m-%d")))
+            formatted_date = row["Testing Date"].strftime("%B %Y")
+            fig1.add_trace(go.Scatterpolar(r=values.values, theta=values.index, fill='toself', name=formatted_date))
         fig1.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -263,7 +264,8 @@ with tabs[2]:
             if values.isnull().all():
                 continue
             values.index = group2_labels
-            fig2.add_trace(go.Scatterpolar(r=values.values, theta=values.index, fill='toself', name=row["Testing Date"].strftime("%Y-%m-%d")))
+            formatted_date = row["Testing Date"].strftime("%B %Y")
+            fig2.add_trace(go.Scatterpolar(r=values.values, theta=values.index, fill='toself', name=formatted_date))
         fig2.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True, height=600)
         st.plotly_chart(fig2, use_container_width=True)
 
