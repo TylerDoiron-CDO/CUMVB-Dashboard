@@ -129,7 +129,16 @@ tracked_metrics = sorted(list(inverse_map.keys()))
 
 # --- Tabs ---
 st.markdown("---")
-tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
+tabs = st.tabs([
+    "📈 Line Plot",
+    "📦 Box/Violin",
+    "🕸 Radar Chart",
+    "🔁 Delta",
+    "📉 Correlation",
+    "⚖️ Z-Score",
+    "📊 Team vs. VBC Normative",
+    "🎯 Target Analysis"
+])
 
 # --- Tab 1: Line Plot ---
 with tabs[0]:
@@ -534,4 +543,16 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
+# Tab 7 - 📊 Team vs. VBC Normative
+with tabs[6]:
+    st.markdown("### 📊 Team vs. VBC Normative")
+    st.info("This section will compare team averages against VBC benchmark values for key metrics like height, jump reach, and speed.")
+    st.markdown("📌 *Placeholder content: To be updated with benchmarking data once finalized.*")
+
+# Tab 8 - 🎯 Target Analysis
+with tabs[7]:
+    st.markdown("### 🎯 Target Flow & Allocation Analysis")
+    st.info("This dashboard will visualize fund flow or allocation targets based on ideal profiles, using a Sankey-style layout.")
+    st.markdown("📌 *Placeholder content: Example target chart like company fund flow will be implemented here.*")
+    st.image("data/5993889d-b26f-4737-970e-01cd2a69a3d5.png", caption="Example: Company Funds Flow Analysis")
 
