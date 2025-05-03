@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -13,6 +14,9 @@ import os
 from datetime import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.table import Table
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib.utils import ImageReader
 from io import BytesIO
 
 
@@ -36,54 +40,53 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
         if st.button(f"📄 Export to PDF ({filename})"):
             try:
                 buffer = BytesIO()
-                image_path = f"temp_{filename}.png"
 
-                with PdfPages(buffer) as pdf:
-                    # --- Page 1: Plotly Graph ---
-                    if fig:
-                        fig.write_image(image_path, width=1200, height=800, scale=2)
-                        img = mpimg.imread(image_path)
+                # Prepare image of the chart
+                img_bytes = fig.to_image(format="png", width=1600, height=1000, scale=2)
+                image = ImageReader(BytesIO(img_bytes))
 
-                        # Strip alpha if present (RGBA ➝ RGB)
-                        if img.shape[-1] == 4:
-                            img = img[:, :, :3]
+                # Setup PDF
+                c = canvas.Canvas(buffer, pagesize=landscape(A4))
+                width, height = landscape(A4)
 
-                        fig1, ax1 = plt.subplots(figsize=(11, 8.5))  # Landscape
-                        ax1.imshow(img)
-                        ax1.axis("off")
+                # Add timestamp
+                timestamp = datetime.now().strftime("Saved: %B %d, %Y")
+                c.setFont("Helvetica", 10)
+                c.drawRightString(width - 40, height - 30, timestamp)
 
-                        # Add timestamp
-                        timestamp = datetime.now().strftime("Saved: %B %d, %Y")
-                        fig1.text(0.98, 0.98, timestamp, ha="right", va="top", fontsize=10, color="gray")
+                # Draw full-page chart
+                c.drawImage(image, 40, 80, width - 80, height - 140, preserveAspectRatio=True)
 
-                        pdf.savefig(fig1, bbox_inches="tight")
-                        plt.close(fig1)
+                c.showPage()
 
-                        # Clean up temp file
-                        os.remove(image_path)
+                # --- Page 2: Data Table ---
+                from reportlab.platypus import Table, TableStyle
+                from reportlab.lib import colors
 
-                    # --- Page 2: Data Table ---
-                    fig2, ax2 = plt.subplots(figsize=(8.5, 11))
-                    ax2.axis("off")
-                    table_data = df.head(25).values.tolist()
-                    col_labels = df.columns.tolist()
+                c.setPageSize(A4)
+                c.setFont("Helvetica-Bold", 12)
+                c.drawString(40, 800, f"{filename} – Data Snapshot")
 
-                    table = ax2.table(
-                        cellText=table_data,
-                        colLabels=col_labels,
-                        loc='center',
-                        cellLoc='center'
-                    )
-                    table.scale(1.0, 1.5)
-                    pdf.savefig(fig2, bbox_inches="tight")
-                    plt.close(fig2)
+                data_table = [df.columns.tolist()] + df.head(25).astype(str).values.tolist()
+                table = Table(data_table, repeatRows=1)
+                table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 7),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ]))
+                table.wrapOn(c, 40, 700)
+                table.drawOn(c, 40, 100)
+
+                c.save()
 
                 b64 = base64.b64encode(buffer.getvalue()).decode()
                 href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
 
             except Exception as e:
-                st.warning(f"⚠️ PDF export failed. Ensure matplotlib and kaleido are supported. ({e})")
+                st.warning(f"⚠️ PDF export failed. ({e})")
 
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
