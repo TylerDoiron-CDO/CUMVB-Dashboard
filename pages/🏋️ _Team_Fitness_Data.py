@@ -24,17 +24,11 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
-from matplotlib.backends.backend_pdf import PdfPages
-from datetime import datetime
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 import plotly.io as pio
-import os
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
-    # CSV Download
     if include_csv:
         with col1:
             st.download_button(
@@ -44,47 +38,19 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    # PDF Export (Plot + Table)
-    with col2:
-        if st.button(f"📄 Export to PDF ({filename})"):
+    if fig:
+        with col2:
             try:
-                buffer = BytesIO()
-
-                with PdfPages(buffer) as pdf:
-                    # Save Plotly figure as image (with Kaleido)
-                    plot_path = f"{filename}_temp_plot.png"
-                    fig.write_image(plot_path, format="png", scale=2)
-
-                    # Plot page
-                    img = mpimg.imread(plot_path)
-                    fig1, ax1 = plt.subplots(figsize=(11, 8.5))  # landscape
-                    ax1.imshow(img)
-                    ax1.axis('off')
-                    ax1.set_title(f"{filename} – Exported on {datetime.now().strftime('%Y-%m-%d')}",
-                                  fontsize=10, loc='right')
-                    pdf.savefig(fig1, bbox_inches='tight')
-                    plt.close(fig1)
-
-                    os.remove(plot_path)
-
-                    # Table page (first 20 rows)
-                    fig2, ax2 = plt.subplots(figsize=(11, 8.5))
-                    ax2.axis('off')
-                    table_data = df.head(20).values.tolist()
-                    col_labels = df.columns.tolist()
-                    table = ax2.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='center')
-                    table.scale(1, 1.5)
-                    pdf.savefig(fig2, bbox_inches='tight')
-                    plt.close(fig2)
-
-                b64 = base64.b64encode(buffer.getvalue()).decode()
-                href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
-                st.markdown(href, unsafe_allow_html=True)
-
+                image_bytes = fig.to_image(format="png", scale=3)
+                st.download_button(
+                    label="🖼️ Download Chart PNG",
+                    data=image_bytes,
+                    file_name=f"{filename}.png",
+                    mime="image/png"
+                )
             except Exception as e:
-                st.warning(f"⚠️ PDF export failed. Ensure matplotlib, kaleido, and reportlab are supported. ({e})")
+                st.warning(f"⚠️ PNG export failed. Ensure Kaleido is installed. ({e})")
 
-    # Clear Cache
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
