@@ -102,6 +102,47 @@ Explore physical performance metrics and longitudinal testing for all athletes.
 Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
 """)
 
+# --- Filter: Active vs Historical Athletes ---
+def get_active_athletes(roster_base_dir="rosters", csv_name="team_info.csv"):
+    if not os.path.exists(roster_base_dir):
+        return set(), None
+
+    seasons = sorted(
+        [d for d in os.listdir(roster_base_dir) if os.path.isdir(os.path.join(roster_base_dir, d))],
+        reverse=True
+    )
+    if not seasons:
+        return set(), None
+
+    latest_season = seasons[0]
+    roster_path = os.path.join(roster_base_dir, latest_season, csv_name)
+    if not os.path.exists(roster_path):
+        return set(), latest_season
+
+    try:
+        roster_df = pd.read_csv(roster_path)
+        roster_df.columns = roster_df.columns.str.strip().str.lower()
+        if "name" in roster_df.columns:
+            active_names = set(roster_df["name"].dropna().str.strip())
+            return active_names, latest_season
+    except Exception:
+        pass
+
+    return set(), latest_season
+
+# Load active athletes
+active_athlete_names, latest_loaded_season = get_active_athletes()
+
+# Sidebar toggle for Active vs Historical
+st.sidebar.markdown("### 👥 Athlete Filter")
+athlete_filter_mode = st.sidebar.radio("Select Athlete Group", ["Active Athletes", "Historical"], horizontal=True)
+
+# Apply filter to main dataframe
+if athlete_filter_mode == "Active Athletes":
+    df = df[df["Athlete"].isin(active_athlete_names)]
+elif athlete_filter_mode == "Historical":
+    df = df[~df["Athlete"].isin(active_athlete_names)]
+
 # --- Tabs ---
 st.markdown("---")
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🔸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
