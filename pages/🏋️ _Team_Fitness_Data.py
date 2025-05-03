@@ -92,7 +92,6 @@ with tabs[0]:
     chart_df["Testing Date"] = pd.to_datetime(chart_df["Testing Date"], errors="coerce")
 
     if not chart_df.empty:
-        # --- Line Chart ---
         fig = px.line(
             chart_df,
             x="Testing Date",
@@ -105,32 +104,38 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Pivot Table Format ---
-        chart_df["Month Year"] = chart_df["Testing Date"].dt.strftime("%B %Y")
-        chart_df["Test Date Sort"] = chart_df["Testing Date"]
+        st.markdown("#### 📋 Detailed Athlete Records")
+        pivot = chart_df.pivot_table(index=["Athlete", "Primary Position"], columns="Testing Date", values=raw_metric).reset_index()
 
-        pivot = chart_df.pivot_table(
-            index=["Athlete", "Primary Position"],
-            columns="Test Date Sort",
-            values=raw_metric,
-            aggfunc="first"
-        ).sort_index(axis=1).reset_index()
-
-        # Rename columns to "Month Year"
-        new_colnames = ["Name", "Position"] + [
+        # Format column names to Month Year
+        pivot.columns = [
+            "Name" if col == "Athlete" else
+            "Position" if col == "Primary Position" else
             pd.to_datetime(col).strftime("%B %Y") if isinstance(col, pd.Timestamp) else col
-            for col in pivot.columns[2:]
+            for col in pivot.columns
         ]
-        pivot.columns = new_colnames
 
-        # Calculate Δ columns
-        date_cols = new_colnames[2:]
-        pivot["Δ Last"] = pivot[date_cols[-1]] - pivot[date_cols[-2]] if len(date_cols) >= 2 else np.nan
-        pivot["Δ Net"] = pivot[date_cols[-1]] - pivot[date_cols[0]] if len(date_cols) >= 2 else np.nan
+        # Ensure all testing date columns are numeric
+        date_cols = pivot.columns[2:]
+        pivot[date_cols] = pivot[date_cols].apply(pd.to_numeric, errors='coerce')
 
-        st.markdown("#### 📋 Athlete Summary – Wide Format")
-        st.dataframe(pivot, use_container_width=True, hide_index=True)
-        render_utilities(pivot, fig, filename="line_plot")
+        # Compute deltas
+        if len(date_cols) >= 2:
+            pivot["Δ Last"] = pivot[date_cols[-1]] - pivot[date_cols[-2]]
+            pivot["Δ Net"] = pivot[date_cols[-1]] - pivot[date_cols[0]]
+            pivot["Δ Last"] = pivot["Δ Last"].round(2)
+            pivot["Δ Net"] = pivot["Δ Net"].round(2)
+        else:
+            pivot["Δ Last"] = np.nan
+            pivot["Δ Net"] = np.nan
+
+        # Reorder: Name, Position, Oldest -> Newest Dates, then Δs
+        date_cols_sorted = sorted(date_cols, key=lambda x: pd.to_datetime(x, errors="coerce"))
+        ordered_cols = ["Name", "Position"] + date_cols_sorted + ["Δ Last", "Δ Net"]
+        display_table = pivot[ordered_cols]
+
+        st.dataframe(display_table, use_container_width=True, hide_index=True)
+        render_utilities(display_table, fig, filename="line_plot")
     else:
         st.info("No data available for the selected filters.")
 
