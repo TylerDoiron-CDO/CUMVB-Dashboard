@@ -519,7 +519,6 @@ with tabs[3]:
         st.info("Not enough valid data to generate progression charts.")
 
 # 📉 Tab 5 – Correlation Heatmap by Position Group (based on most recent test date)
-# 📉 Tab 5 – Correlation Heatmap by Position Group (based on most recent test date)
 with tabs[4]:
     st.markdown("### 📉 Position-Specific Fitness Metric Correlations")
 
@@ -538,14 +537,25 @@ with tabs[4]:
             "• Tailor training emphasis for each position group"
         )
 
-        st.markdown("#### 📊 How to Read It")
+        st.markdown("#### 📊 What Does Correlation Actually Mean?")
         st.code(
-            "• Dark red = strong positive correlation\n"
-            "• Dark blue = strong negative correlation\n"
-            "• Values near 0 mean little to no relationship"
+            "• +1.00 ➜ Perfect positive relationship (metrics rise/fall together)\n"
+            "•  0.00 ➜ No relationship\n"
+            "• –1.00 ➜ Perfect negative relationship (one rises while the other falls)\n\n"
+            "For example:\n"
+            "   - A 0.85 correlation between Approach Touch & Block Touch = Strong positive\n"
+            "   - A –0.6 correlation between Yo-Yo Test & Agility Time = Strong inverse"
         )
 
-        st.warning("⚠️ Requires at least 75% data completeness for each metric in each group.")
+        st.markdown("#### 📈 Reading the Heatmaps")
+        st.code(
+            "• Each heatmap is specific to a positional group\n"
+            "• Only metrics with ≥75% valid data on the most recent test date are shown\n"
+            "• Dark red = strong positive correlation\n"
+            "• Dark blue = strong negative correlation"
+        )
+
+        st.warning("⚠️ If a heatmap is missing, it means there isn't enough valid data for that group.")
 
     # Define position groupings
     position_groups = {
@@ -554,15 +564,11 @@ with tabs[4]:
         "Setters & Liberos": ["S", "LIB"]
     }
 
-    # Track only clean metric columns
     selected_cols = list(metric_map.keys())
     most_recent_date = df["Testing Date"].dropna().max()
-
-    # Filter data from most recent date
     recent_df = df[df["Testing Date"] == most_recent_date]
     recent_total = len(recent_df)
 
-    # Select metrics with ≥75% non-null completeness
     eligible_cols = [
         col for col in selected_cols
         if recent_df[col].notna().sum() / recent_total >= 0.75
