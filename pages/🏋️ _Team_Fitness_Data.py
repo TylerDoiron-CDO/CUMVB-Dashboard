@@ -24,13 +24,16 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
+import os
+from tempfile import NamedTemporaryFile
+from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 import plotly.io as pio
-from datetime import datetime
+import base64
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
@@ -48,28 +51,28 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
         if st.button(f"📄 Export to PDF ({filename})"):
             try:
                 buffer = BytesIO()
-
-                # Start PDF with ReportLab
                 c = canvas.Canvas(buffer, pagesize=letter)
                 width, height = letter
 
-                # --- Page 1: Graph with Date ---
+                # --- Export Plotly figure to temp PNG ---
                 if fig:
-                    img_bytes = pio.to_image(fig, format="png", width=1000, height=700, scale=2)
-                    img_stream = BytesIO(img_bytes)
+                    with NamedTemporaryFile(suffix=".png", delete=False) as tmp_img:
+                        tmp_path = tmp_img.name
+                        fig.write_image(tmp_path, format="png", width=1000, height=700, scale=2)
 
-                    # Draw image full-width with padding
-                    c.drawImage(img_stream, inch, inch * 1.5, width - 2 * inch, height - 2.5 * inch)
+                    # Draw image on PDF
+                    c.drawImage(tmp_path, inch, inch * 1.5, width - 2 * inch, height - 2.5 * inch)
+                    os.remove(tmp_path)
 
-                # Add date to top-right
+                # Add date in top-right
                 today_str = datetime.now().strftime("%B %d, %Y")
                 c.setFont("Helvetica", 10)
                 c.drawRightString(width - inch, height - 0.75 * inch, f"Generated: {today_str}")
 
                 c.showPage()
 
-                # --- Page 2: Data Table ---
-                data = [df.columns.tolist()] + df.head(25).values.tolist()  # cap rows
+                # --- Add table of top 25 rows ---
+                data = [df.columns.tolist()] + df.head(25).values.tolist()
                 table = Table(data, repeatRows=1)
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
@@ -80,10 +83,9 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ]))
                 table.wrapOn(c, width, height)
-                table.drawOn(c, inch * 0.5, height - inch * 1.5 - (len(data) * 12))  # fit table on page
+                table.drawOn(c, inch * 0.5, height - inch * 1.5 - (len(data) * 12))
                 c.save()
 
-                # Export
                 b64 = base64.b64encode(buffer.getvalue()).decode()
                 href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
