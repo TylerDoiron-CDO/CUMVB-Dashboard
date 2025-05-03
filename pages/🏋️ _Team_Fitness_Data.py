@@ -173,9 +173,6 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Pivot Table: Name | Position | <Date cols> | Δ Last | Δ Net
-        st.markdown("#### 📋 Detailed Athlete Records")
-
         # Safe prep for pivot
         pivot_ready = chart_df.dropna(subset=[raw_metric, "Testing Date"])
 
