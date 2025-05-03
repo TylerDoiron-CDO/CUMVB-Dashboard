@@ -24,20 +24,20 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
-import os
-from tempfile import NamedTemporaryFile
+from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
+import matplotlib.pyplot as plt
+from matplotlib.table import Table
 import plotly.io as pio
+from io import BytesIO
 import base64
+import tempfile
+import os
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
+    # Download CSV
     if include_csv:
         with col1:
             st.download_button(
@@ -47,52 +47,67 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
+    # Export to PDF
     with col2:
         if st.button(f"📄 Export to PDF ({filename})"):
             try:
-                buffer = BytesIO()
-                c = canvas.Canvas(buffer, pagesize=letter)
-                width, height = letter
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    buffer = BytesIO()
+                    pdf_path = os.path.join(tmpdir, f"{filename}.pdf")
 
-                # --- Export Plotly figure to temp PNG ---
-                if fig:
-                    with NamedTemporaryFile(suffix=".png", delete=False) as tmp_img:
-                        tmp_path = tmp_img.name
-                        fig.write_image(tmp_path, format="png", width=1000, height=700, scale=2)
+                    with PdfPages(pdf_path) as pdf:
 
-                    # Draw image on PDF
-                    c.drawImage(tmp_path, inch, inch * 1.5, width - 2 * inch, height - 2.5 * inch)
-                    os.remove(tmp_path)
+                        # Save Plotly figure to color PNG
+                        if fig:
+                            fig_path = os.path.join(tmpdir, "plot.png")
+                            fig.write_image(fig_path, format="png", width=1200, height=700, scale=2)
 
-                # Add date in top-right
-                today_str = datetime.now().strftime("%B %d, %Y")
-                c.setFont("Helvetica", 10)
-                c.drawRightString(width - inch, height - 0.75 * inch, f"Generated: {today_str}")
+                            img = plt.imread(fig_path)
+                            fig_img, ax = plt.subplots(figsize=(11, 8.5))  # landscape
+                            ax.imshow(img)
+                            ax.axis('off')
 
-                c.showPage()
+                            # Add export date
+                            export_date = datetime.now().strftime("%B %d, %Y")
+                            ax.text(1.0, 1.02, f"Generated: {export_date}",
+                                    transform=ax.transAxes,
+                                    ha='right', va='bottom',
+                                    fontsize=10, color='gray')
+                            pdf.savefig(fig_img, bbox_inches='tight')
+                            plt.close(fig_img)
 
-                # --- Add table of top 25 rows ---
-                data = [df.columns.tolist()] + df.head(25).values.tolist()
-                table = Table(data, repeatRows=1)
-                table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ]))
-                table.wrapOn(c, width, height)
-                table.drawOn(c, inch * 0.5, height - inch * 1.5 - (len(data) * 12))
-                c.save()
+                        # Table page
+                        fig_table, ax_table = plt.subplots(figsize=(11, 8.5))
+                        ax_table.axis("off")
+                        table_data = [df.columns.tolist()] + df.head(25).values.tolist()
 
-                b64 = base64.b64encode(buffer.getvalue()).decode()
-                href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
-                st.markdown(href, unsafe_allow_html=True)
+                        table = Table(ax_table, bbox=[0, 0, 1, 1])
+                        n_rows = len(table_data)
+                        n_cols = len(df.columns)
+
+                        cell_w = 1.0 / n_cols
+                        cell_h = 1.0 / (n_rows + 1)
+
+                        for i, row in enumerate(table_data):
+                            for j, cell_val in enumerate(row):
+                                table.add_cell(i, j, cell_w, cell_h, text=str(cell_val), loc='center',
+                                               facecolor='#f0f0f0' if i == 0 else 'white')
+
+                        table.set_fontsize(8)
+                        table.scale(1, 1.5)
+                        ax_table.add_table(table)
+                        pdf.savefig(fig_table, bbox_inches='tight')
+                        plt.close(fig_table)
+
+                    with open(pdf_path, "rb") as f:
+                        b64 = base64.b64encode(f.read()).decode()
+                        href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
+                        st.markdown(href, unsafe_allow_html=True)
 
             except Exception as e:
-                st.warning(f"⚠️ PDF export failed. Ensure matplotlib, kaleido, and reportlab are supported. ({e})")
+                st.warning(f"⚠️ PDF export failed. Ensure all required packages are installed. ({e})")
 
+    # Clear cache
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
