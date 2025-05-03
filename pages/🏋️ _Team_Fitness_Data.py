@@ -73,11 +73,9 @@ def export_buttons(dataframe, filename_base="export"):
 st.markdown("---")
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
-# Tab 1 - 📈 Line Plot
+# --- Tab 1: Line Plot ---
 with tabs[0]:
-    st.markdown("### 📈 Track Athlete Progress")
-
-    # --- Metric and Filter Selection ---
+    st.markdown("### \ud83d\udcc8 Track Athlete Progress")
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
     selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
@@ -93,7 +91,6 @@ with tabs[0]:
     chart_df = chart_df.dropna(subset=["Testing Date", raw_metric])
     chart_df["Testing Date"] = pd.to_datetime(chart_df["Testing Date"], errors="coerce")
 
-    # --- Line Chart Display ---
     if not chart_df.empty:
         fig = px.line(
             chart_df,
@@ -107,17 +104,20 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Raw Table Display ---
-        st.markdown("#### 📋 Detailed Athlete Records")
-        display_table = chart_df[["Athlete", "Primary Position", "Testing Date", raw_metric]].copy()
-        display_table = display_table.rename(columns={
+        st.markdown("#### \ud83d\udccb Detailed Athlete Records")
+        pivot_table = chart_df.pivot_table(
+            index=["Athlete", "Primary Position"],
+            columns="Testing Date",
+            values=raw_metric
+        ).reset_index().sort_values(by="Athlete")
+        pivot_table.columns.name = None
+        pivot_table = pivot_table.rename(columns={
             "Athlete": "Name",
-            "Primary Position": "Position",
-            "Testing Date": "Date",
-            raw_metric: selected_metric
+            "Primary Position": "Position"
         })
-        display_table = display_table.sort_values(by="Date", ascending=False)
-        st.dataframe(display_table, use_container_width=True, hide_index=True)
+        st.dataframe(pivot_table, use_container_width=True, hide_index=True)
+
+        render_utilities(pivot_table, fig, filename="line_plot")
     else:
         st.info("No data available for the selected filters.")
 
