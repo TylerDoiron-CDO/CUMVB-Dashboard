@@ -92,6 +92,7 @@ with tabs[0]:
     chart_df["Testing Date"] = pd.to_datetime(chart_df["Testing Date"], errors="coerce")
 
     if not chart_df.empty:
+        # --- Line Chart ---
         fig = px.line(
             chart_df,
             x="Testing Date",
@@ -104,19 +105,32 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        # 📋 Pivoted Table: Rows = Athletes, Columns = "Month Year"
+        # --- Pivot Table Format ---
         chart_df["Month Year"] = chart_df["Testing Date"].dt.strftime("%B %Y")
-        pivot_table = chart_df.pivot_table(
+        chart_df["Test Date Sort"] = chart_df["Testing Date"]
+
+        pivot = chart_df.pivot_table(
             index=["Athlete", "Primary Position"],
-            columns="Month Year",
-            values=raw_metric
-        ).reset_index()
+            columns="Test Date Sort",
+            values=raw_metric,
+            aggfunc="first"
+        ).sort_index(axis=1).reset_index()
 
-        pivot_table = pivot_table.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
-        pivot_table.columns.name = None
-        st.dataframe(pivot_table, use_container_width=True, hide_index=True)
+        # Rename columns to "Month Year"
+        new_colnames = ["Name", "Position"] + [
+            pd.to_datetime(col).strftime("%B %Y") if isinstance(col, pd.Timestamp) else col
+            for col in pivot.columns[2:]
+        ]
+        pivot.columns = new_colnames
 
-        render_utilities(pivot_table, fig, filename="line_plot")
+        # Calculate Δ columns
+        date_cols = new_colnames[2:]
+        pivot["Δ Last"] = pivot[date_cols[-1]] - pivot[date_cols[-2]] if len(date_cols) >= 2 else np.nan
+        pivot["Δ Net"] = pivot[date_cols[-1]] - pivot[date_cols[0]] if len(date_cols) >= 2 else np.nan
+
+        st.markdown("#### 📋 Athlete Summary – Wide Format")
+        st.dataframe(pivot, use_container_width=True, hide_index=True)
+        render_utilities(pivot, fig, filename="line_plot")
     else:
         st.info("No data available for the selected filters.")
 
