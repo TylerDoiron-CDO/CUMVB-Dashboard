@@ -1,72 +1,95 @@
-# 💪 Team Fitness Data – Streamlit App
+# 💪 Team Fitness Data – Full Streamlit App with Utility Buttons
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import base64
 import os
 from datetime import datetime
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.table import Table
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib.utils import ImageReader
+from io import BytesIO
 
 # ✅ Must be first
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
-# -----------------------------
-# Utility: Chart/CSV/Cache
-# -----------------------------
+# --- Utility Function: Chart + CSV + Cache ---
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
     if include_csv:
         with col1:
-            st.download_button("📂 Download CSV", df.to_csv(index=False).encode("utf-8"), file_name=f"{filename}.csv")
+            st.download_button(
+                "📂 Download CSV",
+                df.to_csv(index=False).encode("utf-8"),
+                file_name=f"{filename}.csv",
+                mime="text/csv"
+            )
     if fig is not None:
         with col2:
             try:
                 png_bytes = fig.to_image(format="png", scale=3)
-                st.download_button("🖼️ Download Chart", png_bytes, file_name=f"{filename}.png")
+                st.download_button(
+                    label="🖼️ Download Chart (PNG – Full Color)",
+                    data=png_bytes,
+                    file_name=f"{filename}.png",
+                    mime="image/png"
+                )
             except Exception as e:
-                st.warning(f"⚠️ Chart PNG export failed. Install Kaleido. ({e})")
+                st.warning(f"⚠️ Chart PNG export failed. Ensure Kaleido is installed. ({e})")
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
             st.experimental_rerun()
 
-# -----------------------------
-# Load Active Roster
-# -----------------------------
+# --- Get Most Recent Roster (Active Athletes) ---
 def get_active_athletes(roster_base_dir="rosters", csv_name="team_info.csv"):
     if not os.path.exists(roster_base_dir):
         return set(), None
-    seasons = sorted([d for d in os.listdir(roster_base_dir) if os.path.isdir(os.path.join(roster_base_dir, d))], reverse=True)
+    seasons = sorted(
+        [d for d in os.listdir(roster_base_dir) if os.path.isdir(os.path.join(roster_base_dir, d))],
+        reverse=True
+    )
     if not seasons:
         return set(), None
-    latest = os.path.join(roster_base_dir, seasons[0], csv_name)
-    if not os.path.exists(latest):
-        return set(), seasons[0]
+    latest_season = seasons[0]
+    roster_path = os.path.join(roster_base_dir, latest_season, csv_name)
+    if not os.path.exists(roster_path):
+        return set(), latest_season
     try:
-        roster = pd.read_csv(latest)
-        roster.columns = roster.columns.str.strip().str.lower()
-        return set(roster["name"].dropna().str.strip()), seasons[0] if "name" in roster.columns else (set(), seasons[0])
-    except:
-        return set(), seasons[0]
+        roster_df = pd.read_csv(roster_path)
+        roster_df.columns = roster_df.columns.str.strip().str.lower()
+        if "name" in roster_df.columns:
+            active_names = set(roster_df["name"].dropna().str.strip())
+            return active_names, latest_season
+    except Exception:
+        pass
+    return set(), latest_season
 
-active_names, latest_season = get_active_athletes()
+# Load active athlete list
+active_athlete_names, latest_loaded_season = get_active_athletes()
 
-# -----------------------------
-# Header & Filters
-# -----------------------------
+# --- Header and Filter UI ---
 col1, col2 = st.columns([6, 2])
 with col1:
     st.title("💪 Team Fitness Data")
-    st.markdown("Explore physical testing results and monitor athlete performance trends.")
-with col2:
-    filter_mode = st.radio("Includes:", ["Active Athletes Only", "All Athletes"], horizontal=True)
+    st.markdown("""
+    Explore physical performance metrics and longitudinal testing for all athletes.
 
-# -----------------------------
-# Load Fitness Data
-# -----------------------------
+    Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
+    """)
+with col2:
+    athlete_filter_mode = st.radio("Includes:", ["Active Athletes Only", "All Athletes"], horizontal=True)
+
+# --- Load & Filter Data ---
 @st.cache_data
 def load_testing_data():
     try:
@@ -84,12 +107,15 @@ if df.empty:
 
 df["Testing Date"] = pd.to_datetime(df["Testing Date"], errors="coerce")
 df["Athlete"] = df["Athlete"].astype(str).str.strip()
-if filter_mode == "Active Athletes Only":
-    df = df[df["Athlete"].isin(active_names)]
 
-# -----------------------------
-# Metadata Prep
-# -----------------------------
+# Apply filter
+if athlete_filter_mode == "Active Athletes Only":
+    df = df[df["Athlete"].isin(active_athlete_names)]
+
+# --- Preprocessing Metadata ---
+metric_cols = df.select_dtypes(include="number").columns.tolist()
+athlete_list = sorted(df["Athlete"].dropna().unique())
+
 metric_map = {
     'Height (in.)': 'Height', 'Weight (lbs)': 'Weight',
     'Block Touch (in.)': 'Block Touch', 'Approach Touch (in.)': 'Approach Touch',
@@ -99,23 +125,20 @@ metric_map = {
     'Yo-Yo Cardio Test': 'Yo-Yo Test'
 }
 inverse_map = {v: k for k, v in metric_map.items()}
-tracked_metrics = sorted(inverse_map.keys())
-athletes = sorted(df["Athlete"].dropna().unique())
+tracked_metrics = sorted(list(inverse_map.keys()))
 
-# -----------------------------
-# Tabs
-# -----------------------------
+# --- Tabs ---
+st.markdown("---")
 tabs = st.tabs([
-    "📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta",
-    "📉 Correlation", "⚖️ Z-Score", "📊 Team vs. VBC Normative", "🎯 Target Analysis"
+    "📈 Line Plot",
+    "📦 Box/Violin",
+    "🕸 Radar Chart",
+    "🔁 Delta",
+    "📉 Correlation",
+    "⚖️ Z-Score",
+    "📊 Team vs. VBC Normative",
+    "🎯 Target Analysis"
 ])
-
-# --- The rest of the logic remains in their respective tabs ---
-# Recommend refactoring those blocks similarly (as done above)
-# and isolating tab logic into modular functions (e.g., `render_line_plot_tab(df)`)
-
-# NOTE: Due to space, only the header portion has been cleaned here.
-# Would you like the remaining tabs (e.g., Line Plot, Radar, Delta, etc.) modularized as well?
 
 # Tab 1 - 📈 Line Plot
 with tabs[0]:
@@ -689,4 +712,3 @@ with tabs[7]:
     st.info("This dashboard will visualize fund flow or allocation targets based on ideal profiles, using a Sankey-style layout.")
     st.markdown("📌 *Placeholder content: Example target chart like company fund flow will be implemented here.*")
     st.image("data/5993889d-b26f-4737-970e-01cd2a69a3d5.png", caption="Example: Company Funds Flow Analysis")
-
