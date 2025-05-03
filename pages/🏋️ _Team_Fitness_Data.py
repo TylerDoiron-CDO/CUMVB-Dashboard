@@ -23,16 +23,13 @@ from io import BytesIO
 # ✅ Must be first
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
-import plotly.express as px
-fig = px.line(x=[1, 2, 3], y=[1, 4, 9], color_discrete_sequence=["red"])
-fig.write_image("test_plot.png")
-
 # --- Utility Function: Chart + CSV + Cache ---
-import plotly.io as pio
+import streamlit.components.v1 as components
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
+    # 📂 CSV Export
     if include_csv:
         with col1:
             st.download_button(
@@ -42,6 +39,7 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
+    # 🖼️ Chart Image Export
     if fig:
         with col2:
             try:
@@ -52,13 +50,45 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                     file_name=f"{filename}.png",
                     mime="image/png"
                 )
+
+                # 📄 Printable HTML View (Chart + Table)
+                img_base64 = base64.b64encode(image_bytes).decode("utf-8")
+                table_html = df.to_html(index=False, border=0)
+                date_stamp = datetime.now().strftime("%B %d, %Y")
+
+                html = f"""
+                <html>
+                <head>
+                    <title>{filename} – Export</title>
+                    <style>
+                        body {{ font-family: Arial; padding: 20px; }}
+                        img {{ max-width: 100%; height: auto; }}
+                        h2 {{ margin-top: 0; }}
+                        table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
+                        th, td {{ border: 1px solid #ccc; padding: 6px; text-align: center; }}
+                        .stamp {{ text-align: right; font-size: 12px; color: #888; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="stamp">Saved on {date_stamp}</div>
+                    <h2>{filename.replace("_", " ").title()} – Athlete Chart & Table</h2>
+                    <img src="data:image/png;base64,{img_base64}" />
+                    {table_html}
+                </body>
+                </html>
+                """
+
+                with col3:
+                    if st.button("🖨️ Print View"):
+                        components.html(html, height=1000, scrolling=True)
+
             except Exception as e:
                 st.warning(f"⚠️ PNG export failed. Ensure Kaleido is installed. ({e})")
 
-    with col3:
-        if st.button(f"🔁 Clear Cache for {filename}"):
-            st.cache_data.clear()
-            st.experimental_rerun()
+    # 🔁 Clear Cache
+    if st.button(f"🔁 Clear Cache for {filename}"):
+        st.cache_data.clear()
+        st.experimental_rerun()
 
 # --- Load Data ---
 @st.cache_data
