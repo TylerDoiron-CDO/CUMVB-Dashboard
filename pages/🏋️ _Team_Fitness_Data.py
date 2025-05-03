@@ -23,6 +23,10 @@ from io import BytesIO
 # ✅ Must be first
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
+import plotly.express as px
+fig = px.line(x=[1, 2, 3], y=[1, 4, 9], color_discrete_sequence=["red"])
+fig.write_image("test_plot.png")
+
 # --- Utility Function: Chart + CSV + Cache ---
 import plotly.io as pio
 
