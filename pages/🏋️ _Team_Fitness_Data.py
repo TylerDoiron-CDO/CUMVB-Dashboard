@@ -78,17 +78,16 @@ def get_active_athletes(roster_base_dir="rosters", csv_name="team_info.csv"):
 active_athlete_names, latest_loaded_season = get_active_athletes()
 
 # --- Header and Filter UI ---
-st.title("💪 Team Fitness Data")
-st.markdown("""
-Explore physical performance metrics and longitudinal testing for all athletes.
-
-Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
-""")
-
-# 🧠 Athlete Scope Filter (top of page)
 col1, col2 = st.columns([6, 2])
+with col1:
+    st.title("💪 Team Fitness Data")
+    st.markdown("""
+    Explore physical performance metrics and longitudinal testing for all athletes.
+
+    Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
+    """)
 with col2:
-    athlete_filter_mode = st.radio("Showing:", ["Active Athletes", "Historical"], horizontal=True)
+    athlete_filter_mode = st.radio("Includes:", ["Active Athletes Only", "All Athletes"], horizontal=True)
 
 # --- Load & Filter Data ---
 @st.cache_data
@@ -109,10 +108,9 @@ if df.empty:
 df["Testing Date"] = pd.to_datetime(df["Testing Date"], errors="coerce")
 df["Athlete"] = df["Athlete"].astype(str).str.strip()
 
-if athlete_filter_mode == "Active Athletes":
+# Apply filter
+if athlete_filter_mode == "Active Athletes Only":
     df = df[df["Athlete"].isin(active_athlete_names)]
-elif athlete_filter_mode == "Historical":
-    df = df[~df["Athlete"].isin(active_athlete_names)]
 
 # --- Preprocessing Metadata ---
 metric_cols = df.select_dtypes(include="number").columns.tolist()
