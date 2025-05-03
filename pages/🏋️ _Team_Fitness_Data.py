@@ -140,9 +140,21 @@ tabs = st.tabs([
     "🎯 Target Analysis"
 ])
 
-# --- Tab 1: Line Plot ---
+# Tab 1 - 📈 Line Plot
 with tabs[0]:
-    st.markdown("### 📈 Track Athlete Progress")
+    st.markdown("### 📈 Line Plot – Track Athlete Progress")
+
+    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+        st.markdown("""
+        This section displays how each athlete progresses across testing dates for any selected fitness metric.
+
+        - Select one or more athletes and/or positions to compare individuals or groups.
+        - The chart uses **spline smoothing** with markers to make trends clear.
+        - The table below the graph provides the **raw scores** by testing date along with:
+            - **Δ Last**: The difference between the most recent two testing results.
+            - **Δ Net**: The change from the athlete’s first to most recent recorded test.
+        """)
+
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
     selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
@@ -173,9 +185,8 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        # Safe prep for pivot
+        # --- Pivot Table ---
         pivot_ready = chart_df.dropna(subset=[raw_metric, "Testing Date"])
-
         pivot = pivot_ready.pivot_table(
             index=["Athlete", "Primary Position"],
             columns="Testing Date",
@@ -183,16 +194,14 @@ with tabs[0]:
             aggfunc="mean"
         ).reset_index()
 
-        # Format date columns and sort them chronologically
+        # Format and sort date columns
         date_map = {col: col.strftime("%B %Y") for col in pivot.columns if isinstance(col, pd.Timestamp)}
         pivot.rename(columns=date_map, inplace=True)
         date_cols = sorted(date_map.values(), key=lambda d: pd.to_datetime(d))
         pivot = pivot.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
 
-        # Convert date columns to numeric
+        # Convert and calculate deltas
         pivot[date_cols] = pivot[date_cols].apply(pd.to_numeric, errors='coerce')
-
-        # Compute deltas
         if len(date_cols) >= 2:
             pivot["Δ Last"] = pivot[date_cols[-1]] - pivot[date_cols[-2]]
             pivot["Δ Net"] = pivot[date_cols[-1]] - pivot[date_cols[0]]
@@ -210,6 +219,7 @@ with tabs[0]:
         render_utilities(display_table, fig, filename="line_plot")
     else:
         st.info("No data available for the selected filters.")
+
 
 # Tab 2 - 📦 Box/Violin Plot
 with tabs[1]:
