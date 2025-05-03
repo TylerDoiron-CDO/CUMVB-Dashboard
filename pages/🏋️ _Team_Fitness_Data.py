@@ -24,6 +24,14 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import plotly.io as pio
+from datetime import datetime
+
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
@@ -41,52 +49,47 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
             try:
                 buffer = BytesIO()
 
-                # Prepare image of the chart
-                img_bytes = fig.to_image(format="png", width=1600, height=1000, scale=2)
-                image = ImageReader(BytesIO(img_bytes))
+                # Start PDF with ReportLab
+                c = canvas.Canvas(buffer, pagesize=letter)
+                width, height = letter
 
-                # Setup PDF
-                c = canvas.Canvas(buffer, pagesize=landscape(A4))
-                width, height = landscape(A4)
+                # --- Page 1: Graph with Date ---
+                if fig:
+                    img_bytes = pio.to_image(fig, format="png", width=1000, height=700, scale=2)
+                    img_stream = BytesIO(img_bytes)
 
-                # Add timestamp
-                timestamp = datetime.now().strftime("Saved: %B %d, %Y")
+                    # Draw image full-width with padding
+                    c.drawImage(img_stream, inch, inch * 1.5, width - 2 * inch, height - 2.5 * inch)
+
+                # Add date to top-right
+                today_str = datetime.now().strftime("%B %d, %Y")
                 c.setFont("Helvetica", 10)
-                c.drawRightString(width - 40, height - 30, timestamp)
-
-                # Draw full-page chart
-                c.drawImage(image, 40, 80, width - 80, height - 140, preserveAspectRatio=True)
+                c.drawRightString(width - inch, height - 0.75 * inch, f"Generated: {today_str}")
 
                 c.showPage()
 
                 # --- Page 2: Data Table ---
-                from reportlab.platypus import Table, TableStyle
-                from reportlab.lib import colors
-
-                c.setPageSize(A4)
-                c.setFont("Helvetica-Bold", 12)
-                c.drawString(40, 800, f"{filename} – Data Snapshot")
-
-                data_table = [df.columns.tolist()] + df.head(25).astype(str).values.tolist()
-                table = Table(data_table, repeatRows=1)
+                data = [df.columns.tolist()] + df.head(25).values.tolist()  # cap rows
+                table = Table(data, repeatRows=1)
                 table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 7),
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                    ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
-                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ]))
-                table.wrapOn(c, 40, 700)
-                table.drawOn(c, 40, 100)
-
+                table.wrapOn(c, width, height)
+                table.drawOn(c, inch * 0.5, height - inch * 1.5 - (len(data) * 12))  # fit table on page
                 c.save()
 
+                # Export
                 b64 = base64.b64encode(buffer.getvalue()).decode()
                 href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
 
             except Exception as e:
-                st.warning(f"⚠️ PDF export failed. ({e})")
+                st.warning(f"⚠️ PDF export failed. Ensure matplotlib, kaleido, and reportlab are supported. ({e})")
 
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
