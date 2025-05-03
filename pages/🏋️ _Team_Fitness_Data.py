@@ -122,6 +122,9 @@ Explore physical performance metrics and longitudinal testing for all athletes.
 Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
 """)
 
+import matplotlib
+st.success(f"Matplotlib version: {matplotlib.__version__}")
+
 # --- Tabs ---
 st.markdown("---")
 tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🔸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
