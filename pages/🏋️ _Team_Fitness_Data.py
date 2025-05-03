@@ -174,7 +174,6 @@ with tabs[0]:
 
     st.info("ℹ️ Use this plot for visualizing raw performance growth over time.\nZ-Score standardization is available on the '⚖️ Z-Score' tab.")
 
-
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
     selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
@@ -240,10 +239,42 @@ with tabs[0]:
     else:
         st.info("No data available for the selected filters.")
 
-
 # Tab 2 - 📦 Box/Violin Plot
 with tabs[1]:
-    st.markdown("### 📦 Distribution by Testing Date")
+    st.markdown("### 📦 Box/Violin Plot - Distribution of Perfomance")
+
+    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+        st.markdown("#### 📦 What Are Box & Violin Plots?")
+        st.code(
+            "These visualizations show the distribution of test scores for each date.\n"
+            "Box plots highlight medians, quartiles, and outliers.\n"
+            "Violin plots add density curves to show where values are concentrated."
+        )
+    
+        st.markdown("#### 🧠 Why Use It?")
+        st.code(
+            "• Understand variability within a testing session\n"
+            "• Spot outliers or inconsistent results\n"
+            "• Compare how tight or spread out athlete results are"
+        )
+    
+        st.markdown("#### 🎯 What to Select")
+        st.code(
+            "• Choose a metric to analyze (e.g. 'Agility Test')\n"
+            "• Filter by positions (optional)\n"
+            "• Switch between Box or Violin views using the toggle"
+        )
+    
+        st.markdown("#### 📊 How to Interpret the Graph")
+        st.code(
+            "• Each column = 1 test date\n"
+            "• Taller = more variability in scores\n"
+            "• Dots = individual athlete results\n"
+            "• Narrow violin sections = few scores in that range"
+        )
+    
+        st.warning("⚠️ If no data appears, check that selected metric and position group have values for that test date.")
+
     col1, col2, col3 = st.columns([3, 3, 2])
     selected_box_metric = col1.selectbox("Metric", tracked_metrics, key="box_metric")
     selected_box_positions = col2.multiselect("Position", sorted(df["Primary Position"].dropna().unique()), key="box_positions")
