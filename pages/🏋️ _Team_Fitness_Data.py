@@ -36,18 +36,23 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
             try:
                 buffer = BytesIO()
                 with PdfPages(buffer) as pdf:
-                    # --- First Page: Full-page Plot Image with Timestamp ---
+                    # --- First Page: Full-color plot image ---
                     if fig:
-                        fig.write_image("temp_plot.png", scale=2)
-                        img = mpimg.imread("temp_plot.png")
-                        fig1, ax1 = plt.subplots(figsize=(11, 8.5))  # Landscape full page
+                        image_path = "temp_plot.png"
+                        fig.write_image(image_path, scale=3, width=1100, height=700)  # Higher resolution, colored
+                        img = mpimg.imread(image_path)
+
+                        fig1, ax1 = plt.subplots(figsize=(11, 8.5))  # Landscape
                         ax1.imshow(img)
                         ax1.axis("off")
-                        # Add timestamp in top right
+
+                        # Add timestamp
                         timestamp = datetime.now().strftime("Saved: %B %d, %Y")
                         fig1.text(0.98, 0.98, timestamp, ha="right", va="top", fontsize=10, color="gray")
+
                         pdf.savefig(fig1, bbox_inches="tight")
                         plt.close(fig1)
+                        os.remove(image_path)
 
                     # --- Second Page: Table Output ---
                     fig2, ax2 = plt.subplots(figsize=(11, 8.5))
@@ -59,7 +64,7 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                     pdf.savefig(fig2, bbox_inches="tight")
                     plt.close(fig2)
 
-                # Convert to download link
+                # Serve PDF for download
                 b64 = base64.b64encode(buffer.getvalue()).decode()
                 href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
