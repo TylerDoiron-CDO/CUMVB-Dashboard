@@ -24,20 +24,18 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
-from matplotlib.backends.backend_pdf import PdfPages
+from reportlab.lib.pagesizes import landscape, letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 from datetime import datetime
-import matplotlib.pyplot as plt
-from matplotlib.table import Table
-import plotly.io as pio
-from io import BytesIO
-import base64
 import tempfile
 import os
+from io import BytesIO
+import base64
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
-    # Download CSV
     if include_csv:
         with col1:
             st.download_button(
@@ -47,57 +45,40 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    # Export to PDF
     with col2:
         if st.button(f"📄 Export to PDF ({filename})"):
             try:
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    buffer = BytesIO()
                     pdf_path = os.path.join(tmpdir, f"{filename}.pdf")
 
-                    with PdfPages(pdf_path) as pdf:
+                    # Step 1: Save the plotly figure as a full-color PNG
+                    if fig:
+                        fig_path = os.path.join(tmpdir, "figure.png")
+                        fig.write_image(fig_path, width=1600, height=1000, scale=2)
+                    
+                    # Step 2: Create the PDF
+                    c = canvas.Canvas(pdf_path, pagesize=landscape(letter))
+                    width, height = landscape(letter)
 
-                        # Save Plotly figure to color PNG
-                        if fig:
-                            fig_path = os.path.join(tmpdir, "plot.png")
-                            fig.write_image(fig_path, format="png", width=1200, height=700, scale=2)
+                    if fig:
+                        c.drawImage(ImageReader(fig_path), 40, 80, width=width - 80, height=height - 140)
 
-                            img = plt.imread(fig_path)
-                            fig_img, ax = plt.subplots(figsize=(11, 8.5))  # landscape
-                            ax.imshow(img)
-                            ax.axis('off')
+                        # Add date in top right
+                        now = datetime.now().strftime("%B %d, %Y")
+                        c.setFont("Helvetica", 10)
+                        c.drawRightString(width - 40, height - 30, f"Generated on {now}")
+                        c.showPage()
 
-                            # Add export date
-                            export_date = datetime.now().strftime("%B %d, %Y")
-                            ax.text(1.0, 1.02, f"Generated: {export_date}",
-                                    transform=ax.transAxes,
-                                    ha='right', va='bottom',
-                                    fontsize=10, color='gray')
-                            pdf.savefig(fig_img, bbox_inches='tight')
-                            plt.close(fig_img)
-
-                        # Table page
-                        fig_table, ax_table = plt.subplots(figsize=(11, 8.5))
-                        ax_table.axis("off")
-                        table_data = [df.columns.tolist()] + df.head(25).values.tolist()
-
-                        table = Table(ax_table, bbox=[0, 0, 1, 1])
-                        n_rows = len(table_data)
-                        n_cols = len(df.columns)
-
-                        cell_w = 1.0 / n_cols
-                        cell_h = 1.0 / (n_rows + 1)
-
-                        for i, row in enumerate(table_data):
-                            for j, cell_val in enumerate(row):
-                                table.add_cell(i, j, cell_w, cell_h, text=str(cell_val), loc='center',
-                                               facecolor='#f0f0f0' if i == 0 else 'white')
-
-                        table.set_fontsize(8)
-                        table.scale(1, 1.5)
-                        ax_table.add_table(table)
-                        pdf.savefig(fig_table, bbox_inches='tight')
-                        plt.close(fig_table)
+                    # Step 3: Add a page with the table
+                    c.setFont("Helvetica", 8)
+                    c.drawString(40, height - 40, "Top Records Table (Preview Only)")
+                    table_text = df.head(25).to_string(index=False)
+                    text = c.beginText(40, height - 60)
+                    for line in table_text.split("\n"):
+                        text.textLine(line)
+                    c.drawText(text)
+                    c.showPage()
+                    c.save()
 
                     with open(pdf_path, "rb") as f:
                         b64 = base64.b64encode(f.read()).decode()
@@ -105,13 +86,13 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                         st.markdown(href, unsafe_allow_html=True)
 
             except Exception as e:
-                st.warning(f"⚠️ PDF export failed. Ensure all required packages are installed. ({e})")
+                st.warning(f"⚠️ PDF export failed. Ensure matplotlib, kaleido, and reportlab are supported. ({e})")
 
-    # Clear cache
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
             st.experimental_rerun()
+
 
 # --- Load Data ---
 @st.cache_data
