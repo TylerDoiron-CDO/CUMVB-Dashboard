@@ -75,7 +75,7 @@ tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 D
 
 # --- Tab 1: Line Plot ---
 with tabs[0]:
-    st.markdown("### \ud83d\udcc8 Track Athlete Progress")
+    st.markdown("### 📈 Track Athlete Progress")
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("Metric", tracked_metrics, key="lineplot_metric")
     selected_athletes = col2.multiselect("Athletes", athlete_list, key="lineplot_athletes")
@@ -104,17 +104,16 @@ with tabs[0]:
         fig.update_layout(height=500)
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("#### \ud83d\udccb Detailed Athlete Records")
+        # Pivoted Table Format: Athlete x Testing Dates
+        st.markdown("#### 📋 Athlete Metric by Testing Date")
         pivot_table = chart_df.pivot_table(
             index=["Athlete", "Primary Position"],
             columns="Testing Date",
             values=raw_metric
-        ).reset_index().sort_values(by="Athlete")
-        pivot_table.columns.name = None
-        pivot_table = pivot_table.rename(columns={
-            "Athlete": "Name",
-            "Primary Position": "Position"
-        })
+        ).reset_index()
+
+        pivot_table = pivot_table.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
+        pivot_table.columns.name = None  # Remove pandas MultiIndex name
         st.dataframe(pivot_table, use_container_width=True, hide_index=True)
 
         render_utilities(pivot_table, fig, filename="line_plot")
