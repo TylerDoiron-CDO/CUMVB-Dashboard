@@ -28,11 +28,14 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
 
     if fig:
         with col2:
-            buffer = BytesIO()
-            fig.write_image(buffer, format="pdf")
-            b64 = base64.b64encode(buffer.getvalue()).decode()
-            href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📄 Download Chart PDF</a>'
-            st.markdown(href, unsafe_allow_html=True)
+            try:
+                buffer = BytesIO()
+                fig.write_image(buffer, format="pdf")
+                b64 = base64.b64encode(buffer.getvalue()).decode()
+                href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📄 Download Chart PDF</a>'
+                st.markdown(href, unsafe_allow_html=True)
+            except Exception as e:
+                st.warning("⚠️ PDF export failed. Kaleido might not be installed or supported in this environment.")
 
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
