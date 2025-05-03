@@ -24,22 +24,17 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
-import os
-import tempfile
+from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
-from io import BytesIO
-import base64
-import streamlit as st
-import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import plotly.io as pio
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.utils import ImageReader
+import os
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     col1, col2, col3 = st.columns([1, 1, 1])
 
-    # Download CSV
+    # CSV Download
     if include_csv:
         with col1:
             st.download_button(
@@ -49,54 +44,51 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    # Export to PDF
+    # PDF Export (Plot + Table)
     with col2:
         if st.button(f"📄 Export to PDF ({filename})"):
             try:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    # Save Plotly figure as a PNG image
-                    img_path = os.path.join(tmpdir, "figure.png")
-                    fig.write_image(img_path, format="png", width=1200, height=800, scale=2)
+                buffer = BytesIO()
 
-                    # Create PDF and embed the image
-                    pdf_buffer = BytesIO()
-                    c = canvas.Canvas(pdf_buffer, pagesize=letter)
-                    width, height = letter
+                with PdfPages(buffer) as pdf:
+                    # Save Plotly figure as image (with Kaleido)
+                    plot_path = f"{filename}_temp_plot.png"
+                    fig.write_image(plot_path, format="png", scale=2)
 
-                    # Draw the image onto the PDF
-                    c.drawImage(ImageReader(img_path), 50, 150, width=500, height=300)
+                    # Plot page
+                    img = mpimg.imread(plot_path)
+                    fig1, ax1 = plt.subplots(figsize=(11, 8.5))  # landscape
+                    ax1.imshow(img)
+                    ax1.axis('off')
+                    ax1.set_title(f"{filename} – Exported on {datetime.now().strftime('%Y-%m-%d')}",
+                                  fontsize=10, loc='right')
+                    pdf.savefig(fig1, bbox_inches='tight')
+                    plt.close(fig1)
 
-                    # Add export date
-                    export_date = datetime.now().strftime("%B %d, %Y")
-                    c.setFont("Helvetica", 10)
-                    c.drawRightString(width - 50, height - 30, f"Generated on {export_date}")
+                    os.remove(plot_path)
 
-                    c.showPage()
+                    # Table page (first 20 rows)
+                    fig2, ax2 = plt.subplots(figsize=(11, 8.5))
+                    ax2.axis('off')
+                    table_data = df.head(20).values.tolist()
+                    col_labels = df.columns.tolist()
+                    table = ax2.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='center')
+                    table.scale(1, 1.5)
+                    pdf.savefig(fig2, bbox_inches='tight')
+                    plt.close(fig2)
 
-                    # Add data table as text
-                    text = c.beginText(50, height - 50)
-                    text.setFont("Helvetica", 8)
-                    for line in df.head(25).to_string(index=False).split('\n'):
-                        text.textLine(line)
-                    c.drawText(text)
-
-                    c.save()
-
-                    # Provide download link
-                    pdf_buffer.seek(0)
-                    b64 = base64.b64encode(pdf_buffer.read()).decode()
-                    href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
-                    st.markdown(href, unsafe_allow_html=True)
+                b64 = base64.b64encode(buffer.getvalue()).decode()
+                href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📥 Download Combined PDF</a>'
+                st.markdown(href, unsafe_allow_html=True)
 
             except Exception as e:
-                st.warning(f"⚠️ PDF export failed. Ensure all required packages are installed. ({e})")
+                st.warning(f"⚠️ PDF export failed. Ensure matplotlib, kaleido, and reportlab are supported. ({e})")
 
-    # Clear cache
+    # Clear Cache
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
             st.experimental_rerun()
-
 
 # --- Load Data ---
 @st.cache_data
