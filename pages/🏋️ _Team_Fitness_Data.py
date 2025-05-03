@@ -519,8 +519,33 @@ with tabs[3]:
         st.info("Not enough valid data to generate progression charts.")
 
 # 📉 Tab 5 – Correlation Heatmap by Position Group (based on most recent test date)
+# 📉 Tab 5 – Correlation Heatmap by Position Group (based on most recent test date)
 with tabs[4]:
     st.markdown("### 📉 Position-Specific Fitness Metric Correlations")
+
+    with st.expander("ℹ️ How This Works & How to Use It", expanded=False):
+        st.markdown("#### 🔗 What is a Correlation Heatmap?")
+        st.code(
+            "A heatmap shows how strongly different physical tests are related to each other.\n"
+            "Values range from -1 (strong inverse) to +1 (strong positive).\n"
+            "Only data from the most recent testing date is used."
+        )
+
+        st.markdown("#### 🧠 Why Use It?")
+        st.code(
+            "• Identify which tests move together (e.g. vertical + touch height)\n"
+            "• Spot redundant or overlapping metrics\n"
+            "• Tailor training emphasis for each position group"
+        )
+
+        st.markdown("#### 📊 How to Read It")
+        st.code(
+            "• Dark red = strong positive correlation\n"
+            "• Dark blue = strong negative correlation\n"
+            "• Values near 0 mean little to no relationship"
+        )
+
+        st.warning("⚠️ Requires at least 75% data completeness for each metric in each group.")
 
     # Define position groupings
     position_groups = {
@@ -529,14 +554,15 @@ with tabs[4]:
         "Setters & Liberos": ["S", "LIB"]
     }
 
-    # Track only the clean metric columns
+    # Track only clean metric columns
     selected_cols = list(metric_map.keys())
     most_recent_date = df["Testing Date"].dropna().max()
 
-    # 1. Filter to columns with ≥75% non-null values at most recent testing date
+    # Filter data from most recent date
     recent_df = df[df["Testing Date"] == most_recent_date]
     recent_total = len(recent_df)
 
+    # Select metrics with ≥75% non-null completeness
     eligible_cols = [
         col for col in selected_cols
         if recent_df[col].notna().sum() / recent_total >= 0.75
@@ -545,17 +571,19 @@ with tabs[4]:
     if len(eligible_cols) < 2:
         st.warning("⚠️ Not enough metrics meet the 75% completeness threshold on the most recent test date.")
     else:
-        st.caption(f"ℹ️ Metrics shown are based on data completeness (≥75%) from {most_recent_date.date()}.")
+        st.caption(f"✅ Using data from {most_recent_date.strftime('%B %d, %Y')} — metrics with ≥75% completeness included.")
 
         fig, axes = plt.subplots(1, 3, figsize=(24, 8), constrained_layout=True)
         plotted = False
 
         for idx, (label, roles) in enumerate(position_groups.items()):
-            group_df = df[df["Primary Position"].isin(roles)][eligible_cols].replace(0, np.nan).dropna()
+            group_df = df[df["Primary Position"].isin(roles)]
+            group_df = group_df[group_df["Testing Date"] == most_recent_date]
+            group_df = group_df[eligible_cols].replace(0, np.nan).dropna()
 
             if group_df.shape[0] < 2:
                 axes[idx].axis("off")
-                axes[idx].set_title(f"{label}\n(Not enough valid rows)")
+                axes[idx].set_title(f"{label}\n(Not enough valid data)")
                 continue
 
             corr = group_df.corr()
