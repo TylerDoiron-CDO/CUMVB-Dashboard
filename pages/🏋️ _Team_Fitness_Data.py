@@ -24,14 +24,14 @@ from io import BytesIO
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
 # --- Utility Function: Chart + CSV + Cache ---
-import streamlit.components.v1 as components
+import plotly.io as pio
 
 def render_utilities(df, fig=None, filename="export", include_csv=True):
     from datetime import datetime
 
     col1, col2, col3 = st.columns([1, 1, 1])
 
-    # 📂 CSV Export
+    # CSV
     if include_csv:
         with col1:
             st.download_button(
@@ -41,61 +41,22 @@ def render_utilities(df, fig=None, filename="export", include_csv=True):
                 mime="text/csv"
             )
 
-    # 📄 Full HTML Export with Chart + Table
+    # Chart Export
     if fig is not None:
         with col2:
             try:
-                chart_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
-                table_html = df.to_html(index=False, border=0)
-                timestamp = datetime.now().strftime("%B %d, %Y")
-
-                full_html = f"""
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>{filename}</title>
-                    <style>
-                        body {{
-                            font-family: Arial, sans-serif;
-                            padding: 20px;
-                        }}
-                        .timestamp {{
-                            text-align: right;
-                            font-size: 12px;
-                            color: #666;
-                        }}
-                        table {{
-                            border-collapse: collapse;
-                            width: 100%;
-                            margin-top: 20px;
-                        }}
-                        th, td {{
-                            border: 1px solid #ccc;
-                            padding: 8px;
-                            text-align: center;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    <div class="timestamp">Exported on {timestamp}</div>
-                    <h2>{filename.replace('_', ' ').title()}</h2>
-                    {chart_html}
-                    <h3>Data Table</h3>
-                    {table_html}
-                </body>
-                </html>
-                """
-
+                # This preserves color if kaleido is working correctly
+                png_bytes = fig.to_image(format="png", scale=3)  # scale=3 for high-res
                 st.download_button(
-                    label="🌐 Download Chart + Table (HTML)",
-                    data=full_html.encode("utf-8"),
-                    file_name=f"{filename}.html",
-                    mime="text/html"
+                    label="🖼️ Download Chart (PNG – Full Color)",
+                    data=png_bytes,
+                    file_name=f"{filename}.png",
+                    mime="image/png"
                 )
             except Exception as e:
-                st.error(f"Failed to generate exportable HTML. ({e})")
+                st.warning(f"⚠️ Chart PNG export failed. Ensure Kaleido is installed. ({e})")
 
-    # 🔁 Clear Cache
+    # Cache Clear
     with col3:
         if st.button(f"🔁 Clear Cache for {filename}"):
             st.cache_data.clear()
