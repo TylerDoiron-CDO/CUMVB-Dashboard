@@ -1,3 +1,5 @@
+# 💪 Team Fitness Data – Full Streamlit App with Utility Buttons
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,18 +10,36 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
 
-# ✅ Must be the first Streamlit command
+# ✅ Must be first
 st.set_page_config(page_title="💪 Team Fitness Data", layout="wide")
 
-# Title and intro
-st.title("💪 Team Fitness Data")
-st.markdown("""
-Explore physical performance metrics and longitudinal testing for all athletes.
+# --- Utility Function: Chart + CSV + Cache ---
+def render_utilities(df, fig=None, filename="export", include_csv=True):
+    col1, col2, col3 = st.columns([1, 1, 1])
 
-Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
-""")
+    if include_csv:
+        with col1:
+            st.download_button(
+                "📂 Download CSV",
+                df.to_csv(index=False).encode("utf-8"),
+                file_name=f"{filename}.csv",
+                mime="text/csv"
+            )
 
-# Load data
+    if fig:
+        with col2:
+            buffer = BytesIO()
+            fig.write_image(buffer, format="pdf")
+            b64 = base64.b64encode(buffer.getvalue()).decode()
+            href = f'<a href="data:application/pdf;base64,{b64}" download="{filename}.pdf">📄 Download Chart PDF</a>'
+            st.markdown(href, unsafe_allow_html=True)
+
+    with col3:
+        if st.button(f"🔁 Clear Cache for {filename}"):
+            st.cache_data.clear()
+            st.experimental_rerun()
+
+# --- Load Data ---
 @st.cache_data
 def load_testing_data():
     try:
@@ -35,7 +55,7 @@ if df.empty:
     st.warning("⚠️ No data available.")
     st.stop()
 
-# Preprocess
+# --- Preprocess ---
 df["Testing Date"] = pd.to_datetime(df["Testing Date"], errors="coerce")
 metric_cols = df.select_dtypes(include="number").columns.tolist()
 athlete_list = sorted(df["Athlete"].dropna().unique())
@@ -51,27 +71,17 @@ metric_map = {
 inverse_map = {v: k for k, v in metric_map.items()}
 tracked_metrics = sorted(list(inverse_map.keys()))
 
-# Utility: download buttons
+# --- Header ---
+st.title("💪 Team Fitness Data")
+st.markdown("""
+Explore physical performance metrics and longitudinal testing for all athletes.
 
-def export_buttons(dataframe, filename_base="export"):
-    col1, col2 = st.columns([1, 1])
+Navigate through interactive visualizations to monitor progress, spot trends, and evaluate individual and team-wide improvements.
+""")
 
-    with col1:
-        st.download_button(
-            "💾 Download CSV",
-            dataframe.to_csv(index=False).encode("utf-8"),
-            file_name=f"{filename_base}.csv",
-            mime="text/csv"
-        )
-
-    with col2:
-        if st.button("🔁 Clear Cache", key=f"clear_{filename_base}"):
-            st.cache_data.clear()
-            st.experimental_rerun()
-
-# Tabs
+# --- Tabs ---
 st.markdown("---")
-tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🕸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
+tabs = st.tabs(["📈 Line Plot", "📦 Box/Violin", "🔸 Radar Chart", "🔁 Delta", "📉 Correlation", "⚖️ Z-Score"])
 
 # --- Tab 1: Line Plot ---
 with tabs[0]:
@@ -105,48 +115,37 @@ with tabs[0]:
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("#### 📋 Detailed Athlete Records")
-        valid_df = chart_df.dropna(subset=["Testing Date", raw_metric]).copy()
-        valid_df["Testing Date"] = pd.to_datetime(valid_df["Testing Date"], errors="coerce")
+        pivot = chart_df.pivot_table(index=["Athlete", "Primary Position"], columns="Testing Date", values=raw_metric).reset_index()
 
-        try:
-            pivot = valid_df.pivot_table(
-                index=["Athlete", "Primary Position"],
-                columns="Testing Date",
-                values=raw_metric,
-                aggfunc="mean"
-            ).reset_index()
-        except Exception as e:
-            st.error(f"Error creating pivot table: {e}")
-            st.stop()
+        # Format column names to Month Year
+        pivot.columns = [
+            "Name" if col == "Athlete" else
+            "Position" if col == "Primary Position" else
+            pd.to_datetime(col).strftime("%B %Y") if isinstance(col, pd.Timestamp) else col
+            for col in pivot.columns
+        ]
 
-        # Convert datetime columns and sort chronologically
-        date_cols = [col for col in pivot.columns if isinstance(col, pd.Timestamp)]
-        sorted_dates = sorted(date_cols)
+        # Ensure all testing date columns are numeric
+        date_cols = pivot.columns[2:]
+        pivot[date_cols] = pivot[date_cols].apply(pd.to_numeric, errors='coerce')
 
-        renamed = {
-            date: pd.to_datetime(date).strftime("%B %Y")
-            for date in sorted_dates
-        }
-        pivot = pivot.rename(columns=renamed)
-
-        new_date_cols = [renamed[date] for date in sorted_dates]
-        pivot[new_date_cols] = pivot[new_date_cols].apply(pd.to_numeric, errors="coerce")
-
-        if len(new_date_cols) >= 2:
-            pivot["Δ Last"] = pivot[new_date_cols[-1]] - pivot[new_date_cols[-2]]
-            pivot["Δ Net"] = pivot[new_date_cols[-1]] - pivot[new_date_cols[0]]
+        # Compute deltas
+        if len(date_cols) >= 2:
+            pivot["Δ Last"] = pivot[date_cols[-1]] - pivot[date_cols[-2]]
+            pivot["Δ Net"] = pivot[date_cols[-1]] - pivot[date_cols[0]]
             pivot["Δ Last"] = pivot["Δ Last"].round(2)
             pivot["Δ Net"] = pivot["Δ Net"].round(2)
         else:
             pivot["Δ Last"] = np.nan
             pivot["Δ Net"] = np.nan
 
-        # Final column ordering
-        pivot = pivot.rename(columns={"Athlete": "Name", "Primary Position": "Position"})
-        final_cols = ["Name", "Position"] + new_date_cols + ["Δ Last", "Δ Net"]
-        st.dataframe(pivot[final_cols], use_container_width=True, hide_index=True)
+        # Reorder: Name, Position, Oldest -> Newest Dates, then Δs
+        date_cols_sorted = sorted(date_cols, key=lambda x: pd.to_datetime(x, errors="coerce"))
+        ordered_cols = ["Name", "Position"] + date_cols_sorted + ["Δ Last", "Δ Net"]
+        display_table = pivot[ordered_cols]
 
-        render_utilities(pivot[final_cols], fig, filename="line_plot")
+        st.dataframe(display_table, use_container_width=True, hide_index=True)
+        render_utilities(display_table, fig, filename="line_plot")
     else:
         st.info("No data available for the selected filters.")
 
