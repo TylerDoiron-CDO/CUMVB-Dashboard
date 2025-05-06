@@ -702,9 +702,27 @@ with tabs[5]:
 
 # Tab 7 - 📊 Team vs. VBC Normative
 with tabs[6]:
-    st.markdown("### 📊 Team vs. VBC Normative")
-    st.info("This section will compare team averages against VBC benchmark values for key metrics like height, jump reach, and speed.")
-    st.markdown("📌 *Placeholder content: To be updated with benchmarking data once finalized.*")
+    st.markdown("### 📊 Team vs. VBC Normative Benchmarks")
+
+    # --- Load Normative Data ---
+    @st.cache_data
+    def load_vbc_norms():
+        try:
+            norm_df = pd.read_csv("data/Volleyball Canada Normative.csv")
+            norm_df.columns = norm_df.columns.str.strip()
+            return norm_df
+        except Exception as e:
+            st.error(f"⚠️ Failed to load Volleyball Canada Normative data: {e}")
+            return pd.DataFrame()
+
+    vbc_df = load_vbc_norms()
+
+    if vbc_df.empty:
+        st.warning("⚠️ No normative benchmark data available.")
+    else:
+        st.markdown("The following table shows Volleyball Canada’s national benchmark values for selected fitness and performance metrics.")
+        st.dataframe(vbc_df, use_container_width=True, hide_index=True)
+        render_utilities(vbc_df, fig=None, filename="vbc_normative", include_csv=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
