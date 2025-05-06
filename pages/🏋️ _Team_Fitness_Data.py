@@ -700,11 +700,9 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Team vs. VBC Normative
 with tabs[6]:
     st.markdown("### 📊 Team vs. VBC Normative Benchmarks")
 
-    # --- Load Normative Data ---
     @st.cache_data
     def load_vbc_norms():
         try:
@@ -718,11 +716,31 @@ with tabs[6]:
     vbc_df = load_vbc_norms()
 
     if vbc_df.empty:
-        st.warning("⚠️ No normative benchmark data available.")
-    else:
-        st.markdown("The following table shows Volleyball Canada’s national benchmark values for selected fitness and performance metrics.")
-        st.dataframe(vbc_df, use_container_width=True, hide_index=True)
-        render_utilities(vbc_df, fig=None, filename="vbc_normative", include_csv=True)
+        st.warning("⚠️ No VBC benchmark data found.")
+        st.stop()
+
+    # Preprocess: Filter numeric columns from your team testing data
+    team_metrics_df = df.copy()
+    metric_cols_in_data = [col for col in vbc_df["Metric"].tolist() if col in team_metrics_df.columns]
+    
+    if not metric_cols_in_data:
+        st.warning("⚠️ No matching metrics between team data and VBC norms.")
+        st.stop()
+
+    team_avg = team_metrics_df[metric_cols_in_data].mean(numeric_only=True).round(2)
+    team_avg_df = team_avg.reset_index()
+    team_avg_df.columns = ["Metric", "Team Average"]
+
+    # Merge with normative data
+    merged_df = pd.merge(team_avg_df, vbc_df, on="Metric", how="left")
+    merged_df.rename(columns={"Value": "VBC Norm"}, inplace=True)
+    merged_df["Δ (Team - Norm)"] = (merged_df["Team Average"] - merged_df["VBC Norm"]).round(2)
+
+    # Clean display
+    st.dataframe(merged_df[["Metric", "Team Average", "VBC Norm", "Δ (Team - Norm)"]],
+                 use_container_width=True, hide_index=True)
+
+    render_utilities(merged_df, filename="team_vs_vbc_norms", include_csv=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
