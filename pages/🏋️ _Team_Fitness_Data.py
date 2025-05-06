@@ -700,47 +700,29 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
+# Tab 7 - 📊 Team vs. VBC Normative
 with tabs[6]:
     st.markdown("### 📊 Team vs. VBC Normative Benchmarks")
+    st.info("This section will compare team averages against VBC benchmark values for key metrics like height, jump reach, and speed.")
 
     @st.cache_data
-    def load_vbc_norms():
+    def load_vbc_normative_data():
         try:
-            norm_df = pd.read_csv("data/Volleyball Canada Normative.csv")
-            norm_df.columns = norm_df.columns.str.strip()
-            return norm_df
+            df = pd.read_csv("data/Volleyball Canada Normative.csv")
+            df.columns = df.columns.str.strip()
+            return df
         except Exception as e:
             st.error(f"⚠️ Failed to load Volleyball Canada Normative data: {e}")
             return pd.DataFrame()
 
-    vbc_df = load_vbc_norms()
+    vbc_norms = load_vbc_normative_data()
 
-    if vbc_df.empty:
-        st.warning("⚠️ No VBC benchmark data found.")
-        st.stop()
-
-    # Preprocess: Filter numeric columns from your team testing data
-    team_metrics_df = df.copy()
-    metric_cols_in_data = [col for col in vbc_df["Metric"].tolist() if col in team_metrics_df.columns]
-    
-    if not metric_cols_in_data:
-        st.warning("⚠️ No matching metrics between team data and VBC norms.")
-        st.stop()
-
-    team_avg = team_metrics_df[metric_cols_in_data].mean(numeric_only=True).round(2)
-    team_avg_df = team_avg.reset_index()
-    team_avg_df.columns = ["Metric", "Team Average"]
-
-    # Merge with normative data
-    merged_df = pd.merge(team_avg_df, vbc_df, on="Metric", how="left")
-    merged_df.rename(columns={"Value": "VBC Norm"}, inplace=True)
-    merged_df["Δ (Team - Norm)"] = (merged_df["Team Average"] - merged_df["VBC Norm"]).round(2)
-
-    # Clean display
-    st.dataframe(merged_df[["Metric", "Team Average", "VBC Norm", "Δ (Team - Norm)"]],
-                 use_container_width=True, hide_index=True)
-
-    render_utilities(merged_df, filename="team_vs_vbc_norms", include_csv=True)
+    if vbc_norms.empty:
+        st.warning("⚠️ No normative data available to display.")
+    else:
+        st.markdown("✅ Below is the currently loaded national normative data as provided by Volleyball Canada.")
+        st.dataframe(vbc_norms, use_container_width=True, hide_index=True)
+        render_utilities(vbc_norms, filename="vbc_normative", include_csv=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
