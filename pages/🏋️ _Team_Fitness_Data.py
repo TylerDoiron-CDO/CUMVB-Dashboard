@@ -703,7 +703,7 @@ with tabs[5]:
 # Tab 7 - 📊 Team vs. VBC Normative
 with tabs[6]:
     st.markdown("### 📊 Team vs. VBC Normative Benchmarks")
-    st.info("Compare Volleyball Canada normative ratings across age groups and positions.")
+    st.info("Compare Volleyball Canada normative ratings across positions for a selected age group.")
 
     @st.cache_data
     def load_vbc_normative_data():
@@ -732,31 +732,33 @@ with tabs[6]:
             "Spin Velocity (kmph)"
         ])
 
-        selected_metric = st.selectbox("📏 Select Metric", metric_choices, key="vbc_metric_filter")
+        selected_metric = st.selectbox("📏 Select Metric", metric_choices, key="vbc_metric_bar")
+
+        age_groups = sorted(vbc_df["Age-Group"].dropna().unique().tolist())
+        selected_age = st.selectbox("🎯 Select Age Group", age_groups, key="vbc_age_filter")
 
         required_cols = {"Rating", "Age-Group", "Position", selected_metric}
         if not required_cols.issubset(vbc_df.columns):
             st.warning("⚠️ Required columns not found in the data.")
             st.stop()
 
-        # Drop rows missing selected metric
-        chart_df = vbc_df.dropna(subset=[selected_metric])
+        # Filter data
+        chart_df = vbc_df[vbc_df["Age-Group"] == selected_age].dropna(subset=[selected_metric])
 
-        # Combine Age-Group and Position into a label
-        chart_df["Group"] = chart_df["Age-Group"].astype(str) + " – " + chart_df["Position"].astype(str)
-
-        # Plot line per Rating
-        fig = px.line(
-            chart_df,
-            x="Group",
-            y=selected_metric,
-            color="Rating",
-            markers=True,
-            title=f"{selected_metric} by Age Group & Position",
-            labels={"Group": "Age-Group – Position", selected_metric: selected_metric}
-        )
-        fig.update_layout(height=600, xaxis_tickangle=-45)
-        st.plotly_chart(fig, use_container_wi=True)
+        if chart_df.empty:
+            st.info(f"No data available for {selected_age}.")
+        else:
+            fig = px.bar(
+                chart_df,
+                x="Position",
+                y=selected_metric,
+                color="Rating",
+                barmode="group",
+                title=f"{selected_metric} by Position – {selected_age}",
+                labels={"Position": "Position", selected_metric: selected_metric}
+            )
+            fig.update_layout(height=600)
+            st.plotly_chart(fig, use_container_width=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
