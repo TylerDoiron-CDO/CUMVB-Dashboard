@@ -722,7 +722,53 @@ with tabs[6]:
     else:
         st.markdown("✅ Below is the currently loaded national normative data as provided by Volleyball Canada.")
         st.dataframe(vbc_norms, use_container_width=True, hide_index=True)
+
         render_utilities(vbc_norms, filename="vbc_normative", include_csv=True)
+
+        st.markdown("---")
+        st.markdown("### 📈 Normative Metric Comparison")
+
+        metric_choices = sorted([
+            "Attack Velocity (kmph)",
+            "Block Touch (cm)",
+            "Block Touch (in)",
+            "Counter Movement Jump",
+            "Pro Agility (sec)",
+            "Reactive Strength Index",
+            "Spike Reach (cm)",
+            "Spike Touch (in)",
+            "Spin Velocity (kmph)"
+        ])
+
+        selected_metric = st.selectbox("📏 Select Metric to Plot", metric_choices, key="vbc_metric_line")
+
+        if selected_metric not in vbc_norms.columns:
+            st.warning(f"⚠️ '{selected_metric}' not found in data.")
+        else:
+            # Use 'Group' or other category if it exists; else fallback to index
+            potential_group_cols = ["Category", "Group", "Position", "Level"]
+            x_axis_col = next((col for col in potential_group_cols if col in vbc_norms.columns), None)
+
+            chart_df = vbc_norms[[selected_metric]].copy()
+            chart_df = chart_df.dropna(subset=[selected_metric])
+
+            if x_axis_col:
+                chart_df[x_axis_col] = vbc_norms[x_axis_col]
+                x_col = x_axis_col
+            else:
+                chart_df["Index"] = range(1, len(chart_df) + 1)
+                x_col = "Index"
+
+            fig = px.line(
+                chart_df,
+                x=x_col,
+                y=selected_metric,
+                markers=True,
+                title=f"Line Plot – {selected_metric}",
+                labels={x_col: x_col, selected_metric: selected_metric}
+            )
+            fig.update_layout(height=500)
+            st.plotly_chart(fig, use_container_width=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
