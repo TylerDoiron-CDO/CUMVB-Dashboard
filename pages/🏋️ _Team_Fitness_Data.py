@@ -703,7 +703,7 @@ with tabs[5]:
 # Tab 7 - 📊 Team vs. VBC Normative
 with tabs[6]:
     st.markdown("### 📊 Team vs. VBC Normative Benchmarks")
-    st.info("This section will compare team averages against VBC benchmark values for key metrics like height, jump reach, and speed.")
+    st.info("Compare Volleyball Canada normative ratings across age groups and positions.")
 
     @st.cache_data
     def load_vbc_normative_data():
@@ -715,19 +715,11 @@ with tabs[6]:
             st.error(f"⚠️ Failed to load Volleyball Canada Normative data: {e}")
             return pd.DataFrame()
 
-    vbc_norms = load_vbc_normative_data()
+    vbc_df = load_vbc_normative_data()
 
-    if vbc_norms.empty:
+    if vbc_df.empty:
         st.warning("⚠️ No normative data available to display.")
     else:
-        st.markdown("✅ Below is the currently loaded national normative data as provided by Volleyball Canada.")
-        st.dataframe(vbc_norms, use_container_width=True, hide_index=True)
-
-        render_utilities(vbc_norms, filename="vbc_normative", include_csv=True)
-
-        st.markdown("---")
-        st.markdown("### 📈 Normative Metric Comparison")
-
         metric_choices = sorted([
             "Attack Velocity (kmph)",
             "Block Touch (cm)",
@@ -740,35 +732,31 @@ with tabs[6]:
             "Spin Velocity (kmph)"
         ])
 
-        selected_metric = st.selectbox("📏 Select Metric to Plot", metric_choices, key="vbc_metric_line")
+        selected_metric = st.selectbox("📏 Select Metric", metric_choices, key="vbc_metric_filter")
 
-        if selected_metric not in vbc_norms.columns:
-            st.warning(f"⚠️ '{selected_metric}' not found in data.")
-        else:
-            # Use 'Group' or other category if it exists; else fallback to index
-            potential_group_cols = ["Category", "Group", "Position", "Level"]
-            x_axis_col = next((col for col in potential_group_cols if col in vbc_norms.columns), None)
+        required_cols = {"Rating", "Age-Group", "Position", selected_metric}
+        if not required_cols.issubset(vbc_df.columns):
+            st.warning("⚠️ Required columns not found in the data.")
+            st.stop()
 
-            chart_df = vbc_norms[[selected_metric]].copy()
-            chart_df = chart_df.dropna(subset=[selected_metric])
+        # Drop rows missing selected metric
+        chart_df = vbc_df.dropna(subset=[selected_metric])
 
-            if x_axis_col:
-                chart_df[x_axis_col] = vbc_norms[x_axis_col]
-                x_col = x_axis_col
-            else:
-                chart_df["Index"] = range(1, len(chart_df) + 1)
-                x_col = "Index"
+        # Combine Age-Group and Position into a label
+        chart_df["Group"] = chart_df["Age-Group"].astype(str) + " – " + chart_df["Position"].astype(str)
 
-            fig = px.line(
-                chart_df,
-                x=x_col,
-                y=selected_metric,
-                markers=True,
-                title=f"Line Plot – {selected_metric}",
-                labels={x_col: x_col, selected_metric: selected_metric}
-            )
-            fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True)
+        # Plot line per Rating
+        fig = px.line(
+            chart_df,
+            x="Group",
+            y=selected_metric,
+            color="Rating",
+            markers=True,
+            title=f"{selected_metric} by Age Group & Position",
+            labels={"Group": "Age-Group – Position", selected_metric: selected_metric}
+        )
+        fig.update_layout(height=600, xaxis_tickangle=-45)
+        st.plotly_chart(fig, use_container_wi=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
