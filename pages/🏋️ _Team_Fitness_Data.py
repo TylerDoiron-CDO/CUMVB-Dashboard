@@ -703,7 +703,7 @@ with tabs[5]:
 # Tab 7 - 📊 Team vs. VBC Normative
 with tabs[6]:
     st.markdown("### 📊 Team vs. VBC Normative Benchmarks")
-    st.info("Compare Volleyball Canada normative ratings across positions for a selected age group.")
+    st.info("Compare Volleyball Canada normative ratings for each position within a selected age group.")
 
     @st.cache_data
     def load_vbc_normative_data():
@@ -732,33 +732,38 @@ with tabs[6]:
             "Spin Velocity (kmph)"
         ])
 
-        selected_metric = st.selectbox("📏 Select Metric", metric_choices, key="vbc_metric_bar")
+        selected_metric = st.selectbox("📏 Select Metric", metric_choices, key="vbc_metric_multi_bar")
 
         age_groups = sorted(vbc_df["Age-Group"].dropna().unique().tolist())
-        selected_age = st.selectbox("🎯 Select Age Group", age_groups, key="vbc_age_filter")
+        selected_age = st.selectbox("🎯 Select Age Group", age_groups, key="vbc_agegroup_single")
 
         required_cols = {"Rating", "Age-Group", "Position", selected_metric}
         if not required_cols.issubset(vbc_df.columns):
             st.warning("⚠️ Required columns not found in the data.")
             st.stop()
 
-        # Filter data
-        chart_df = vbc_df[vbc_df["Age-Group"] == selected_age].dropna(subset=[selected_metric])
+        # Filter to selected age group and non-null metric values
+        filtered_df = vbc_df[vbc_df["Age-Group"] == selected_age].dropna(subset=[selected_metric])
 
-        if chart_df.empty:
+        if filtered_df.empty:
             st.info(f"No data available for {selected_age}.")
         else:
-            fig = px.bar(
-                chart_df,
-                x="Position",
-                y=selected_metric,
-                color="Rating",
-                barmode="group",
-                title=f"{selected_metric} by Position – {selected_age}",
-                labels={"Position": "Position", selected_metric: selected_metric}
-            )
-            fig.update_layout(height=600)
-            st.plotly_chart(fig, use_container_width=True)
+            position_list = filtered_df["Position"].dropna().unique().tolist()
+            position_list.sort()
+
+            for position in position_list:
+                position_df = filtered_df[filtered_df["Position"] == position]
+
+                fig = px.bar(
+                    position_df,
+                    x="Rating",
+                    y=selected_metric,
+                    color="Rating",
+                    title=f"{selected_metric} – {selected_age} – {position}",
+                    labels={"Rating": "Rating", selected_metric: selected_metric}
+                )
+                fig.update_layout(height=400, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
