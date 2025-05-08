@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 – Proper Athlete Grouping, Bars = Dates, Benchmark = Line
+# Tab 7 - 📊 Grouped by Athlete, Clustered by Date, VBC Lines for 3 Ratings
 with tabs[6]:
-    st.markdown("### 📊 Clustered Athlete Performance vs VBC Benchmark")
-    st.info("Each athlete is grouped on the x-axis. Bars are performance by test date. Line is the VBC benchmark for selected metric/position/rating.")
+    st.markdown("### 📊 Athlete Testing vs VBC Benchmarks (All Ratings)")
+    st.info("Each athlete is grouped. Each bar shows one test date. Three benchmark lines represent VBC Poor, Average, and Excellent ratings.")
 
     @st.cache_data
     def load_team_data():
@@ -736,59 +736,67 @@ with tabs[6]:
         "LIB": "Libero"
     }
 
-    # Filters
+    # --- Filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="grouped_final_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="grouped_final_pos")
-    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="grouped_final_rating")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="bar_all_ratings_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="bar_all_ratings_pos")
+    age_groups = sorted(vbc_df["Age-Group"].dropna().unique())
+    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="bar_all_ratings_age")
 
     selected_metric_vbc = metric_mapping[selected_metric]
     selected_position_vbc = position_map[selected_position_team]
 
-    # Validate
-    required_cols = ["Athlete", "Primary Position", "Testing Date", selected_metric]
-    if not all(col in team_df.columns for col in required_cols):
-        st.error("❌ Missing required columns in team data.")
-        st.stop()
-
+    # --- Filter Team Data
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric, "Athlete"])
     team_filtered["Date Label"] = team_filtered["Testing Date"].dt.strftime("%b %Y")
 
     if team_filtered.empty:
-        st.warning("⚠️ No data available.")
+        st.warning("⚠️ No data found for selected filters.")
         st.stop()
 
-    # VBC Benchmark
-    vbc_val = vbc_df[
-        (vbc_df["Position"] == selected_position_vbc) &
-        (vbc_df["Rating"] == selected_rating) &
-        (vbc_df[selected_metric_vbc].notna())
-    ][selected_metric_vbc].mean()
+    # --- Pull VBC values for 3 ratings
+    benchmark_lines = {}
+    for rating in ["Poor", "Average", "Excellent"]:
+        val = vbc_df[
+            (vbc_df["Position"] == selected_position_vbc) &
+            (vbc_df["Age-Group"] == selected_age_group) &
+            (vbc_df["Rating"] == rating) &
+            (vbc_df[selected_metric_vbc].notna())
+        ][selected_metric_vbc].mean()
+        if not pd.isna(val):
+            benchmark_lines[rating] = val
 
-    if pd.isna(vbc_val):
-        st.warning("⚠️ No VBC benchmark found.")
+    if not benchmark_lines:
+        st.warning("⚠️ No benchmark data available for selected age group and position.")
         st.stop()
 
-    # Plot
+    # --- Plotting
     fig = px.bar(
         team_filtered,
         x="Athlete",
         y=selected_metric,
         color="Date Label",
         barmode="group",
-        title=f"{selected_metric} – {selected_position_vbc} – Rating: {selected_rating}",
+        title=f"{selected_metric} – {selected_position_vbc} – Age Group: {selected_age_group}",
         labels={"Date Label": "Testing Date", selected_metric: selected_metric},
         height=600
     )
 
-    fig.add_hline(
-        y=vbc_val,
-        line=dict(color="lime", width=3),
-        annotation_text=f"VBC Benchmark: {vbc_val:.1f}",
-        annotation_position="top left"
-    )
+    colors = {
+        "Poor": "red",
+        "Average": "lime",
+        "Excellent": "blue"
+    }
+
+    for rating, val in benchmark_lines.items():
+        fig.add_hline(
+            y=val,
+            line=dict(color=colors.get(rating, "gray"), width=2, dash="solid"),
+            annotation_text=f"{rating}: {val:.1f}",
+            annotation_position="top left"
+        )
 
     fig.update_layout(
         xaxis_title="Athlete",
