@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 – Clustered Bars by Athlete with 3 VBC Benchmark Lines
+# Tab 7 – Clustered Bars by Athlete with 3 VBC Benchmark Lines (Right-Aligned Labels)
 with tabs[6]:
     st.markdown("### 📊 Athlete Performance vs VBC Benchmarks – Best / Average / Minimum")
-    st.info("Each athlete is grouped on the x-axis. Bars represent test values by date. Three lines represent VBC benchmarks.")
+    st.info("Each athlete is grouped. Bars represent test scores by date. Horizontal lines show VBC benchmarks with labels aligned to the right.")
 
     @st.cache_data
     def load_team_data():
@@ -738,15 +738,15 @@ with tabs[6]:
 
     # Filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_restored_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_restored_pos")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_final_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_final_pos")
     age_groups = sorted(vbc_df["Age-Group"].dropna().unique())
-    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="vbc_restored_age")
+    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="vbc_final_age")
 
     selected_metric_vbc = metric_mapping[selected_metric]
     selected_position_vbc = position_map[selected_position_team]
 
-    # Filter & format team data
+    # Filter and clean team data
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric, "Athlete"])
@@ -763,7 +763,7 @@ with tabs[6]:
         (vbc_df[selected_metric_vbc].notna())
     ]
 
-    # Rating mapping (your actual terms)
+    # VBC Rating to Label & Color
     rating_map = {
         "Minimum": ("Minimum", "red"),
         "Average": ("Average", "yellow"),
@@ -782,7 +782,7 @@ with tabs[6]:
         st.error("❌ No usable VBC benchmark values found.")
         st.stop()
 
-    # Plot grouped bars
+    # Plot: grouped by athlete, bars colored by test date
     fig = px.bar(
         team_filtered,
         x="Athlete",
@@ -795,12 +795,13 @@ with tabs[6]:
         hover_data=["Testing Date"]
     )
 
+    # Add right-aligned VBC benchmark lines
     for label, (y_val, color) in benchmark_lines.items():
         fig.add_hline(
             y=y_val,
             line=dict(color=color, width=3),
             annotation_text=f"{label}: {y_val:.1f}",
-            annotation_position="top left"
+            annotation_position="top right"
         )
 
     fig.update_layout(
@@ -811,6 +812,7 @@ with tabs[6]:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
