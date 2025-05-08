@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Grouped by Athlete, Clustered by Date, VBC Lines for 3 Ratings
+# Tab 7 - 📊 Athlete Test vs VBC Benchmarks (Best, Average, Minimum Lines)
 with tabs[6]:
-    st.markdown("### 📊 Athlete Testing vs VBC Benchmarks (All Ratings)")
-    st.info("Each athlete is grouped. Each bar shows one test date. Three benchmark lines represent VBC Poor, Average, and Excellent ratings.")
+    st.markdown("### 📊 Team Testing vs VBC Benchmarks – 3 Rating Lines")
+    st.info("Each athlete is grouped on the x-axis. Bars show test values by date. Three horizontal lines show VBC 'Best' (Excellent), 'Average', and 'Minimum' (Poor).")
 
     @st.cache_data
     def load_team_data():
@@ -738,41 +738,47 @@ with tabs[6]:
 
     # --- Filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="bar_all_ratings_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="bar_all_ratings_pos")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_3lines_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_3lines_pos")
     age_groups = sorted(vbc_df["Age-Group"].dropna().unique())
-    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="bar_all_ratings_age")
+    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="vbc_3lines_age")
 
     selected_metric_vbc = metric_mapping[selected_metric]
     selected_position_vbc = position_map[selected_position_team]
 
-    # --- Filter Team Data
+    # --- Filter and clean team data
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric, "Athlete"])
     team_filtered["Date Label"] = team_filtered["Testing Date"].dt.strftime("%b %Y")
 
     if team_filtered.empty:
-        st.warning("⚠️ No data found for selected filters.")
+        st.warning("⚠️ No athlete data available for this metric/position.")
         st.stop()
 
-    # --- Pull VBC values for 3 ratings
+    # --- Extract VBC benchmark lines
+    rating_map = {
+        "Minimum": ("Poor", "red"),
+        "Average": ("Average", "yellow"),
+        "Best": ("Excellent", "green")
+    }
+
     benchmark_lines = {}
-    for rating in ["Poor", "Average", "Excellent"]:
+    for label, (rating_name, color) in rating_map.items():
         val = vbc_df[
             (vbc_df["Position"] == selected_position_vbc) &
             (vbc_df["Age-Group"] == selected_age_group) &
-            (vbc_df["Rating"] == rating) &
+            (vbc_df["Rating"] == rating_name) &
             (vbc_df[selected_metric_vbc].notna())
         ][selected_metric_vbc].mean()
         if not pd.isna(val):
-            benchmark_lines[rating] = val
+            benchmark_lines[label] = (val, color)
 
     if not benchmark_lines:
-        st.warning("⚠️ No benchmark data available for selected age group and position.")
+        st.warning("⚠️ No VBC benchmark data found for this combination.")
         st.stop()
 
-    # --- Plotting
+    # --- Build plot
     fig = px.bar(
         team_filtered,
         x="Athlete",
@@ -784,17 +790,11 @@ with tabs[6]:
         height=600
     )
 
-    colors = {
-        "Poor": "red",
-        "Average": "lime",
-        "Excellent": "blue"
-    }
-
-    for rating, val in benchmark_lines.items():
+    for label, (y_val, color) in benchmark_lines.items():
         fig.add_hline(
-            y=val,
-            line=dict(color=colors.get(rating, "gray"), width=2, dash="solid"),
-            annotation_text=f"{rating}: {val:.1f}",
+            y=y_val,
+            line=dict(color=color, width=3),
+            annotation_text=f"{label}: {y_val:.1f}",
             annotation_position="top left"
         )
 
