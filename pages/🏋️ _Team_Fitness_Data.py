@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Team vs. VBC Benchmark (All Ratings)
+# Tab 7 – Clustered Bars by Athlete with 3 Benchmark Lines
 with tabs[6]:
-    st.markdown("### 📊 Athlete Performance vs VBC Norms (Best, Average, Minimum)")
-    st.info("Each athlete is grouped on the X-axis. Bars represent test dates. Horizontal lines represent VBC benchmarks for Excellent, Average, and Poor.")
+    st.markdown("### 📊 Athlete Testing vs VBC Norms – Best / Average / Minimum")
+    st.info("Each athlete is grouped. Bars = test results by date. Lines = VBC benchmarks for Best, Average, and Minimum.")
 
     @st.cache_data
     def load_team_data():
@@ -717,7 +717,6 @@ with tabs[6]:
         df.columns = df.columns.str.strip()
         return df
 
-    # Load data
     team_df = load_team_data()
     vbc_df = load_vbc_data()
 
@@ -739,15 +738,15 @@ with tabs[6]:
 
     # --- Filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_full_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_full_pos")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_cleaned_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_cleaned_pos")
     age_groups = sorted(vbc_df["Age-Group"].dropna().unique())
-    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="vbc_full_age")
+    selected_age_group = col3.selectbox("📅 Age Group", age_groups, key="vbc_cleaned_age")
 
     selected_metric_vbc = metric_mapping[selected_metric]
     selected_position_vbc = position_map[selected_position_team]
 
-    # --- Filter and clean team data
+    # --- Filter team data
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric, "Athlete"])
@@ -757,29 +756,30 @@ with tabs[6]:
         st.warning("⚠️ No athlete data available for this metric/position.")
         st.stop()
 
-    # --- Filter VBC data
-    vbc_debug = vbc_df[
+    # --- Filter VBC for selected age group and position
+    vbc_filtered = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df["Age-Group"] == selected_age_group) &
         (vbc_df[selected_metric_vbc].notna())
     ]
-    available_ratings = sorted(vbc_debug["Rating"].dropna().unique())
-    st.caption(f"✅ Available VBC ratings for {selected_position_vbc} @ {selected_age_group}: {available_ratings}")
 
-    # --- Extract Benchmark Lines
+    available_ratings = sorted(vbc_filtered["Rating"].dropna().unique())
+    st.caption(f"✅ Available VBC ratings: {available_ratings}")
+
+    # --- Benchmark Line Mapping (using your exact terms)
     rating_map = {
-        "Minimum": ("Poor", "red"),
+        "Minimum": ("Minimum", "red"),
         "Average": ("Average", "yellow"),
-        "Best": ("Excellent", "green")
+        "Best": ("Best", "green")
     }
 
     benchmark_lines = {}
     for label, (rating_name, color) in rating_map.items():
-        val = vbc_debug[vbc_debug["Rating"].str.lower() == rating_name.lower()][selected_metric_vbc].mean()
+        val = vbc_filtered[vbc_filtered["Rating"] == rating_name][selected_metric_vbc].mean()
         if not pd.isna(val):
             benchmark_lines[label] = (val, color)
         else:
-            st.warning(f"⚠️ Missing benchmark for: {label} (Rating='{rating_name}')")
+            st.warning(f"⚠️ Benchmark missing for {label} ({rating_name})")
 
     if not benchmark_lines:
         st.error("❌ No usable VBC benchmark values found.")
