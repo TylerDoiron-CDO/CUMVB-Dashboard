@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Clustered by Athlete with Dates as Bars – Flat VBC Benchmark
+# Tab 7 – Proper Athlete Grouping, Bars = Dates, Benchmark = Line
 with tabs[6]:
-    st.markdown("### 📊 Clustered Athlete Testing vs VBC Benchmark")
-    st.info("Each athlete is shown on the x-axis. Each bar is one test date. Horizontal line = selected VBC benchmark.")
+    st.markdown("### 📊 Clustered Athlete Performance vs VBC Benchmark")
+    st.info("Each athlete is grouped on the x-axis. Bars are performance by test date. Line is the VBC benchmark for selected metric/position/rating.")
 
     @st.cache_data
     def load_team_data():
@@ -720,6 +720,7 @@ with tabs[6]:
     team_df = load_team_data()
     vbc_df = load_vbc_data()
 
+    # Mappings
     metric_mapping = {
         "Approach Touch (in.)": "Spike Touch (in)",
         "Block Touch (in.)": "Block Touch (in)",
@@ -735,67 +736,63 @@ with tabs[6]:
         "LIB": "Libero"
     }
 
-    # --- Filters
+    # Filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="final_grouped_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="final_grouped_pos")
-    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="final_grouped_rating")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="grouped_final_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="grouped_final_pos")
+    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="grouped_final_rating")
 
     selected_metric_vbc = metric_mapping[selected_metric]
     selected_position_vbc = position_map[selected_position_team]
 
-    # --- Clean team data
+    # Validate
+    required_cols = ["Athlete", "Primary Position", "Testing Date", selected_metric]
+    if not all(col in team_df.columns for col in required_cols):
+        st.error("❌ Missing required columns in team data.")
+        st.stop()
+
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric, "Athlete"])
     team_filtered["Date Label"] = team_filtered["Testing Date"].dt.strftime("%b %Y")
-    team_filtered["X"] = team_filtered["Athlete"] + "\n" + team_filtered["Date Label"]
 
     if team_filtered.empty:
         st.warning("⚠️ No data available.")
         st.stop()
 
-    # --- VBC Benchmark
-    vbc_value = vbc_df[
+    # VBC Benchmark
+    vbc_val = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df["Rating"] == selected_rating) &
         (vbc_df[selected_metric_vbc].notna())
     ][selected_metric_vbc].mean()
 
-    if pd.isna(vbc_value):
+    if pd.isna(vbc_val):
         st.warning("⚠️ No VBC benchmark found.")
         st.stop()
 
-    # --- Create Plot
-    fig = go.Figure()
+    # Plot
+    fig = px.bar(
+        team_filtered,
+        x="Athlete",
+        y=selected_metric,
+        color="Date Label",
+        barmode="group",
+        title=f"{selected_metric} – {selected_position_vbc} – Rating: {selected_rating}",
+        labels={"Date Label": "Testing Date", selected_metric: selected_metric},
+        height=600
+    )
 
-    # Group by date (color each bar by testing date)
-    for date_str in sorted(team_filtered["Date Label"].unique()):
-        date_df = team_filtered[team_filtered["Date Label"] == date_str]
-        fig.add_trace(go.Bar(
-            x=date_df["X"],
-            y=date_df[selected_metric],
-            name=date_str,
-            hovertext=date_df["Athlete"],
-            hovertemplate="%{hovertext}<br>Date: " + date_str + "<br>Score: %{y}<extra></extra>"
-        ))
-
-    # Add horizontal line
-    fig.add_trace(go.Scatter(
-        x=team_filtered["X"],
-        y=[vbc_value] * len(team_filtered),
-        mode="lines",
-        name=f"VBC Benchmark ({selected_rating})",
-        line=dict(color="lime", width=3, dash="solid")
-    ))
+    fig.add_hline(
+        y=vbc_val,
+        line=dict(color="lime", width=3),
+        annotation_text=f"VBC Benchmark: {vbc_val:.1f}",
+        annotation_position="top left"
+    )
 
     fig.update_layout(
-        title=f"{selected_metric} – {selected_position_vbc} – Rating: {selected_rating}",
-        xaxis_title="Athlete / Date",
+        xaxis_title="Athlete",
         yaxis_title=selected_metric,
-        barmode="group",
-        height=600,
-        xaxis_tickangle=-45,
         showlegend=True
     )
 
