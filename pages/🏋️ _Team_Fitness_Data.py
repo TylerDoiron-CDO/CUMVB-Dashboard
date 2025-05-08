@@ -703,7 +703,7 @@ with tabs[5]:
 # Tab 7 - 📊 Team vs. VBC Normative (Overlayed Comparison)
 with tabs[6]:
     st.markdown("### 📊 Team vs. VBC Normative Benchmarks – Combined View")
-    st.info("Line graphs show individual athlete performance. Bars represent Volleyball Canada normative benchmarks by Rating.\n\nGrouped by Age Group, filtered by Position and Metric.")
+    st.info("Line graphs show athlete scores. Bars show VBC benchmarks by rating.\nFiltered by Position and Metric, grouped by Age Group.")
 
     # Load datasets
     @st.cache_data
@@ -750,13 +750,27 @@ with tabs[6]:
     selected_position_vbc = position_map[selected_position_team]
     selected_metric_vbc = metric_mapping[selected_metric]
 
-    # Filter team data
+    # --- Validate Team Columns ---
+    required_cols = ["Athlete", "Testing Date", "Age Group", "Primary Position", selected_metric]
+    missing_cols = [col for col in required_cols if col not in team_df.columns]
+    if missing_cols:
+        st.error(f"❌ Missing columns in team data: {missing_cols}")
+        st.stop()
+
+    # --- Filter and Clean Team Data ---
     team_filtered = team_df[
         team_df["Primary Position"] == selected_position_team
     ][["Athlete", "Testing Date", "Age Group", selected_metric]].dropna()
+
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
 
-    # Filter VBC data
+    # --- Filter VBC Normative Data ---
+    vbc_required_cols = ["Rating", "Age-Group", "Position", selected_metric_vbc]
+    missing_vbc_cols = [col for col in vbc_required_cols if col not in vbc_df.columns]
+    if missing_vbc_cols:
+        st.error(f"❌ Missing columns in VBC normative data: {missing_vbc_cols}")
+        st.stop()
+
     vbc_filtered = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df[selected_metric_vbc].notna())
@@ -766,51 +780,11 @@ with tabs[6]:
         st.warning("⚠️ No data found for this position and metric.")
         st.stop()
 
-    # Sort Age-Groups (youth to senior)
+    # Sort Age-Groups (youth → senior)
     age_order = sorted(vbc_filtered["Age-Group"].dropna().unique())
 
-    # Display by Age-Group
     for age in age_order:
-        vbc_age_df = vbc_filtered[vbc_filtered["Age-Group"] == age]
-        team_age_df = team_filtered[team_filtered["Age Group"] == age]
-
-        if vbc_age_df.empty and team_age_df.empty:
-            continue
-
-        fig = go.Figure()
-
-        # Add VBC benchmark bars
-        if not vbc_age_df.empty:
-            fig.add_trace(go.Bar(
-                x=vbc_age_df["Rating"],
-                y=vbc_age_df[selected_metric_vbc],
-                name="VBC Normative",
-                marker_color="rgba(0,123,255,0.6)",
-                opacity=0.85
-            ))
-
-        # Add athlete performance lines
-        for athlete in team_age_df["Athlete"].unique():
-            athlete_df = team_age_df[team_age_df["Athlete"] == athlete]
-            y_values = athlete_df[selected_metric].values
-            if len(y_values) > 0:
-                fig.add_trace(go.Scatter(
-                    x=["Athlete"] * len(y_values),
-                    y=y_values,
-                    mode="lines+markers",
-                    name=athlete,
-                    line=dict(shape='linear', dash='dot')
-                ))
-
-        fig.update_layout(
-            title=f"{selected_metric} – {selected_position_vbc} – Age Group: {age}",
-            xaxis_title="Rating / Athlete",
-            yaxis_title=selected_metric,
-            height=450,
-            legend_title_text="Legend",
-            showlegend=True
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        vbc_age_df = vbc
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
