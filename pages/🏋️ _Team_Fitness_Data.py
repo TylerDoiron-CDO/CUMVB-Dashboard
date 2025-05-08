@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Team vs. VBC Normative – Bar = Athlete, Line = Norm
+# Tab 7 - 📊 Athlete Bars by Date vs VBC Line (per Rating)
 with tabs[6]:
-    st.markdown("### 📊 Team vs. VBC Normative – Athlete vs Benchmark")
-    st.info("Each bar is an athlete's score. The line is the VBC benchmark for the selected rating, grouped by age group.\nUse filters below to choose metric, position, and benchmark rating.")
+    st.markdown("### 📊 Athlete Performance by Date vs VBC Benchmark")
+    st.info("Each bar represents an athlete’s result on a given test date. The horizontal line is the VBC benchmark for the selected position, age group, and rating.")
 
     @st.cache_data
     def load_team_data():
@@ -720,7 +720,7 @@ with tabs[6]:
     team_df = load_team_data()
     vbc_df = load_vbc_data()
 
-    # Mapping: Team → VBC
+    # Mappings
     metric_mapping = {
         "Approach Touch (in.)": "Spike Touch (in)",
         "Block Touch (in.)": "Block Touch (in)",
@@ -736,39 +736,38 @@ with tabs[6]:
         "LIB": "Libero"
     }
 
-    # Inline filters
+    # UI filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_barline_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_barline_pos")
-    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="vbc_barline_rating")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_bar_date_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_bar_date_pos")
+    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="vbc_bar_date_rating")
 
     selected_position_vbc = position_map[selected_position_team]
     selected_metric_vbc = metric_mapping[selected_metric]
 
-    # Defensive checks
-    required_cols_team = ["Athlete", "Primary Position", selected_metric]
-    if any(col not in team_df.columns for col in required_cols_team):
-        st.error("❌ Team dataset is missing required columns.")
+    # Validate team columns
+    required_team_cols = ["Athlete", "Primary Position", "Testing Date", selected_metric]
+    if any(col not in team_df.columns for col in required_team_cols):
+        st.error("❌ Missing required columns in team data.")
         st.stop()
 
-    required_cols_vbc = ["Position", "Age-Group", "Rating", selected_metric_vbc]
-    if any(col not in vbc_df.columns for col in required_cols_vbc):
-        st.error("❌ VBC dataset is missing required columns.")
+    # Validate VBC columns
+    required_vbc_cols = ["Rating", "Age-Group", "Position", selected_metric_vbc]
+    if any(col not in vbc_df.columns for col in required_vbc_cols):
+        st.error("❌ Missing required columns in VBC data.")
         st.stop()
 
-    # Filter team data
-    team_filtered = team_df[
-        team_df["Primary Position"] == selected_position_team
-    ][["Athlete", selected_metric]].dropna()
+    # Filter and clean team data
+    team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
+    team_filtered = team_filtered[["Athlete", "Testing Date", selected_metric]].dropna()
+    team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
+    team_filtered = team_filtered.dropna(subset=["Testing Date"])
 
     if team_filtered.empty:
-        st.warning("⚠️ No athlete data available for selected metric and position.")
+        st.warning("⚠️ No valid athlete data for this metric/position.")
         st.stop()
 
-    # Assign a dummy "Age-Group" to each athlete for x-axis grouping (simulate or add later if known)
-    team_filtered["Age Group"] = "Unknown"  # You could infer from roster later
-
-    # Filter VBC data for selected rating + position
+    # Filter VBC data
     vbc_filtered = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df["Rating"] == selected_rating) &
@@ -776,43 +775,41 @@ with tabs[6]:
     ][["Age-Group", selected_metric_vbc]]
 
     if vbc_filtered.empty:
-        st.warning("⚠️ No VBC benchmark available for this rating and position.")
+        st.warning("⚠️ No VBC benchmark found for selected filters.")
         st.stop()
 
-    # Sort age groups
-    age_groups = sorted(vbc_filtered["Age-Group"].unique())
+    # Use average across age groups (if multiple age-group values exist)
+    vbc_benchmark_value = vbc_filtered[selected_metric_vbc].mean()
 
-    # Group team data by age group (fallback = "All")
-    team_filtered["Age Group"] = np.random.choice(age_groups, size=len(team_filtered))  # Placeholder
-    team_filtered.sort_values(by="Age Group", inplace=True)
-
+    # Plot
     fig = go.Figure()
 
-    # Bar: Athlete values (grouped by Age Group)
-    fig.add_trace(go.Bar(
-        x=team_filtered["Athlete"],
-        y=team_filtered[selected_metric],
-        name="Athlete",
-        marker_color="rgba(255,100,100,0.85)"
-    ))
-
-    # Line(s): VBC benchmark for each age group
-    for age in age_groups:
-        norm_val = vbc_filtered.loc[vbc_filtered["Age-Group"] == age, selected_metric_vbc].mean()
-        fig.add_trace(go.Scatter(
-            x=team_filtered["Athlete"],
-            y=[norm_val] * len(team_filtered),
-            mode="lines",
-            line=dict(color="lime", width=3, dash="solid"),
-            name=f"VBC Benchmark – {age}"
+    # Group bars by athlete, with different bars for each date
+    for athlete in sorted(team_filtered["Athlete"].unique()):
+        athlete_df = team_filtered[team_filtered["Athlete"] == athlete]
+        fig.add_trace(go.Bar(
+            x=athlete_df["Testing Date"],
+            y=athlete_df[selected_metric],
+            name=athlete
         ))
+
+    # Add benchmark line
+    min_date = team_filtered["Testing Date"].min()
+    max_date = team_filtered["Testing Date"].max()
+    fig.add_trace(go.Scatter(
+        x=[min_date, max_date],
+        y=[vbc_benchmark_value, vbc_benchmark_value],
+        mode="lines",
+        name=f"VBC Benchmark ({selected_rating})",
+        line=dict(color="lime", width=3, dash="solid")
+    ))
 
     fig.update_layout(
         title=f"{selected_metric} – {selected_position_vbc} – VBC Rating: {selected_rating}",
-        xaxis_title="Athlete",
+        xaxis_title="Testing Date",
         yaxis_title=selected_metric,
         barmode="group",
-        height=500,
+        height=550,
         showlegend=True
     )
 
