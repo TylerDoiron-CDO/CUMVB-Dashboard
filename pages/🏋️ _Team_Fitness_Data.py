@@ -711,10 +711,10 @@ def format_feet_inches(value, unit="in"):
     remaining_inches = round(inches % 12)
     return f"{feet}′ {remaining_inches}″"
 
-# Tab 7 – Stable Version with Feet/Inches Axis and Safe Max Calculation
+# Tab 7 – Volleyball-Specific Y-Axis Scale and Benchmark Lines
 with tabs[6]:
     st.markdown("### 📊 Athlete Performance vs VBC Benchmarks – Best / Average / Minimum")
-    st.info("Touch metrics use feet/inches formatting and Y-axis starts at 50% of best. All others use raw values.")
+    st.info("Touch metrics use volleyball-specific scale (9′6″–13′0″). All others use auto-range.")
 
     @st.cache_data
     def load_team_data():
@@ -797,7 +797,6 @@ with tabs[6]:
         st.error("❌ No usable VBC benchmark values found.")
         st.stop()
 
-    # --- Compute dynamic Y-axis range
     best_val = benchmark_lines.get("Best", (None,))[0]
     y_min = best_val * 0.5 if use_imperial and best_val else 0
     athlete_max = team_filtered[selected_metric].dropna().max()
@@ -827,11 +826,11 @@ with tabs[6]:
             annotation_position="top right"
         )
 
-    # --- Y-axis: custom for touch metrics
+    # --- Y-axis formatting
     if use_imperial:
-        tick_vals = list(range(int(y_min), int(y_max + 12), 6))
+        tick_vals = list(range(114, 157, 6))  # 9'6 (114) to 13'0 (156)
         tick_texts = [format_feet_inches(v) for v in tick_vals]
-        fig.update_layout(yaxis=dict(tickvals=tick_vals, ticktext=tick_texts))
+        fig.update_layout(yaxis=dict(tickvals=tick_vals, ticktext=tick_texts, range=[114, 156]))
     else:
         fig.update_layout(yaxis_range=[y_min, None])
 
@@ -843,6 +842,7 @@ with tabs[6]:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
