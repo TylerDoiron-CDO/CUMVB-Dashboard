@@ -700,12 +700,11 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Team vs. VBC Normative (Overlayed Comparison)
+# Tab 7 - 📊 Team vs. VBC Normative (Unified Graph)
 with tabs[6]:
-    st.markdown("### 📊 Team vs. VBC Normative Benchmarks – Combined View")
-    st.info("Line graphs show athlete scores. Bars show VBC benchmarks by rating.\nFiltered by Position and Metric, grouped by Age Group.")
+    st.markdown("### 📊 Team vs. VBC Normative Benchmarks – Overlay View")
+    st.info("Line plots show athlete performance. Bar charts show VBC benchmarks by Rating and Age Group.\nUse filters below to choose metric and position.")
 
-    # Load datasets
     @st.cache_data
     def load_team_data():
         df = pd.read_csv("data/Testing Data.csv")
@@ -725,7 +724,7 @@ with tabs[6]:
         st.warning("⚠️ One or both datasets are missing.")
         st.stop()
 
-    # Metric mapping between team and VBC
+    # Metric mapping
     metric_mapping = {
         "Approach Touch (in.)": "Spike Touch (in)",
         "Block Touch (in.)": "Block Touch (in)",
@@ -733,7 +732,7 @@ with tabs[6]:
         "Serve Velocity (km/h)": "Spin Velocity (kmph)"
     }
 
-    # Position mapping between team and VBC
+    # Position mapping
     position_map = {
         "S": "Setter",
         "LS": "Left Side",
@@ -742,7 +741,7 @@ with tabs[6]:
         "LIB": "Libero"
     }
 
-    # Inline filters
+    # Inline filter UI
     col1, col2 = st.columns(2)
     selected_metric = col1.selectbox("📏 Select Metric", list(metric_mapping.keys()), key="vbc_combo_metric")
     selected_position_team = col2.selectbox("🧍 Select Position", list(position_map.keys()), key="vbc_combo_position")
@@ -750,41 +749,69 @@ with tabs[6]:
     selected_position_vbc = position_map[selected_position_team]
     selected_metric_vbc = metric_mapping[selected_metric]
 
-    # --- Validate Team Columns ---
-    required_cols = ["Athlete", "Testing Date", "Age Group", "Primary Position", selected_metric]
-    missing_cols = [col for col in required_cols if col not in team_df.columns]
-    if missing_cols:
-        st.error(f"❌ Missing columns in team data: {missing_cols}")
+    # Defensive check
+    required_team_cols = ["Athlete", "Testing Date", "Primary Position", selected_metric]
+    missing_team_cols = [col for col in required_team_cols if col not in team_df.columns]
+    if missing_team_cols:
+        st.error(f"❌ Missing columns in team data: {missing_team_cols}")
         st.stop()
 
-    # --- Filter and Clean Team Data ---
+    required_vbc_cols = ["Rating", "Age-Group", "Position", selected_metric_vbc]
+    missing_vbc_cols = [col for col in required_vbc_cols if col not in vbc_df.columns]
+    if missing_vbc_cols:
+        st.error(f"❌ Missing columns in VBC data: {missing_vbc_cols}")
+        st.stop()
+
+    # Filter team data
     team_filtered = team_df[
         team_df["Primary Position"] == selected_position_team
-    ][["Athlete", "Testing Date", "Age Group", selected_metric]].dropna()
-
+    ][["Athlete", "Testing Date", selected_metric]].dropna()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
 
-    # --- Filter VBC Normative Data ---
-    vbc_required_cols = ["Rating", "Age-Group", "Position", selected_metric_vbc]
-    missing_vbc_cols = [col for col in vbc_required_cols if col not in vbc_df.columns]
-    if missing_vbc_cols:
-        st.error(f"❌ Missing columns in VBC normative data: {missing_vbc_cols}")
-        st.stop()
-
+    # Filter VBC data
     vbc_filtered = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df[selected_metric_vbc].notna())
     ][["Rating", "Age-Group", selected_metric_vbc]]
 
     if team_filtered.empty and vbc_filtered.empty:
-        st.warning("⚠️ No data found for this position and metric.")
+        st.warning("⚠️ No data found for this metric and position.")
         st.stop()
 
-    # Sort Age-Groups (youth → senior)
-    age_order = sorted(vbc_filtered["Age-Group"].dropna().unique())
+    # Plot both in one unified chart
+    fig = go.Figure()
 
-    for age in age_order:
-        vbc_age_df = vbc
+    # Bars for VBC: stacked by Age-Group per Rating
+    for age_group in sorted(vbc_filtered["Age-Group"].dropna().unique()):
+        sub_df = vbc_filtered[vbc_filtered["Age-Group"] == age_group]
+        fig.add_trace(go.Bar(
+            x=sub_df["Rating"],
+            y=sub_df[selected_metric_vbc],
+            name=f"VBC {age_group}",
+            opacity=0.8
+        ))
+
+    # Line plots per athlete
+    for athlete in team_filtered["Athlete"].unique():
+        athlete_df = team_filtered[team_filtered["Athlete"] == athlete]
+        fig.add_trace(go.Scatter(
+            x=athlete_df["Testing Date"],
+            y=athlete_df[selected_metric],
+            mode="lines+markers",
+            name=athlete,
+            line=dict(dash="dot")
+        ))
+
+    fig.update_layout(
+        title=f"{selected_metric} – {selected_position_vbc}",
+        xaxis_title="Rating (Bars) / Date (Lines)",
+        yaxis_title=selected_metric,
+        barmode="group",
+        height=500,
+        showlegend=True
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
