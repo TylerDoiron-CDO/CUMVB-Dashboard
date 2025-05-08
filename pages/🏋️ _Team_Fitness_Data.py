@@ -712,10 +712,10 @@ def format_feet_inches(value, unit="in"):
     remaining_inches = round(inches % 12)
     return f"{feet}′ {remaining_inches}″"
 
-# Tab 7 – Final Version: Conditional Feet/Inches Axis + Zoom
+# Tab 7 – Final Version with Conditional Axis Zoom & Formatting
 with tabs[6]:
     st.markdown("### 📊 Athlete Performance vs VBC Benchmarks – Best / Average / Minimum")
-    st.info("Y-axis is zoomed and formatted in feet/inches for touch metrics. Bars = tests by date. Lines = VBC Best, Average, and Minimum.")
+    st.info("Touch metrics use feet/inches formatting and Y-axis starts at 50% of best. All others use raw values.")
 
     @st.cache_data
     def load_team_data():
@@ -729,6 +729,7 @@ with tabs[6]:
         df.columns = df.columns.str.strip()
         return df
 
+    # Load data
     team_df = load_team_data()
     vbc_df = load_vbc_data()
 
@@ -749,7 +750,7 @@ with tabs[6]:
         "LIB": "Libero"
     }
 
-    # --- Filters
+    # Filters
     col1, col2, col3 = st.columns(3)
     selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="vbc_axis_metric")
     selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="vbc_axis_pos")
@@ -760,7 +761,7 @@ with tabs[6]:
     selected_position_vbc = position_map[selected_position_team]
     use_imperial = selected_metric in imperial_metrics
 
-    # --- Filter and clean team data
+    # Filter team data
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric, "Athlete"])
@@ -770,14 +771,14 @@ with tabs[6]:
         st.warning("⚠️ No athlete data available for this metric/position.")
         st.stop()
 
-    # --- Filter VBC
+    # Filter VBC data
     vbc_filtered = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df["Age-Group"] == selected_age_group) &
         (vbc_df[selected_metric_vbc].notna())
     ]
 
-    # --- VBC ratings
+    # Define ratings and colors
     rating_map = {
         "Minimum": ("Minimum", "red"),
         "Average": ("Average", "yellow"),
@@ -799,7 +800,7 @@ with tabs[6]:
     best_val = benchmark_lines.get("Best", (None,))[0]
     y_min = best_val * 0.5 if use_imperial and best_val else 0
 
-    # Plot base bar chart
+    # Plot chart
     fig = px.bar(
         team_filtered,
         x="Athlete",
@@ -812,7 +813,7 @@ with tabs[6]:
         hover_data=["Testing Date"]
     )
 
-    # Add benchmark lines with ft/in annotations where relevant
+    # Add benchmark lines
     for label, (y_val, color) in benchmark_lines.items():
         text = format_feet_inches(y_val) if use_imperial else f"{y_val:.1f}"
         fig.add_hline(
@@ -822,10 +823,23 @@ with tabs[6]:
             annotation_position="top right"
         )
 
-    # Adjust y-axis ticks to feet/inches if applicable
+    # Format Y-axis for imperial if needed
     if use_imperial:
         max_val = max([y for y, _ in benchmark_lines.values()] + [team_filtered[selected_metric].max()])
-        tick_vals = list(range(int(y_min),
+        tick_vals = list(range(int(y_min), int(max_val + 12), 6))
+        tick_texts = [format_feet_inches(v) for v in tick_vals]
+        fig.update_layout(yaxis=dict(tickvals=tick_vals, ticktext=tick_texts))
+    else:
+        fig.update_layout(yaxis_range=[y_min, None])
+
+    fig.update_layout(
+        xaxis_title="Athlete",
+        yaxis_title=selected_metric,
+        xaxis_tickangle=0,
+        showlegend=True
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 # Tab 8 - 🎯 Target Analysis
