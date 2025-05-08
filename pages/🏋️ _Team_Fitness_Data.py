@@ -700,12 +700,12 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Team vs. VBC Normative (Overlayed View)
+# Tab 7 - 📊 Team vs. VBC Normative (Overlayed Comparison)
 with tabs[6]:
-    st.markdown("### 📊 Team vs. VBC Normative Benchmarks – Overlay View")
-    st.info("Line plots show individual athlete scores. Bars show Volleyball Canada normative values by Rating.\n\nGrouped by Age Group – youth to senior.")
+    st.markdown("### 📊 Team vs. VBC Normative Benchmarks – Combined View")
+    st.info("Line graphs show individual athlete performance. Bars represent Volleyball Canada normative benchmarks by Rating.\n\nGrouped by Age Group, filtered by Position and Metric.")
 
-    # Load data
+    # Load datasets
     @st.cache_data
     def load_team_data():
         df = pd.read_csv("data/Testing Data.csv")
@@ -713,19 +713,19 @@ with tabs[6]:
         return df
 
     @st.cache_data
-    def load_vbc_normative_data():
+    def load_vbc_data():
         df = pd.read_csv("data/Volleyball Canada Normative.csv")
         df.columns = df.columns.str.strip()
         return df
 
     team_df = load_team_data()
-    vbc_df = load_vbc_normative_data()
+    vbc_df = load_vbc_data()
 
     if team_df.empty or vbc_df.empty:
-        st.warning("⚠️ Missing team or normative data.")
+        st.warning("⚠️ One or both datasets are missing.")
         st.stop()
 
-    # Mapping: Team ➜ VBC
+    # Metric mapping between team and VBC
     metric_mapping = {
         "Approach Touch (in.)": "Spike Touch (in)",
         "Block Touch (in.)": "Block Touch (in)",
@@ -733,40 +733,43 @@ with tabs[6]:
         "Serve Velocity (km/h)": "Spin Velocity (kmph)"
     }
 
-    # Select metric
-    metric_options = list(metric_mapping.keys())
-    selected_team_metric = st.selectbox("📏 Select Metric", metric_options, key="overlay_metric")
-    selected_vbc_metric = metric_mapping[selected_team_metric]
+    # Position mapping between team and VBC
+    position_map = {
+        "S": "Setter",
+        "LS": "Left Side",
+        "RS": "Opposite",
+        "M": "Middle",
+        "LIB": "Libero"
+    }
 
-    # Filter positions
-    available_positions = sorted(team_df["Primary Position"].dropna().unique())
-    selected_position = st.selectbox("🧍‍♂️ Select Position", available_positions, key="overlay_position")
+    # Inline filters
+    col1, col2 = st.columns(2)
+    selected_metric = col1.selectbox("📏 Select Metric", list(metric_mapping.keys()), key="vbc_combo_metric")
+    selected_position_team = col2.selectbox("🧍 Select Position", list(position_map.keys()), key="vbc_combo_position")
+
+    selected_position_vbc = position_map[selected_position_team]
+    selected_metric_vbc = metric_mapping[selected_metric]
 
     # Filter team data
     team_filtered = team_df[
-        team_df["Primary Position"] == selected_position
-    ][["Athlete", "Testing Date", "Age Group", selected_team_metric]].dropna()
-
+        team_df["Primary Position"] == selected_position_team
+    ][["Athlete", "Testing Date", "Age Group", selected_metric]].dropna()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
 
-    if team_filtered.empty:
-        st.warning("⚠️ No team data found for that position/metric.")
-        st.stop()
-
-    # Filter normative data
+    # Filter VBC data
     vbc_filtered = vbc_df[
-        (vbc_df["Position"] == selected_position) &
-        (vbc_df[selected_vbc_metric].notna())
-    ][["Rating", "Age-Group", selected_vbc_metric]]
+        (vbc_df["Position"] == selected_position_vbc) &
+        (vbc_df[selected_metric_vbc].notna())
+    ][["Rating", "Age-Group", selected_metric_vbc]]
 
-    if vbc_filtered.empty:
-        st.warning("⚠️ No normative data found for that position/metric.")
+    if team_filtered.empty and vbc_filtered.empty:
+        st.warning("⚠️ No data found for this position and metric.")
         st.stop()
 
-    # Sort age groups
+    # Sort Age-Groups (youth to senior)
     age_order = sorted(vbc_filtered["Age-Group"].dropna().unique())
 
-    # Plot by Age-Group
+    # Display by Age-Group
     for age in age_order:
         vbc_age_df = vbc_filtered[vbc_filtered["Age-Group"] == age]
         team_age_df = team_filtered[team_filtered["Age Group"] == age]
@@ -776,35 +779,38 @@ with tabs[6]:
 
         fig = go.Figure()
 
-        # Bar: VBC Benchmarks
-        fig.add_trace(go.Bar(
-            x=vbc_age_df["Rating"],
-            y=vbc_age_df[selected_vbc_metric],
-            name="VBC Normative",
-            marker_color="rgba(0,123,255,0.6)",
-            opacity=0.8
-        ))
+        # Add VBC benchmark bars
+        if not vbc_age_df.empty:
+            fig.add_trace(go.Bar(
+                x=vbc_age_df["Rating"],
+                y=vbc_age_df[selected_metric_vbc],
+                name="VBC Normative",
+                marker_color="rgba(0,123,255,0.6)",
+                opacity=0.85
+            ))
 
-        # Line: Athlete Scores
+        # Add athlete performance lines
         for athlete in team_age_df["Athlete"].unique():
-            scores = team_age_df[team_age_df["Athlete"] == athlete]
-            if not scores.empty:
+            athlete_df = team_age_df[team_age_df["Athlete"] == athlete]
+            y_values = athlete_df[selected_metric].values
+            if len(y_values) > 0:
                 fig.add_trace(go.Scatter(
-                    x=["Athlete"] * len(scores),
-                    y=scores[selected_team_metric],
+                    x=["Athlete"] * len(y_values),
+                    y=y_values,
                     mode="lines+markers",
                     name=athlete,
-                    line=dict(shape='linear')
+                    line=dict(shape='linear', dash='dot')
                 ))
 
         fig.update_layout(
-            title=f"{selected_team_metric} – {selected_position} – Age Group: {age}",
+            title=f"{selected_metric} – {selected_position_vbc} – Age Group: {age}",
             xaxis_title="Rating / Athlete",
-            yaxis_title=selected_team_metric,
-            height=450
+            yaxis_title=selected_metric,
+            height=450,
+            legend_title_text="Legend",
+            showlegend=True
         )
         st.plotly_chart(fig, use_container_width=True)
-
 
 # Tab 8 - 🎯 Target Analysis
 with tabs[7]:
