@@ -700,10 +700,10 @@ with tabs[5]:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# Tab 7 - 📊 Clustered by Athlete, Bars per Testing Date, VBC Benchmark Line
+# Tab 7 - 📊 Grouped by Athlete, Clustered by Date – VBC Benchmark Line
 with tabs[6]:
-    st.markdown("### 📊 Team Testing vs VBC Benchmark – Grouped by Athlete")
-    st.info("Each athlete is a group. Bars show results by testing date. Horizontal line shows VBC benchmark for selected rating.")
+    st.markdown("### 📊 Athlete Performance by Testing Date – Grouped by Athlete")
+    st.info("Each athlete is a group. Each bar is a test result by date. The green line is the VBC benchmark for the selected rating.")
 
     @st.cache_data
     def load_team_data():
@@ -738,16 +738,16 @@ with tabs[6]:
 
     # Filters
     col1, col2, col3 = st.columns(3)
-    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="grouped_metric")
-    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="grouped_position")
-    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="grouped_rating")
+    selected_metric = col1.selectbox("📏 Metric", list(metric_mapping.keys()), key="grouped_cluster_metric")
+    selected_position_team = col2.selectbox("🧍 Position", list(position_map.keys()), key="grouped_cluster_pos")
+    selected_rating = col3.selectbox("🏷️ VBC Rating", sorted(vbc_df["Rating"].dropna().unique()), key="grouped_cluster_rating")
 
     selected_metric_vbc = metric_mapping[selected_metric]
     selected_position_vbc = position_map[selected_position_team]
 
-    # Validate data
+    # Validate columns
     required_team_cols = ["Athlete", "Primary Position", "Testing Date", selected_metric]
-    required_vbc_cols = ["Position", "Rating", selected_metric_vbc]
+    required_vbc_cols = ["Rating", "Position", selected_metric_vbc]
 
     if any(col not in team_df.columns for col in required_team_cols):
         st.error("❌ Missing columns in team data.")
@@ -756,56 +756,62 @@ with tabs[6]:
         st.error("❌ Missing columns in VBC data.")
         st.stop()
 
-    # Team data filter
+    # Clean and filter data
     team_filtered = team_df[team_df["Primary Position"] == selected_position_team].copy()
     team_filtered["Testing Date"] = pd.to_datetime(team_filtered["Testing Date"], errors="coerce")
     team_filtered = team_filtered.dropna(subset=["Testing Date", selected_metric])
 
     if team_filtered.empty:
-        st.warning("⚠️ No athlete data found for this metric and position.")
+        st.warning("⚠️ No valid athlete data for this metric/position.")
         st.stop()
 
-    # VBC benchmark value
-    vbc_benchmark = vbc_df[
+    vbc_val = vbc_df[
         (vbc_df["Position"] == selected_position_vbc) &
         (vbc_df["Rating"] == selected_rating) &
         (vbc_df[selected_metric_vbc].notna())
     ][selected_metric_vbc].mean()
 
-    if pd.isna(vbc_benchmark):
-        st.warning("⚠️ No VBC benchmark value found for these filters.")
+    if pd.isna(vbc_val):
+        st.warning("⚠️ No VBC benchmark found.")
         st.stop()
 
-    # Create categorical x-axis for [Athlete - Date]
+    # Format labels like: Athlete – Jan 2024
     team_filtered["Date Label"] = team_filtered["Testing Date"].dt.strftime("%b %Y")
-    team_filtered["X Label"] = team_filtered["Athlete"] + " – " + team_filtered["Date Label"]
+    team_filtered["Group"] = team_filtered["Athlete"]
+    team_filtered["Subgroup"] = team_filtered["Date Label"]
+    team_filtered["X"] = team_filtered["Group"] + " – " + team_filtered["Subgroup"]
 
+    # Create combined x-axis tuples for hierarchical style
+    team_filtered = team_filtered.sort_values(by=["Group", "Testing Date"])
+    x_axis = list(zip(team_filtered["Group"], team_filtered["Subgroup"]))
+
+    # Build Plot
     fig = go.Figure()
 
     fig.add_trace(go.Bar(
-        x=team_filtered["X Label"],
+        x=x_axis,
         y=team_filtered[selected_metric],
-        name="Athlete Test Score",
-        marker_color="rgba(255,100,100,0.8)"
+        name="Athlete Score",
+        marker_color="rgba(255,100,100,0.85)"
     ))
 
-    # Add horizontal benchmark line across all x-axis labels
+    # Horizontal VBC benchmark across all x-axis categories
     fig.add_trace(go.Scatter(
-        x=team_filtered["X Label"],
-        y=[vbc_benchmark] * len(team_filtered),
+        x=x_axis,
+        y=[vbc_val] * len(x_axis),
         mode="lines",
         name=f"VBC Benchmark – {selected_rating}",
         line=dict(color="lime", width=3, dash="solid")
     ))
 
     fig.update_layout(
-        title=f"{selected_metric} – {selected_position_vbc} – VBC Rating: {selected_rating}",
-        xaxis_title="Athlete by Testing Date",
+        title=f"{selected_metric} – {selected_position_vbc} – Rating: {selected_rating}",
+        xaxis_title="Athlete / Testing Date",
         yaxis_title=selected_metric,
-        height=550,
+        height=600,
         barmode="group",
         showlegend=True,
-        xaxis_tickangle=-45
+        xaxis_tickangle=45
     )
 
     st.plotly_chart(fig, use_container_width=True)
